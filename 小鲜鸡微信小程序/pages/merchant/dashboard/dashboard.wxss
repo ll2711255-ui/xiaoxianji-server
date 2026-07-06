@@ -1,0 +1,118 @@
+/* 商家首页 */
+.md-root {
+  min-height: 100vh;
+  background: #F5F5F5;
+}
+
+.md-header {
+  background: linear-gradient(135deg, var(--color-brand-dark-red), var(--color-brand-main-red));
+  padding: 56rpx 32rpx 40rpx;
+}
+
+.md-title {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #fff;
+  display: block;
+}
+
+.md-sub {
+  font-size: 30rpx;
+  color: rgba(255,255,255,0.6);
+  margin-top: 8rpx;
+  display: block;
+}
+
+/* 统计 */
+.md-stats {
+  display: flex;
+  gap: 16rpx;
+  padding: 24rpx;
+  margin-top: -20rpx;
+}
+
+.md-stat-card {
+  flex: 1;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  text-align: center;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
+}
+
+.md-stat-num {
+  font-size: 60rpx;
+  font-weight: 800;
+  color: #FF5722;
+  display: block;
+}
+
+.md-stat-active .md-stat-num {
+  color: #FF5722;
+}
+
+.md-stat-label {
+  font-size: 28rpx;
+  color: #999;
+  margin-top: 8rpx;
+  display: block;
+}
+
+/* 菜单 */
+.md-menu {
+  background: #fff;
+  border-radius: 16rpx;
+  margin: 0 24rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
+}
+
+.md-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32rpx 24rpx;
+}
+
+.md-item + .md-item {
+  border-top: 1rpx solid #F5F5F5;
+}
+
+.md-item:active {
+  background: #FAFAFA;
+}
+
+.md-item-left {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.md-item-icon {
+  font-size: 40rpx;
+}
+
+.md-item-text {
+  font-size: 34rpx;
+  color: #1A1A1A;
+}
+
+.md-arrow {
+  font-size: 40rpx;
+  color: #C7C7CC;
+}
+
+/* 退出 */
+.md-logout-wrap {
+  padding: 40rpx 24rpx;
+}
+
+.md-logout {
+  width: 100%;
+  background: #fff;
+  color: #FF3B30;
+  border: 1rpx solid #FF3B30;
+  border-radius: 40rpx;
+  font-size: 32rpx;
+  padding: 20rpx 0;
+}

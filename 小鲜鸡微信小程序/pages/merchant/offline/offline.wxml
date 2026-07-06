@@ -1,0 +1,231 @@
+<view class="mof-page">
+  <!-- 成功结果页 -->
+  <view class="mof-result" wx:if="{{result && !showPrinterPanel && !showTicketPreview}}">
+    <text class="mof-check">✓</text>
+    <text class="mof-result-title">收款成功</text>
+    <view class="mof-result-card">
+      <view class="mof-result-row">
+        <text class="mof-result-l">订单编号</text>
+        <text class="mof-result-v">{{result.orderNo}}</text>
+      </view>
+      <view class="mof-result-row">
+        <text class="mof-result-l">号码牌</text>
+        <text class="mof-result-v mof-result-num">{{result.cardNumber}}</text>
+      </view>
+      <view class="mof-result-row">
+        <text class="mof-result-l">金额</text>
+        <text class="mof-result-v mof-result-price">¥{{amountDisplay}}</text>
+      </view>
+    </view>
+    <view class="mof-result-btns">
+      <button class="mof-result-btn" bindtap="onPrintReceipt">🖨 打印小票</button>
+      <button class="mof-result-btn" bindtap="onNewOrder">继续收银</button>
+      <button class="mof-result-btn mof-result-btn-back" bindtap="onBackToOrders">返回订单</button>
+    </view>
+  </view>
+
+  <!-- 收银表单 -->
+  <view wx:else>
+    <!-- 金额显示 -->
+    <view class="mof-amount-area">
+      <text class="mof-currency">¥</text>
+      <text class="mof-amount">{{amountDisplay}}</text>
+    </view>
+
+    <!-- 付款方式 -->
+    <view class="mof-section">
+      <text class="mof-section-title">付款方式</text>
+      <view class="mof-pay-types">
+        <view class="mof-pay-type {{paymentType === 'cash' ? 'on' : ''}}" data-type="cash" bindtap="onPaymentType">
+          <text>现金</text>
+        </view>
+        <view class="mof-pay-type {{paymentType === 'wechat' ? 'on' : ''}}" data-type="wechat" bindtap="onPaymentType">
+          <text>微信支付</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 号码牌选择 -->
+    <view class="mof-section">
+      <text class="mof-section-title">选择号码牌（空闲牌）</text>
+      <view class="mof-card-row" wx:if="{{cardNumbers.length > 0}}">
+        <view
+          class="mof-card-chip {{selectedCard === card.number ? 'selected' : ''}}"
+          wx:for="{{cardNumbers}}"
+          wx:key="number"
+          data-number="{{card.number}}"
+          bindtap="onCardSelect"
+        >
+          <text>{{card.number}}</text>
+        </view>
+      </view>
+      <text class="mof-no-card" wx:else>暂无可用的空闲号码牌</text>
+    </view>
+
+    <!-- 确认按钮 -->
+    <view class="mof-submit-wrap">
+      <button class="mof-submit" bindtap="onSubmit" loading="{{submitting}}" disabled="{{!selectedCard || submitting}}">
+        {{selectedCard ? '确认收款（绑定' + selectedCard + '号牌）' : '请选择号码牌'}}
+      </button>
+    </view>
+
+    <!-- 数字键盘 -->
+    <view class="mof-keyboard">
+      <view class="mof-key-row" wx:for="{{[['1','2','3'],['4','5','6'],['7','8','9'],['.','0','backspace']]}}" wx:key="*this" wx:for-item="row">
+        <view
+          class="mof-key {{key === 'backspace' ? 'mof-key-func' : ''}}"
+          wx:for="{{row}}"
+          wx:key="*this"
+          wx:for-item="key"
+          data-key="{{key}}"
+          bindtap="onKeyTap"
+        >
+          <text wx:if="{{key === 'backspace'}}">⌫</text>
+          <text wx:else>{{key}}</text>
+        </view>
+      </view>
+      <view class="mof-key-row">
+        <view class="mof-key mof-key-clear" data-key="clear" bindtap="onKeyTap">
+          <text>清除</text>
+        </view>
+        <view class="mof-key mof-key-submit" data-key="submit" bindtap="onSubmit">
+          <text>确认</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ==================== 打印机选择面板 ==================== -->
+  <view class="md-overlay" wx:if="{{showPrinterPanel}}" catchtap="onClosePrinterPanel">
+    <view class="md-modal" catchtap="onPreventClose">
+      <view class="printer-header">
+        <text class="printer-title">选择蓝牙打印机</text>
+        <text class="printer-close" bindtap="onClosePrinterPanel">✕</text>
+      </view>
+
+      <view class="printer-searching" wx:if="{{printerSearching}}">
+        <view class="printer-spinner"></view>
+        <text class="printer-searching-text">正在搜索附近的蓝牙打印机...</text>
+      </view>
+
+      <view class="printer-status" wx:if="{{printerConnecting}}">
+        <text class="printer-connecting-icon">⏳</text>
+        <text class="printer-connecting-text">正在连接 {{currentPrinter.name || '打印机'}}...</text>
+      </view>
+
+      <view class="printer-status" wx:if="{{printing}}">
+        <text class="printer-connecting-icon">🖨</text>
+        <text class="printer-connecting-text">正在打印小票...</text>
+      </view>
+
+      <scroll-view
+        class="printer-list"
+        scroll-y
+        enhanced
+        show-scrollbar="{{false}}"
+        wx:if="{{!printerSearching && !printerConnecting && !printing}}"
+      >
+        <block wx:if="{{printers.length > 0}}">
+          <view
+            class="printer-item"
+            wx:for="{{printers}}"
+            wx:key="deviceId"
+            data-device-id="{{item.deviceId}}"
+            data-device-name="{{item.name}}"
+            bindtap="onSelectPrinter"
+          >
+            <view class="printer-item-left">
+              <text class="printer-icon">🖨</text>
+              <view class="printer-info">
+                <text class="printer-name">{{item.name}}</text>
+                <text class="printer-id">{{item.deviceId}}</text>
+              </view>
+            </view>
+            <view class="printer-item-right">
+              <text class="printer-signal">{{item.RSSI >= -50 ? '📶' : item.RSSI >= -70 ? '📶' : '📶'}}</text>
+              <text class="printer-connect-hint">连接 ›</text>
+            </view>
+          </view>
+        </block>
+
+        <view class="printer-empty" wx:if="{{printers.length === 0}}">
+          <text class="printer-empty-icon">🔍</text>
+          <text class="printer-empty-text">没有发现打印机</text>
+          <text class="printer-empty-hint">请确认：\n1. 打印机已开机\n2. 手机蓝牙已开启\n3. 打印机在手机附近（10米内）</text>
+          <button class="printer-rescan-btn" bindtap="onSearchPrinters">🔄 重新搜索</button>
+        </view>
+      </scroll-view>
+
+      <view class="printer-footer" wx:if="{{!printerSearching && !printerConnecting && !printing}}">
+        <button class="printer-rescan-btn" bindtap="onSearchPrinters">🔄 重新搜索</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- ==================== 小票预览弹窗（模拟打印） ==================== -->
+  <view class="md-overlay" wx:if="{{showTicketPreview}}" catchtap="onClosePreview">
+    <view class="md-modal ticket-preview-modal" catchtap="onPreventClose">
+
+      <view class="ticket-header">
+        <text class="ticket-title">小鲜鸡</text>
+        <text class="ticket-sub">鲜鸡现宰 · 新鲜直达</text>
+        <view class="ticket-mock-tag">小票预览（模拟打印）</view>
+      </view>
+
+      <view class="ticket-divider">──────────────────</view>
+
+      <view class="ticket-body">
+        <view class="ticket-row">
+          <text class="ticket-label">订单号</text>
+          <text class="ticket-value">{{ticketData.orderNo}}</text>
+        </view>
+        <view class="ticket-row" wx:if="{{ticketData.cardNumber}}">
+          <text class="ticket-label">号码牌</text>
+          <text class="ticket-value ticket-badge">{{ticketData.cardNumber}}</text>
+        </view>
+        <view class="ticket-row">
+          <text class="ticket-label">支付方式</text>
+          <text class="ticket-value">{{ticketData.paymentLabel}}</text>
+        </view>
+        <view class="ticket-row">
+          <text class="ticket-label">金  额</text>
+          <text class="ticket-value ticket-price">¥{{ticketData.amountYuan}}</text>
+        </view>
+        <view class="ticket-row">
+          <text class="ticket-label">时  间</text>
+          <text class="ticket-value">{{ticketData.time}}</text>
+        </view>
+      </view>
+
+      <view class="ticket-divider">──────────────────</view>
+
+      <view class="ticket-badge-wrap">
+        <text class="ticket-badge-num">{{ticketData.cardNumber}}</text>
+        <text class="ticket-badge-unit">号</text>
+        <text class="ticket-badge-tip">凭号码牌到前台取货</text>
+      </view>
+
+      <view class="ticket-divider">──────────────────</view>
+
+      <view class="ticket-qr-wrap">
+        <text class="ticket-qr-label">扫码查看取货状态</text>
+        <image class="ticket-qr-img" src="{{ticketQrUrl}}" mode="aspectFit" />
+        <text class="ticket-qr-path">{{ticketData.scene}}</text>
+      </view>
+
+      <view class="ticket-divider">──────────────────</view>
+
+      <text class="ticket-footer">谢谢惠顾，欢迎再次光临</text>
+
+      <view class="ticket-actions">
+        <button class="ticket-btn-confirm" bindtap="onMockPrintDone">
+          ✓ 模拟打印完成
+        </button>
+        <button class="ticket-btn-cancel" bindtap="onClosePreview">
+          关闭预览
+        </button>
+      </view>
+
+    </view>
+  </view>
+</view>

@@ -1,0 +1,8 @@
+{
+  "usingComponents": {
+    "custom-tab-bar": "/components/custom-tab-bar/custom-tab-bar"
+  },
+  "navigationBarTitleText": "小鲜鸡",
+  "enablePullDownRefresh": true,
+  "backgroundColor": "#FFF8F5"
+}

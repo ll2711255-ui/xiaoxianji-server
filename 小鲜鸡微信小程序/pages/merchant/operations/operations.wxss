@@ -1,0 +1,214 @@
+.op-page {
+  min-height: 100vh;
+  background: #F5F5F5;
+  display: flex;
+  flex-direction: column;
+}
+
+.op-scroll {
+  flex: 1;
+  height: 0;
+}
+
+/* Date bar */
+.op-date-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-brand-dark-red), var(--color-brand-main-red));
+  padding: 20rpx 0 28rpx;
+  gap: 32rpx;
+}
+.op-date {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  font-size: 36rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.op-date-text {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #fff;
+  min-width: 200rpx;
+  text-align: center;
+}
+
+/* Overview */
+.op-overview {
+  display: flex;
+  padding: 0 24rpx;
+  margin-top: -16rpx;
+  gap: 12rpx;
+}
+.op-ov-card {
+  flex: 1;
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 24rpx 16rpx;
+  text-align: center;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
+}
+.op-ov-value {
+  font-size: 40rpx;
+  font-weight: 800;
+  color: #1A1A1A;
+  display: block;
+}
+.op-ov-label {
+  font-size: 26rpx;
+  color: #999;
+  margin-top: 6rpx;
+  display: block;
+}
+
+/* Section */
+.op-sec-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1A1A1A;
+  display: block;
+  margin-bottom: 20rpx;
+}
+
+/* Sales rank */
+.op-rank-item {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 14rpx 0;
+}
+.op-rank-item + .op-rank-item {
+  border-top: 1rpx solid #F8F8F8;
+}
+.op-rank-num {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 8rpx;
+  background: #F0F0F0;
+  color: #999;
+  font-size: 28rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.op-rank-top1 { background: #FF5722; color: #fff; }
+.op-rank-top2 { background: #FF9500; color: #fff; }
+.op-rank-top3 { background: var(--color-brand-yolk); color: #fff; }
+
+.op-rank-info {
+  flex: 1;
+  min-width: 0;
+}
+.op-rank-name {
+  font-size: 30rpx;
+  color: #1A1A1A;
+  display: block;
+  margin-bottom: 6rpx;
+}
+.op-rank-bar-wrap {
+  height: 8rpx;
+  background: #F0F0F0;
+  border-radius: 4rpx;
+  overflow: hidden;
+}
+.op-rank-bar {
+  height: 100%;
+  background: #FF5722;
+  border-radius: 4rpx;
+  transition: width 0.5s;
+}
+.op-rank-sales {
+  font-size: 28rpx;
+  color: #999;
+  flex-shrink: 0;
+}
+
+/* Category */
+.op-cat-item {
+  padding: 14rpx 0;
+}
+.op-cat-item + .op-cat-item {
+  border-top: 1rpx solid #F8F8F8;
+}
+.op-cat-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10rpx;
+}
+.op-cat-name {
+  font-size: 30rpx;
+  color: #1A1A1A;
+}
+.op-cat-pct {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #FF5722;
+}
+.op-cat-bar-wrap {
+  height: 12rpx;
+  background: #F0F0F0;
+  border-radius: 6rpx;
+  overflow: hidden;
+}
+.op-cat-bar {
+  height: 100%;
+  border-radius: 6rpx;
+  transition: width 0.5s;
+}
+
+/* Recent orders */
+.op-order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 0;
+}
+.op-order-item + .op-order-item {
+  border-top: 1rpx solid #F8F8F8;
+}
+.op-order-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+.op-order-no {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1A1A1A;
+}
+.op-order-type {
+  font-size: 26rpx;
+  color: #999;
+}
+.op-order-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4rpx;
+}
+.op-order-amount {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #FF4B26;
+}
+.op-order-status {
+  font-size: 26rpx;
+  color: #FF9500;
+}
+.op-status-done {
+  color: #FF5722;
+}
+
+.op-empty {
+  text-align: center;
+  padding: 48rpx 0;
+  color: #C7C7CC;
+  font-size: 30rpx;
+}

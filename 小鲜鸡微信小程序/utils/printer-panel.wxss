@@ -1,0 +1,339 @@
+/**
+ * 打印机面板 + 小票预览 - 可复用样式
+ *
+ * 使用方式：
+ *   @import '../../utils/printer-panel.wxss';
+ */
+
+/* ========== 弹窗通用 ========== */
+.md-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.md-modal {
+  width: 85vw;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.md-modal-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  display: block;
+  text-align: center;
+  margin-bottom: 28rpx;
+}
+.md-modal-btns {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 24rpx;
+}
+.md-modal-cancel, .md-modal-confirm {
+  flex: 1;
+  border: none;
+  border-radius: 40rpx;
+  font-size: 32rpx;
+  padding: 20rpx 0;
+}
+.md-modal-cancel {
+  background: #F5F5F5;
+  color: #999;
+}
+.md-modal-confirm {
+  background: linear-gradient(to right, #C0392B, #D4420A);
+  color: #fff;
+  box-shadow: 0 4rpx 12rpx rgba(212, 66, 10, 0.3);
+}
+
+/* 打印机列表 */
+.printer-item {
+  display: flex;
+  align-items: center;
+  padding: 22rpx 16rpx;
+  border-bottom: 1rpx solid #F0F0F0;
+}
+.printer-item:active { background: #F8F8F8; }
+.printer-item-left { flex: 1; }
+.printer-name { font-size: 30rpx; color: #1A1A1A; display: block; }
+.printer-rssi { font-size: 24rpx; color: #B0B0B0; margin-top: 4rpx; display: block; }
+.printer-arrow { font-size: 36rpx; color: #CCC; }
+
+/* ========== 小票预览 ========== */
+.ticket-preview-modal {
+  max-width: 600rpx;
+}
+.ticket-paper {
+  background: #FFFEF7;
+  border: 2rpx dashed #E0DCC8;
+  border-radius: 8rpx;
+  padding: 24rpx 20rpx;
+  font-family: monospace;
+  font-size: 25rpx;
+  color: #1A1A1A;
+  line-height: 1.8;
+  margin-bottom: 20rpx;
+}
+.ticket-center { text-align: center; }
+.ticket-shop { font-size: 40rpx; font-weight: 800; display: block; letter-spacing: 4rpx; }
+.ticket-sub { font-size: 24rpx; color: #999; display: block; margin-top: 4rpx; }
+.ticket-divider { font-size: 20rpx; color: #CCC; display: block; margin: 8rpx 0; letter-spacing: 2rpx; }
+.ticket-row { display: flex; padding: 2rpx 0; }
+.ticket-label { color: #666; flex-shrink: 0; }
+.ticket-card-no { font-weight: 800; color: #FF5722; font-size: 32rpx; }
+.ticket-amount-block { margin: 16rpx 0; }
+.ticket-amount { font-size: 52rpx; font-weight: 800; color: #FF4B26; display: block; }
+.ticket-amount-label { font-size: 24rpx; color: #999; display: block; }
+.ticket-refund { font-size: 26rpx; color: #34C759; display: block; }
+.ticket-qr { width: 180rpx; height: 180rpx; margin: 10rpx auto; display: block; }
+.ticket-qr-placeholder { font-size: 24rpx; color: #CCC; display: block; padding: 60rpx 0; }
+.ticket-qr-hint { font-size: 22rpx; color: #B0B0B0; display: block; }
+.ticket-time { font-size: 24rpx; color: #999; display: block; }
+.ticket-thanks { font-size: 22rpx; color: #CCC; display: block; margin-top: 4rpx; }
+
+/* ========== 打印机面板（扩展：header / 状态 / 空态 / 底部栏） ========== */
+.printer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+.printer-title {
+  font-size: 36rpx;
+  font-weight: 700;
+}
+.printer-close {
+  font-size: 40rpx;
+  color: #999;
+  padding: 8rpx;
+}
+.printer-searching,
+.printer-status {
+  text-align: center;
+  padding: 40rpx 0;
+}
+.printer-spinner {
+  width: 48rpx;
+  height: 48rpx;
+  border: 4rpx solid #F0F0F0;
+  border-top-color: #FF5722;
+  border-radius: 50%;
+  animation: printer-spin 0.8s linear infinite;
+  margin: 0 auto 16rpx;
+}
+@keyframes printer-spin {
+  to { transform: rotate(360deg); }
+}
+.printer-searching-text,
+.printer-connecting-text {
+  font-size: 28rpx;
+  color: #999;
+  display: block;
+}
+.printer-connecting-icon {
+  font-size: 48rpx;
+  display: block;
+  margin-bottom: 12rpx;
+}
+.printer-list {
+  max-height: 500rpx;
+  overflow-y: auto;
+}
+.printer-icon {
+  font-size: 36rpx;
+  margin-right: 16rpx;
+}
+.printer-info {
+  display: flex;
+  flex-direction: column;
+}
+.printer-id {
+  font-size: 22rpx;
+  color: #CCC;
+  margin-top: 2rpx;
+}
+.printer-item-right {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+.printer-signal {
+  font-size: 28rpx;
+}
+.printer-connect-hint {
+  font-size: 26rpx;
+  color: #FF5722;
+}
+.printer-empty {
+  text-align: center;
+  padding: 40rpx 0;
+}
+.printer-empty-icon {
+  font-size: 68rpx;
+  display: block;
+  margin-bottom: 16rpx;
+}
+.printer-empty-text {
+  font-size: 30rpx;
+  color: #999;
+  display: block;
+}
+.printer-empty-hint {
+  font-size: 24rpx;
+  color: #CCC;
+  display: block;
+  margin: 12rpx 0 24rpx;
+  white-space: pre-line;
+  line-height: 1.6;
+}
+.printer-rescan-btn {
+  font-size: 28rpx;
+  color: #FF5722;
+  background: #FFF0EB;
+  border: none;
+  border-radius: 32rpx;
+  padding: 16rpx 32rpx;
+}
+.printer-footer {
+  text-align: center;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #F0F0F0;
+  margin-top: 12rpx;
+}
+.printer-connected-bar {
+  display: flex;
+  align-items: center;
+  background: #F0FAF5;
+  border-radius: 8rpx;
+  padding: 16rpx;
+  margin-bottom: 16rpx;
+  gap: 12rpx;
+}
+.printer-connected-icon {
+  font-size: 32rpx;
+}
+.printer-connected-text {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1DB96A;
+}
+.printer-disconnect-btn {
+  font-size: 26rpx;
+  color: #FF3B30;
+  padding: 6rpx 16rpx;
+}
+
+/* ========== 小票预览（扩展：header / value / badge / qr / actions） ========== */
+.ticket-header {
+  text-align: center;
+  margin-bottom: 16rpx;
+}
+.ticket-title {
+  font-size: 40rpx;
+  font-weight: 800;
+  display: block;
+  letter-spacing: 4rpx;
+}
+.ticket-mock-tag {
+  display: inline-block;
+  font-size: 22rpx;
+  color: #FF9500;
+  background: #FFF8E1;
+  border-radius: 4rpx;
+  padding: 4rpx 12rpx;
+  margin-top: 8rpx;
+}
+.ticket-body {
+  padding: 8rpx 0;
+}
+.ticket-value {
+  font-size: 25rpx;
+  color: #1A1A1A;
+}
+.ticket-badge {
+  font-weight: 800;
+  color: #FF5722;
+  font-size: 32rpx;
+}
+.ticket-price {
+  font-weight: 700;
+  color: #FF4B26;
+  font-size: 36rpx;
+}
+.ticket-badge-wrap {
+  text-align: center;
+  padding: 12rpx 0;
+}
+.ticket-badge-num {
+  font-size: 64rpx;
+  font-weight: 800;
+  color: #FF5722;
+  display: block;
+}
+.ticket-badge-unit {
+  font-size: 32rpx;
+  color: #FF5722;
+  font-weight: 600;
+}
+.ticket-badge-tip {
+  font-size: 24rpx;
+  color: #999;
+  display: block;
+  margin-top: 8rpx;
+}
+.ticket-qr-wrap {
+  text-align: center;
+  padding: 8rpx 0;
+}
+.ticket-qr-label {
+  font-size: 22rpx;
+  color: #B0B0B0;
+  display: block;
+  margin-bottom: 8rpx;
+}
+.ticket-qr-img {
+  width: 200rpx;
+  height: 200rpx;
+  display: block;
+  margin: 0 auto;
+}
+.ticket-qr-path {
+  font-size: 20rpx;
+  color: #CCC;
+  display: block;
+  margin-top: 6rpx;
+}
+.ticket-footer {
+  text-align: center;
+  font-size: 22rpx;
+  color: #CCC;
+  display: block;
+  padding: 8rpx 0;
+}
+.ticket-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 20rpx;
+}
+.ticket-btn-confirm,
+.ticket-btn-cancel {
+  flex: 1;
+  border: none;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+  padding: 18rpx 0;
+}
+.ticket-btn-confirm {
+  background: linear-gradient(to right, #C0392B, #D4420A);
+  color: #fff;
+}
+.ticket-btn-cancel {
+  background: #F5F5F5;
+  color: #999;
+}

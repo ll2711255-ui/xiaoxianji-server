@@ -1,0 +1,182 @@
+/* ========== 取货状态页 ========== */
+.pu-page {
+  min-height: 100vh;
+  background: #F5F5F5;
+}
+
+.pu-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  padding: 48rpx;
+}
+
+/* ========== 加载动画 ========== */
+.pu-spinner {
+  width: 72rpx;
+  height: 72rpx;
+  border: 4rpx solid #E0E0E0;
+  border-top-color: #1DB96A;
+  border-radius: 50%;
+  animation: pu-spin 1s linear infinite;
+}
+
+@keyframes pu-spin {
+  to { transform: rotate(360deg); }
+}
+
+.pu-text {
+  margin-top: 24rpx;
+  font-size: 32rpx;
+  color: #999;
+}
+
+/* ========== 无效 ========== */
+.pu-invalid-circle {
+  width: 144rpx;
+  height: 144rpx;
+  border: 4rpx solid #FF3B30;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pu-invalid-x {
+  font-size: 80rpx;
+  color: #FF3B30;
+}
+
+.pu-invalid-title {
+  font-size: 38rpx;
+  font-weight: 700;
+  color: #FF3B30;
+  margin-top: 24rpx;
+}
+
+/* ========== 已完成（可取货）- 全屏绿色 ========== */
+.pu-completed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: #1DB96A;
+  padding: 48rpx;
+}
+
+.pu-success-circle {
+  width: 160rpx;
+  height: 160rpx;
+  background: rgba(255,255,255,0.2);
+  border: 6rpx solid #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 32rpx;
+}
+
+.pu-success-check {
+  font-size: 88rpx;
+  color: #fff;
+  font-weight: 700;
+}
+
+.pu-success-title {
+  font-size: 52rpx;
+  font-weight: 800;
+  color: #fff;
+  display: block;
+}
+
+.pu-detail-light {
+  font-size: 30rpx;
+  color: rgba(255,255,255,0.8);
+  margin-top: 20rpx;
+}
+
+.pu-hint-light {
+  font-size: 28rpx;
+  color: rgba(255,255,255,0.6);
+  margin-top: 28rpx;
+}
+
+/* 已完成状态的号码牌 */
+.pu-cardnum {
+  font-size: 64rpx;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+  margin-top: 24rpx;
+}
+
+/* ========== 处理中 - 白色卡片 ========== */
+.pu-processing-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 64rpx 48rpx;
+  box-shadow: 0 4rpx 24rpx rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 560rpx;
+}
+
+.pu-processing-text {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1A1A1A;
+  margin-top: 32rpx;
+}
+
+.pu-cardnum-dark {
+  font-size: 64rpx;
+  font-weight: 800;
+  color: #1DB96A;
+  line-height: 1;
+  margin-top: 16rpx;
+}
+
+/* ========== 通用 ========== */
+.pu-detail {
+  font-size: 30rpx;
+  color: #999;
+  margin-top: 16rpx;
+}
+
+.pu-cardlabel {
+  font-size: 28rpx;
+  color: #C7C7CC;
+  margin-top: 6rpx;
+}
+
+.pu-hint {
+  font-size: 28rpx;
+  color: #C7C7CC;
+}
+
+/* ========== 离线 / 刷新 ========== */
+.pu-offline {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: #FFF5F0;
+  text-align: center;
+  padding: 12rpx;
+  z-index: 10;
+}
+
+.pu-offline-text {
+  font-size: 28rpx;
+  color: #FF9500;
+}
+
+.pu-refresh {
+  text-align: center;
+  padding: 32rpx;
+}

@@ -1,0 +1,259 @@
+<view class="mw-page">
+  <!-- 页面标题 -->
+  <view class="mw-header">
+    <text class="mw-title">订单称重</text>
+    <text class="mw-order-no">{{orderNo}}</text>
+  </view>
+
+  <!-- 商品信息卡片 -->
+  <view class="card-full">
+    <text class="mw-section-title">商品信息</text>
+    <view class="mw-product-row">
+      <text class="mw-product-name">{{productName}}</text>
+      <view class="mw-tags">
+        <text class="mw-tag" wx:for="{{specTags}}" wx:key="index" wx:for-item="tag">{{tag.text}}</text>
+      </view>
+    </view>
+
+    <view class="mw-inforow">
+      <text class="mw-infol">每斤单价</text>
+      <text class="mw-infor mw-price">¥{{pricePerJinDisplay}}</text>
+    </view>
+    <view class="mw-inforow">
+      <text class="mw-infol">处理附加费</text>
+      <text class="mw-infor">¥{{processingFeeDisplay}}</text>
+    </view>
+    <view class="mw-inforow mw-prepay-row">
+      <text class="mw-infol">预收金额</text>
+      <text class="mw-infor mw-prepay">¥{{prepayDisplay}}</text>
+    </view>
+  </view>
+
+  <!-- 实际称重输入 -->
+  <view class="card-full">
+    <text class="mw-section-title">实际称重</text>
+    <view class="mw-weight-input-row">
+      <input
+        class="mw-weight-input {{weightWarning ? 'warn' : ''}}"
+        type="number"
+        placeholder="请输入克数，如 1380"
+        value="{{weightInput}}"
+        bindinput="onWeightInput"
+        focus="{{true}}"
+        maxlength="5"
+      />
+      <text class="mw-weight-unit">克</text>
+    </view>
+    <!-- 约束提示（防线②） -->
+    <text class="mw-constraint-label" wx:if="{{weightConstraint}}">{{weightConstraint.label}}</text>
+    <!-- 默认提示（无约束时） -->
+    <text class="mw-input-hint" wx:else>输入实际称重克数，下方实时计算</text>
+    <!-- 校验警告（防线②） -->
+    <view class="mw-weight-warning" wx:if="{{weightWarning}}">
+      <text>⚠ {{weightWarning}}</text>
+    </view>
+  </view>
+
+  <!-- 实时计算结果 -->
+  <view class="card-full" wx:if="{{weightGrams > 0}}">
+    <text class="mw-section-title">计算结果</text>
+
+    <view class="mw-inforow">
+      <text class="mw-infol">实际重量</text>
+      <text class="mw-infor">{{weightGrams}}克（{{actualWeightJin}}斤）</text>
+    </view>
+    <view class="mw-inforow">
+      <text class="mw-infol">实际金额</text>
+      <text class="mw-infor mw-price">¥{{actualAmountDisplay}}</text>
+    </view>
+    <view class="mw-inforow mw-refund-row" wx:if="{{refundAmount > 0}}">
+      <text class="mw-infol">退款金额</text>
+      <text class="mw-infor mw-refund">¥{{refundAmountDisplay}}</text>
+    </view>
+    <view class="mw-inforow mw-no-refund-row" wx:else>
+      <text class="mw-infol">退款金额</text>
+      <text class="mw-infor mw-no-refund">无需退款</text>
+    </view>
+  </view>
+
+  <!-- 称重照片 -->
+  <view class="card-full">
+    <text class="mw-section-title">称重照片</text>
+
+    <view class="mw-photo-area" wx:if="{{!weighPhoto}}" bindtap="onChoosePhoto">
+      <view class="mw-photo-empty">
+        <text class="mw-photo-icon">📷</text>
+        <text class="mw-photo-text">点击拍照或从相册选择</text>
+      </view>
+    </view>
+
+    <view class="mw-photo-preview" wx:else>
+      <image class="mw-photo-img" src="{{weighPhoto}}" mode="aspectFill" />
+      <view class="mw-photo-actions">
+        <button class="mw-photo-btn mw-photo-repick" bindtap="onChoosePhoto">重新拍照</button>
+        <button class="mw-photo-btn mw-photo-remove" bindtap="onRemovePhoto">删除</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 号码牌选择（与线下收银一致） -->
+  <view class="card-full">
+    <text class="mw-section-title">选择挂牌号码</text>
+    <scroll-view class="mw-card-scroll" scroll-y enhanced show-scrollbar="{{false}}" wx:if="{{cardNumbers.length > 0}}">
+      <view class="mw-card-grid">
+        <view
+          class="mw-card-item {{card.status === 'idle' ? 'idle' : 'used'}} {{selectedCard === card.number ? 'selected' : ''}}"
+          wx:for="{{cardNumbers}}"
+          wx:for-item="card"
+          wx:key="number"
+          data-number="{{card.number}}"
+          bindtap="onCardSelect"
+        >
+          <text class="mw-card-num-text">{{card.number}}</text>
+        </view>
+      </view>
+    </scroll-view>
+    <text class="mw-no-card" wx:else>暂无可用的号码牌</text>
+    <text class="mw-card-hint" wx:if="{{selectedCard}}">已选 {{selectedCard}} 号牌</text>
+    <text class="mw-card-hint mw-card-optional" wx:else>可选绑定号码牌（不选则沿用订单已有牌号）</text>
+  </view>
+
+  <!-- 提交按钮 -->
+  <view class="mw-submit-wrap">
+    <button
+      class="mw-submit-btn"
+      bindtap="onSubmit"
+      loading="{{submitting}}"
+      disabled="{{submitting || weightGrams <= 0 || weightWarning}}"
+    >
+      {{submitting ? '提交中...' : (weightWarning ? '重量不符合规则' : '确认提交称重')}}
+    </button>
+  </view>
+
+  <view style="height: 48rpx;"></view>
+</view>
+
+<!-- ========== 打印机选择面板 ========== -->
+<view class="md-overlay" wx:if="{{showPrinterPanel}}" bindtap="onClosePrinterPanel">
+  <view class="md-modal" catchtap="onPreventClose">
+    <text class="md-modal-title">选择蓝牙打印机</text>
+
+    <!-- 搜索中 -->
+    <view wx:if="{{printerSearching}}" style="text-align:center;padding:40rpx 0;">
+      <text style="font-size:28rpx;color:#999;">正在搜索附近的蓝牙打印机...</text>
+    </view>
+
+    <!-- 打印机列表 -->
+    <scroll-view scroll-y style="max-height:500rpx;" wx:if="{{!printerSearching}}">
+      <view wx:if="{{printers.length === 0}}" style="text-align:center;padding:40rpx 0;">
+        <text style="font-size:28rpx;color:#999;">未发现蓝牙打印机</text>
+        <view style="margin-top:20rpx;">
+          <button bindtap="onSearchPrinters" size="mini">重新搜索</button>
+        </view>
+      </view>
+      <view
+        wx:for="{{printers}}"
+        wx:key="deviceId"
+        class="printer-item"
+        data-device-id="{{item.deviceId}}"
+        data-device-name="{{item.name}}"
+        bindtap="onSelectPrinter"
+      >
+        <view class="printer-item-left">
+          <text class="printer-name">{{item.name}}</text>
+          <text class="printer-rssi">信号: {{item.RSSI}}</text>
+        </view>
+        <text class="printer-arrow">›</text>
+      </view>
+    </scroll-view>
+
+    <!-- 连接中 -->
+    <view wx:if="{{printerConnecting}}" style="text-align:center;padding:20rpx;">
+      <text style="font-size:28rpx;color:#FF9500;">正在连接 {{currentPrinter.name}}...</text>
+    </view>
+
+    <view class="md-modal-btns">
+      <button class="md-modal-cancel" bindtap="onClosePrinterPanel">取消</button>
+      <button class="md-modal-confirm" bindtap="onSearchPrinters" disabled="{{printerSearching}}">重新搜索</button>
+    </view>
+  </view>
+</view>
+
+<!-- ========== 模拟打印预览（称重小票） ========== -->
+<view class="md-overlay" wx:if="{{showTicketPreview}}" bindtap="onClosePreview">
+  <view class="md-modal ticket-preview-modal" catchtap="onPreventClose">
+    <text class="md-modal-title">📋 称重小票预览</text>
+
+    <view class="ticket-paper">
+      <!-- 头部 -->
+      <view class="ticket-center">
+        <text class="ticket-shop">小鲜鸡</text>
+        <text class="ticket-sub">鲜鸡现宰 新鲜直达</text>
+        <text class="ticket-divider">────────────────</text>
+      </view>
+
+      <!-- 订单信息 -->
+      <view class="ticket-row">
+        <text class="ticket-label">订单号：</text>
+        <text>{{ticketData.orderNo}}</text>
+      </view>
+      <view class="ticket-row">
+        <text class="ticket-label">类型：</text>
+        <text>{{ticketData.typeLabel}}</text>
+      </view>
+      <view class="ticket-row" wx:if="{{ticketData.cardNumber}}">
+        <text class="ticket-label">号码牌：</text>
+        <text class="ticket-card-no">{{ticketData.cardNumber}}</text>
+      </view>
+
+      <text class="ticket-divider">────────────────</text>
+
+      <!-- 称重信息 -->
+      <view class="ticket-row" wx:if="{{ticketData.productName}}">
+        <text class="ticket-label">商品：</text>
+        <text>{{ticketData.productName}}{{ticketData.specSummary ? '（' + ticketData.specSummary + '）' : ''}}</text>
+      </view>
+      <view class="ticket-row">
+        <text class="ticket-label">实际重量：</text>
+        <text>{{ticketData.actualWeightJin}}斤（{{ticketData.actualWeightGrams}}克）</text>
+      </view>
+      <view class="ticket-row">
+        <text class="ticket-label">单价：</text>
+        <text>¥{{ticketData.pricePerJinYuan}}/斤</text>
+      </view>
+
+      <!-- 金额（大字） -->
+      <view class="ticket-center ticket-amount-block">
+        <text class="ticket-amount">¥{{ticketData.actualAmountYuan}}</text>
+        <text class="ticket-amount-label">实收金额</text>
+      </view>
+
+      <!-- 退款 -->
+      <view class="ticket-center" wx:if="{{ticketData.hasRefund}}">
+        <text class="ticket-refund">(退款 ¥{{ticketData.refundAmountYuan}})</text>
+      </view>
+
+      <text class="ticket-divider">────────────────</text>
+
+      <!-- QR 码 -->
+      <view class="ticket-center">
+        <image wx:if="{{ticketQrUrl}}" class="ticket-qr" src="{{ticketQrUrl}}" mode="aspectFit" />
+        <text wx:else class="ticket-qr-placeholder">[QR码加载中...]</text>
+        <text class="ticket-qr-hint">扫码查看订单详情</text>
+      </view>
+
+      <text class="ticket-divider">────────────────</text>
+
+      <!-- 底部 -->
+      <view class="ticket-center">
+        <text class="ticket-time">{{ticketData.time}}</text>
+        <text class="ticket-thanks">谢谢惠顾，欢迎再次光临</text>
+      </view>
+    </view>
+
+    <view class="md-modal-btns">
+      <button class="md-modal-cancel" bindtap="onClosePreview">关闭</button>
+      <button class="md-modal-confirm" bindtap="onMockPrintDone">确认打印</button>
+    </view>
+  </view>
+</view>

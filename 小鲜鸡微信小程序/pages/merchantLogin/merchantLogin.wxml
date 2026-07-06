@@ -1,0 +1,26 @@
+<view class="ml-root">
+  <!-- 顶部品牌 -->
+  <view class="ml-brand">
+    <view class="ml-logo">
+      <text class="ml-logo-text">🐔</text>
+    </view>
+    <text class="ml-title">商家管理后台</text>
+    <text class="ml-desc">小鲜鸡 · 商家端</text>
+  </view>
+
+  <!-- 登录卡片 -->
+  <view class="ml-card">
+    <view class="ml-field">
+      <text class="ml-label">手机号</text>
+      <input class="ml-input" type="number" maxlength="11" placeholder="请输入商家手机号" value="{{phone}}" bindinput="onPhoneInput" />
+    </view>
+    <view class="ml-field">
+      <text class="ml-label">密码</text>
+      <input class="ml-input" type="password" maxlength="20" placeholder="请输入密码" value="{{password}}" bindinput="onPasswordInput" />
+    </view>
+    <button class="ml-submit" bindtap="onSubmit" loading="{{submitting}}">登 录</button>
+  </view>
+
+  <!-- 底部提示 -->
+  <text class="ml-footer">如需开通商家权限，请联系管理员</text>
+</view>

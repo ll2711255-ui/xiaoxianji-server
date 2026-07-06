@@ -1,0 +1,7 @@
+{
+  "usingComponents": {},
+  "navigationBarBackgroundColor": "#A83108",
+  "navigationBarTitleText": "商家管理",
+  "navigationBarTextStyle": "white",
+  "enablePullDownRefresh": false
+}

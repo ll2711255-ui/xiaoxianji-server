@@ -1,0 +1,252 @@
+<view class="md-page" wx:if="{{order}}">
+  <!-- 状态头部 -->
+  <view class="md-header">
+    <text class="md-status">{{order.statusText}}</text>
+    <text class="md-no">{{order.orderNo}}</text>
+    <text class="md-type">{{order.typeLabel}}</text>
+  </view>
+
+  <!-- 商品清单 -->
+  <view class="card-full">
+    <text class="md-section-title">商品清单</text>
+    <block wx:if="{{order.items && order.items.length > 0}}">
+      <view class="md-item" wx:for="{{order.items}}" wx:key="productId" wx:for-item="p">
+        <view class="md-item-left">
+          <text class="md-pname">{{p.productName}}</text>
+          <view class="md-ptags">
+            <text class="tag tag-gray" wx:if="{{p.spec && p.spec.type}}">{{p.spec.type}}</text>
+            <text class="tag tag-gray" wx:if="{{p.spec && p.spec.weight}}">{{p.spec.weight}}</text>
+            <text class="tag tag-gray" wx:if="{{p.spec && p.spec.processing}}">{{p.spec.processing}}</text>
+          </view>
+        </view>
+        <view class="md-item-right">
+          <text class="md-pqty">×{{p.quantity}}</text>
+          <text class="md-pprice">¥{{p.unitPriceDisplay || order.prepayDisplay}}</text>
+        </view>
+      </view>
+    </block>
+    <view class="md-item" wx:else>
+      <text class="md-pname">线下订单 - {{order.paymentType === 'wechat' ? '微信支付' : order.paymentType === 'unpaid' ? '未支付' : '现金/扫码'}}</text>
+    </view>
+  </view>
+
+  <!-- 订单信息 -->
+  <view class="card-full">
+    <text class="md-section-title">订单信息</text>
+    <view class="od-inforow od-tappable" wx:if="{{order.type === 'delivery' && order.deliveryAddress}}" bindtap="onNavigateToAddress">
+      <text class="od-infol">📍 收货地址</text>
+      <text class="od-infor od-addr od-link">{{order.deliveryAddress.province}}{{order.deliveryAddress.city}}{{order.deliveryAddress.district}} {{order.deliveryAddress.detail}}</text>
+      <text class="od-arrow">›</text>
+      <text class="od-copy-btn" catchtap="onCopyAddress">📋</text>
+    </view>
+    <view class="od-inforow od-tappable" wx:if="{{order.deliveryAddress && order.deliveryAddress.phone}}" bindtap="onCallPhone">
+      <text class="od-infol">📞 联系电话</text>
+      <text class="od-infor od-link">{{order.deliveryAddress.phone}}</text>
+      <text class="od-arrow">›</text>
+      <text class="od-copy-btn" catchtap="onCopyPhone">📋</text>
+    </view>
+    <view class="od-inforow" wx:if="{{order.isScheduled && order.scheduledDate}}">
+      <text class="od-infol">预约时间</text>
+      <text class="od-infor">{{order.scheduledDate}} {{order.scheduledTime}}</text>
+    </view>
+    <view class="od-inforow" wx:if="{{order.cardNumber}}">
+      <text class="od-infol">号码牌</text>
+      <text class="od-infor md-card-num">{{order.cardNumber}}</text>
+    </view>
+    <view class="od-inforow">
+      <text class="od-infol">预收金额</text>
+      <text class="od-infor od-price">¥{{order.prepayDisplay}}</text>
+    </view>
+    <view class="od-inforow" wx:if="{{order.actualWeight}}">
+      <text class="od-infol">实际重量</text>
+      <text class="od-infor">{{order.actualWeightDisplay}}</text>
+    </view>
+    <view class="od-inforow" wx:if="{{order.actualAmount}}">
+      <text class="od-infol">实收金额</text>
+      <text class="od-infor od-price">¥{{order.actualDisplay}}</text>
+    </view>
+  </view>
+
+  <!-- 称重记录（weighed 及之后状态展示） -->
+  <view class="card-full" wx:if="{{weighInfo}}">
+    <text class="md-section-title">📷 称重记录</text>
+
+    <!-- 称重照片 -->
+    <image
+      wx:if="{{weighInfo.weighPhoto}}"
+      class="md-weigh-img"
+      src="{{weighInfo.weighPhoto}}"
+      mode="aspectFit"
+      bindtap="onPreviewWeighPhoto"
+    />
+    <text class="weigh-photo-hint" wx:if="{{weighInfo.weighPhoto}}">点击查看大图</text>
+
+    <view class="od-inforow">
+      <text class="od-infol">实际重量</text>
+      <text class="od-infor">{{weighInfo.actualWeightDisplay}}</text>
+    </view>
+    <view class="od-inforow">
+      <text class="od-infol">每斤单价</text>
+      <text class="od-infor">¥{{weighInfo.pricePerJinDisplay}}</text>
+    </view>
+    <view class="od-inforow" wx:if="{{weighInfo.processingFee > 0}}">
+      <text class="od-infol">处理附加费</text>
+      <text class="od-infor">¥{{weighInfo.processingFeeDisplay}}</text>
+    </view>
+    <view class="od-inforow">
+      <text class="od-infol">预收金额</text>
+      <text class="od-infor od-price">¥{{weighInfo.prepayAmountDisplay || order.prepayDisplay}}</text>
+    </view>
+    <view class="od-inforow">
+      <text class="od-infol">实际金额</text>
+      <text class="od-infor od-price">¥{{weighInfo.actualAmountDisplay}}</text>
+    </view>
+    <view class="od-inforow" wx:if="{{weighInfo.refundAmount > 0}}">
+      <text class="od-infol">退款金额</text>
+      <text class="od-infor od-refund-amount">¥{{weighInfo.refundAmountDisplay}}</text>
+    </view>
+    <view class="od-inforow" wx:if="{{weighInfo.staffName}}">
+      <text class="od-infol">称重人</text>
+      <text class="od-infor">{{weighInfo.staffName}}</text>
+    </view>
+    <view class="od-inforow" wx:if="{{weighInfo.weighTimeDisplay}}">
+      <text class="od-infol">称重时间</text>
+      <text class="od-infor">{{weighInfo.weighTimeDisplay}}</text>
+    </view>
+  </view>
+
+  <!-- 退款状态 -->
+  <view class="card-full" wx:if="{{refundInfo}}">
+    <text class="md-section-title">退款信息</text>
+    <view class="od-inforow">
+      <text class="od-infol">退款单号</text>
+      <text class="od-infor">{{refundInfo.refundNo || '--'}}</text>
+    </view>
+    <view class="od-inforow">
+      <text class="od-infol">退款金额</text>
+      <text class="od-infor od-refund-amount">¥{{refundInfo.refundAmountDisplay}}</text>
+    </view>
+    <view class="od-inforow">
+      <text class="od-infol">退款状态</text>
+      <text class="od-infor tag {{refundInfo.statusClass}}">{{refundInfo.statusText}}</text>
+    </view>
+  </view>
+
+  <!-- 操作区 -->
+  <view class="md-actions">
+    <button class="md-action-btn md-accept" wx:if="{{order.canAccept}}" data-action="accept" bindtap="onStatusAction">确认接单</button>
+    <button class="md-action-btn md-weigh" wx:if="{{order.canWeigh}}" data-action="weigh" bindtap="onStatusAction">称重挂牌</button>
+    <button class="md-action-btn md-cancel" wx:if="{{order.canCancel}}" data-action="cancel" bindtap="onStatusAction">取消订单</button>
+    <button class="md-action-btn md-process" wx:if="{{order.canProcess}}" data-action="process" bindtap="onStatusAction">开始处理</button>
+    <button class="md-action-btn md-process" wx:if="{{order.canProcessDone}}" data-action="ready" bindtap="onStatusAction">处理完成</button>
+    <button class="md-action-btn md-deliver" wx:if="{{order.canDeliver}}" data-action="deliver" bindtap="onStatusAction">开始配送</button>
+    <button class="md-action-btn md-ready" wx:if="{{order.canReady}}" data-action="ready" bindtap="onStatusAction">处理完成</button>
+    <button class="md-action-btn md-pickup" wx:if="{{order.canPickup}}" data-action="complete" bindtap="onStatusAction">已取货</button>
+    <button class="md-action-btn md-pay" wx:if="{{order.canMarkPaid}}" data-action="markPaid" bindtap="onStatusAction">已完成支付</button>
+    <button class="md-action-btn md-done" wx:if="{{order.canComplete}}" data-action="complete" bindtap="onStatusAction">{{order.completeLabel || '确认完成'}}</button>
+  </view>
+
+  <view style="height: 32rpx;"></view>
+</view>
+
+<!-- 打印机选择面板 -->
+<view class="md-overlay" wx:if="{{showPrinterPanel}}" catchtap="onClosePrinterPanel">
+  <view class="md-modal" catchtap="onPreventClose">
+    <text class="md-modal-title">选择蓝牙打印机</text>
+
+    <view wx:if="{{printerSearching}}" style="text-align:center;padding:40rpx 0;">
+      <text style="font-size:28rpx;color:#999;">正在搜索附近的蓝牙打印机...</text>
+    </view>
+
+    <view wx:if="{{printerConnecting}}" style="text-align:center;padding:20rpx;">
+      <text style="font-size:28rpx;color:#FF9500;">正在连接 {{currentPrinter.name}}...</text>
+    </view>
+
+    <view wx:if="{{printing}}" style="text-align:center;padding:20rpx;">
+      <text style="font-size:28rpx;color:#34C759;">正在打印小票...</text>
+    </view>
+
+    <scroll-view scroll-y style="max-height:500rpx;" wx:if="{{!printerSearching && !printerConnecting && !printing}}">
+      <view wx:if="{{printers.length === 0}}" style="text-align:center;padding:40rpx 0;">
+        <text style="font-size:28rpx;color:#999;">未发现蓝牙打印机</text>
+        <view style="margin-top:20rpx;">
+          <button bindtap="onSearchPrinters" size="mini" type="primary">🔄 重新搜索</button>
+        </view>
+      </view>
+      <view
+        wx:for="{{printers}}"
+        wx:key="deviceId"
+        class="printer-item"
+        data-device-id="{{item.deviceId}}"
+        data-device-name="{{item.name}}"
+        bindtap="onSelectPrinterDetail"
+      >
+        <view class="printer-item-left">
+          <text class="printer-name">{{item.name}}</text>
+          <text class="printer-rssi">信号: {{item.RSSI}}dBm</text>
+        </view>
+        <text class="printer-arrow">›</text>
+      </view>
+    </scroll-view>
+
+    <view class="md-modal-btns" wx:if="{{!printerSearching && !printerConnecting && !printing}}">
+      <button class="md-modal-cancel" bindtap="onClosePrinterPanel">取消</button>
+      <button class="md-modal-confirm" bindtap="onSearchPrinters">🔄 重新搜索</button>
+    </view>
+  </view>
+</view>
+
+<!-- 小票预览弹窗（模拟打印） -->
+<view class="md-overlay" wx:if="{{showTicketPreview}}" catchtap="onClosePreview">
+  <view class="md-modal ticket-preview-modal" catchtap="onPreventClose">
+    <text class="md-modal-title">🧾 小票预览</text>
+
+    <view class="ticket-paper">
+      <view class="ticket-center">
+        <text class="ticket-shop">小鲜鸡</text>
+        <text class="ticket-sub">鲜鸡现宰 新鲜直达</text>
+        <text class="ticket-divider">────────────────</text>
+      </view>
+
+      <view class="ticket-row">
+        <text class="ticket-label">订单号：</text>
+        <text>{{ticketData.orderNo}}</text>
+      </view>
+      <view class="ticket-row">
+        <text class="ticket-label">号码牌：</text>
+        <text class="ticket-card-no">{{ticketData.cardNumber}}</text>
+      </view>
+      <view class="ticket-row" wx:if="{{ticketData.paymentLabel}}">
+        <text class="ticket-label">支付方式：</text>
+        <text>{{ticketData.paymentLabel}}</text>
+      </view>
+      <view class="ticket-center ticket-amount-block">
+        <text class="ticket-amount">¥{{ticketData.amountYuan}}</text>
+      </view>
+
+      <text class="ticket-divider">────────────────</text>
+
+      <view class="ticket-center">
+        <image wx:if="{{ticketQrUrl}}" class="ticket-qr" src="{{ticketQrUrl}}" mode="aspectFit" />
+        <text wx:else class="ticket-qr-placeholder">[QR码加载中...]</text>
+        <text class="ticket-qr-hint">扫码查看取货进度</text>
+      </view>
+
+      <text class="ticket-divider">────────────────</text>
+
+      <view class="ticket-center">
+        <text class="ticket-time">{{ticketData.time}}</text>
+        <text class="ticket-thanks">谢谢惠顾，欢迎再次光临</text>
+      </view>
+    </view>
+
+    <view class="md-modal-btns">
+      <button class="md-modal-cancel" bindtap="onClosePreview">关闭</button>
+      <button class="md-modal-confirm" bindtap="onMockPrintDone">✓ 确认打印</button>
+    </view>
+  </view>
+</view>
+
+<view class="empty-state" wx:if="{{!order}}">
+  <text>加载中...</text>
+</view>

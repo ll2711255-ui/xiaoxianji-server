@@ -1,0 +1,128 @@
+/* ========== 地址管理页 ========== */
+.address-page {
+  min-height: 100vh;
+  background: #F5F5F5;
+}
+
+.address-list {
+  padding: 16rpx 24rpx;
+  padding-bottom: 200rpx;
+}
+
+/* ========== 地址卡片 ========== */
+.address-card {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 28rpx 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+}
+
+.address-card--tappable:active {
+  background: #F8F8F8;
+}
+
+.addr-body {
+  flex: 1;
+  overflow: hidden;
+}
+
+.addr-header {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 12rpx;
+}
+
+.addr-name {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1A1A1A;
+}
+
+.addr-phone {
+  font-size: 30rpx;
+  color: #999;
+}
+
+.addr-detail {
+  font-size: 30rpx;
+  color: #999;
+  display: block;
+  line-height: 1.5;
+}
+
+/* ========== 右侧操作按钮 ========== */
+.addr-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-left: 16rpx;
+  flex-shrink: 0;
+}
+
+.addr-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80rpx;
+  height: 48rpx;
+  border-radius: 24rpx;
+  background: #F5F5F5;
+}
+
+.addr-action-btn text {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.addr-action-del {
+  background: #FFF0F0;
+}
+
+.addr-action-del text {
+  color: #FF3B30;
+}
+
+.addr-select-icon {
+  font-size: 44rpx;
+  color: #C7C7CC;
+  margin-left: 12rpx;
+  flex-shrink: 0;
+}
+
+/* ========== 底部添加按钮 ========== */
+.add-btn-wrap {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20rpx 24rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  background: #fff;
+  box-shadow: 0 -2rpx 16rpx rgba(0, 0, 0, 0.06);
+}
+
+.add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red));
+  color: #fff;
+  border-radius: 40rpx;
+  padding: 24rpx 0;
+  font-size: 32rpx;
+  font-weight: 600;
+  box-shadow: 0 4rpx 12rpx var(--color-brand-soy-red-shadow);
+}
+
+.add-btn:active {
+  opacity: 0.85;
+}
+
+.add-btn-icon {
+  font-size: 32rpx;
+}

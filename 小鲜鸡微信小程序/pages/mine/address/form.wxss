@@ -1,0 +1,107 @@
+/* ========== 地址表单页 ========== */
+.form-page {
+  min-height: 100vh;
+  background: #F5F5F5;
+  padding-top: 16rpx;
+}
+
+/* ========== 表单卡片 ========== */
+.form-card {
+  background: #fff;
+  margin: 0 24rpx 16rpx;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  padding: 28rpx 24rpx;
+  border-bottom: 1rpx solid #F0F0F0;
+}
+
+.form-row-last {
+  border-bottom: none;
+}
+
+.form-label {
+  width: 140rpx;
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #1A1A1A;
+  flex-shrink: 0;
+}
+
+.form-input {
+  flex: 1;
+  font-size: 32rpx;
+  color: #1A1A1A;
+  text-align: right;
+}
+
+.form-input::placeholder {
+  color: #C7C7CC;
+}
+
+.form-picker-val {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8rpx;
+}
+
+.form-picker-val text {
+  font-size: 32rpx;
+  color: #1A1A1A;
+}
+
+.form-placeholder {
+  color: #C7C7CC !important;
+}
+
+.form-arrow {
+  font-size: 36rpx;
+  color: #C7C7CC;
+}
+
+.form-row-switch {
+  justify-content: space-between;
+}
+
+/* ========== 按钮 ========== */
+.form-btn-wrap {
+  padding: 32rpx 24rpx;
+  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+}
+
+.form-save-btn {
+  width: 100%;
+  background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red));
+  color: #fff;
+  border-radius: 40rpx;
+  font-size: 34rpx;
+  font-weight: 600;
+  padding: 24rpx 0;
+  border: none;
+  box-shadow: 0 4rpx 12rpx var(--color-brand-soy-red-shadow);
+}
+
+.form-save-btn:active {
+  opacity: 0.85;
+}
+
+.form-save-btn[disabled] {
+  background: #C7C7CC;
+}
+
+.form-delete-btn {
+  text-align: center;
+  margin-top: 28rpx;
+}
+
+.form-delete-btn text {
+  font-size: 30rpx;
+  color: #FF3B30;
+}

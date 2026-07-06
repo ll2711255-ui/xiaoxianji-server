@@ -1,0 +1,179 @@
+<block wx:if="{{order}}">
+  <!-- 状态头部 - 绿色 -->
+  <view class="od-header">
+    <text class="od-status">{{statusText}}</text>
+    <text class="od-desc" wx:if="{{order.status === 'pending'}}">订单待支付，请尽快完成支付</text>
+    <text class="od-desc" wx:elif="{{order.status === 'paid'}}">已支付，等待商家接单</text>
+    <text class="od-desc" wx:elif="{{order.status === 'accepted'}}">订单已确认，商家正在准备</text>
+    <text class="od-desc" wx:elif="{{order.status === 'weighed'}}">商品已称重，请查看称重信息</text>
+    <text class="od-desc" wx:elif="{{order.status === 'processing'}}">商品处理中（切块/打包）</text>
+    <text class="od-desc" wx:elif="{{order.status === 'delivering'}}">骑手配送中</text>
+    <text class="od-desc" wx:elif="{{order.status === 'ready' && order.type === 'delivery'}}">商品已备好，等待骑手配送</text>
+    <text class="od-desc" wx:elif="{{order.status === 'ready' && order.type !== 'delivery'}}">商品已备好{{order.cardNumber ? '，号码牌：' + order.cardNumber : ''}}，请到店取货</text>
+    <text class="od-desc" wx:elif="{{order.status === 'completed'}}">{{order.type === 'pickup' ? '已取货' : '已送达'}}</text>
+  </view>
+
+  <!-- 取货号码牌 -->
+  <view class="card-full od-pickup" wx:if="{{order.type === 'pickup' && order.cardNumber && order.status !== 'cancelled'}}">
+    <text class="pickup-tag">取货号码</text>
+    <text class="pickup-num">{{order.cardNumber}}</text>
+    <text class="pickup-hint">凭号码牌到店取货</text>
+  </view>
+
+  <!-- 商品清单 -->
+  <view class="card-full">
+    <text class="od-section-title">商品清单</text>
+    <view class="od-item" wx:for="{{order.items}}" wx:key="index" wx:for-item="p">
+      <view class="od-item-left">
+        <text class="od-pname">{{p.productName}}</text>
+        <view class="od-ptags">
+          <text class="tag tag-gray" wx:if="{{p.spec && p.spec.type}}">{{p.spec.type}}</text>
+          <text class="tag tag-gray" wx:if="{{p.spec && p.spec.weight}}">{{p.spec.weight}}</text>
+          <text class="tag tag-gray" wx:if="{{p.spec && p.spec.processing}}">{{p.spec.processing}}</text>
+        </view>
+      </view>
+      <view class="od-item-right">
+        <text class="od-pqty">×{{p.quantity}}</text>
+        <text class="od-pprice">¥{{p.unitPriceDisplay}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 称重信息（weighed 及之后状态展示） -->
+  <view class="card-full" wx:if="{{weighInfo}}">
+    <text class="od-section-title">📷 称重信息</text>
+
+    <!-- 称重照片 -->
+    <view class="weigh-photo-section">
+      <image
+        wx:if="{{weighInfo.weighPhoto}}"
+        class="weigh-photo"
+        src="{{weighInfo.weighPhoto}}"
+        mode="aspectFit"
+        bindtap="onPreviewWeighPhoto"
+      />
+      <view class="weigh-photo-placeholder" wx:else>
+        <text class="weigh-photo-icon">📷</text>
+        <text class="weigh-photo-text">商家暂未上传称重照片</text>
+      </view>
+      <text class="weigh-photo-hint" wx:if="{{weighInfo.weighPhoto}}">点击查看称重照片</text>
+    </view>
+
+    <view class="od-inforow">
+      <text class="od-infol">实际重量</text>
+      <text class="od-infor">{{weighInfo.actualWeightDisplay}}</text>
+    </view>
+    <view class="od-inforow">
+      <text class="od-infol">实际金额</text>
+      <text class="od-infor od-price">¥{{weighInfo.actualAmountDisplay}}</text>
+    </view>
+    <view class="od-inforow">
+      <text class="od-infol">预收金额</text>
+      <text class="od-infor">¥{{prepayDisplay}}</text>
+    </view>
+    <view class="od-inforow od-refund" wx:if="{{weighInfo.refundAmount > 0}}">
+      <text class="od-infol">退款金额</text>
+      <text class="od-infor od-refund-amount">¥{{weighInfo.refundAmountDisplay}}</text>
+    </view>
+
+    <!-- 退款状态 -->
+    <view class="od-inforow" wx:if="{{refundStatusText}}">
+      <text class="od-infol">退款状态</text>
+      <text class="od-infor tag {{refundStatusClass}}">{{refundStatusText}}</text>
+    </view>
+  </view>
+
+  <!-- 兼容旧数据（无 weighInfo 但有旧字段） -->
+  <view class="card-full" wx:elif="{{order.status === 'weighed' || order.status === 'processing' || order.status === 'delivering' || order.status === 'ready' || order.actualWeight || order.weighPhoto}}">
+    <text class="od-section-title">称重信息</text>
+
+    <view class="weigh-photo-section">
+      <image
+        wx:if="{{order.weighPhoto}}"
+        class="weigh-photo"
+        src="{{order.weighPhoto}}"
+        mode="aspectFit"
+        bindtap="onPreviewWeighPhoto"
+      />
+      <view class="weigh-photo-placeholder" wx:else>
+        <text class="weigh-photo-icon">📷</text>
+        <text class="weigh-photo-text">商家暂未上传称重照片</text>
+      </view>
+      <text class="weigh-photo-hint" wx:if="{{order.weighPhoto}}">点击查看称重照片</text>
+    </view>
+
+    <view class="od-inforow" wx:if="{{order.actualWeight}}">
+      <text class="od-infol">实际重量</text>
+      <text class="od-infor">{{order.actualWeight}}g（{{order.actualWeightDisplay}}斤）</text>
+    </view>
+    <view class="od-inforow" wx:if="{{order.actualAmount}}">
+      <text class="od-infol">实收金额</text>
+      <text class="od-infor od-price">¥{{actualDisplay}}</text>
+    </view>
+
+    <view class="od-inforow" wx:if="{{order.refundAmount || order.refundStatus !== 'none'}}">
+      <text class="od-infol">退款金额</text>
+      <text class="od-infor od-refund-amount">¥{{refundDisplay}}</text>
+    </view>
+    <view class="od-inforow" wx:if="{{refundStatusText}}">
+      <text class="od-infol">退款进度</text>
+      <text class="od-infor tag {{refundStatusClass}}">{{refundStatusText}}</text>
+    </view>
+  </view>
+
+  <!-- 订单信息 -->
+  <view class="card-full">
+    <text class="od-section-title">订单信息</text>
+    <view class="od-inforow">
+      <text class="od-infol">订单编号</text>
+      <text class="od-infor">{{order.orderNo}}</text>
+    </view>
+    <view class="od-inforow">
+      <text class="od-infol">下单时间</text>
+      <text class="od-infor">{{order.createTime}}</text>
+    </view>
+    <view class="od-inforow" wx:if="{{order.payTime}}">
+      <text class="od-infol">付款时间</text>
+      <text class="od-infor">{{order.payTime}}</text>
+    </view>
+    <view class="od-inforow" wx:if="{{order.type === 'delivery' && order.deliveryAddress}}">
+      <text class="od-infol">收货地址</text>
+      <text class="od-infor od-addr od-clickable" bindtap="navigateToAddress">{{order.deliveryAddress.province}}{{order.deliveryAddress.city}}{{order.deliveryAddress.district}} {{order.deliveryAddress.detail}}<text class="od-action-icon"> 📍</text></text>
+    </view>
+    <view class="od-inforow" wx:if="{{order.type === 'delivery' && (order.contactName || order.contactPhone)}}">
+      <text class="od-infol">配送联系</text>
+      <text class="od-infor od-clickable" bindtap="callPhone">{{order.contactName || ''}}{{order.contactName && order.contactPhone ? ' · ' : ''}}{{order.contactPhone || ''}}<text class="od-action-icon" wx:if="{{order.contactPhone}}"> 📞</text></text>
+    </view>
+    <view class="od-inforow">
+      <text class="od-infol">取货方式</text>
+      <text class="od-infor">{{order.type === 'delivery' ? '配送上门' : '到店自取'}}</text>
+    </view>
+    <view class="od-inforow" wx:if="{{order.isScheduled && order.scheduledDate}}">
+      <text class="od-infol">{{order.type === 'delivery' ? '预约配送' : '预约自取'}}</text>
+      <text class="od-infor">{{order.scheduledDate}} {{order.scheduledTime}}</text>
+    </view>
+  </view>
+
+  <!-- 操作按钮区 -->
+  <view class="od-actions">
+    <view class="od-pay" wx:if="{{order.status === 'pending'}}" bindtap="onRetryPayment">
+      <text>去支付</text>
+    </view>
+    <view class="od-cancel" wx:if="{{showCancelBtn}}" bindtap="onCancelOrder">
+      <text>取消订单</text>
+    </view>
+  </view>
+
+  <view style="height: 32rpx;"></view>
+</block>
+
+<!-- 加载中 -->
+<view class="empty-state" wx:if="{{!order}}">
+  <text>加载中...</text>
+</view>
+
+<!-- 网络不稳定 -->
+<view class="od-offline" wx:if="{{order && pollFailCount >= 3}}">
+  <text class="od-offline-text">网络不稳定，显示上次更新状态</text>
+  <view class="btn-outline" bindtap="onRefresh" style="margin-top:12rpx;">手动刷新</view>
+</view>

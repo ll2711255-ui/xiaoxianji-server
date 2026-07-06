@@ -1,0 +1,227 @@
+<view class="mp-page">
+<!-- 顶部标题栏 -->
+<view class="mp-topbar">
+  <text class="mp-topbar-title">商品管理</text>
+  <view class="mp-topbar-actions">
+    <view class="mp-topbar-btn {{showSearch ? 'on' : ''}}" bindtap="onSearch">
+      <text>🔍</text>
+    </view>
+    <view class="mp-topbar-btn" bindtap="onAddProduct">
+      <text class="mp-topbar-add-icon">+</text>
+    </view>
+    <view class="mp-topbar-btn {{sortMode ? 'on' : ''}}" bindtap="onToggleSortMode">
+      <text>☰</text>
+    </view>
+    <view class="mp-topbar-btn {{bannerMode ? 'on' : ''}}" bindtap="onToggleBannerMode">
+      <text>🎨</text>
+    </view>
+  </view>
+</view>
+
+<!-- 主体：左右分栏 -->
+<view class="mp-body">
+  <!-- ========== 左侧分类导航（20%） ========== -->
+  <scroll-view class="mp-sidebar" scroll-y enhanced show-scrollbar="{{false}}">
+    <!-- 排序模式 -->
+    <block wx:if="{{sortMode}}">
+      <view class="mp-side-sort-hint">拖拽排序</view>
+      <view
+        class="mp-side-item mp-side-item-sort {{index === 0 ? 'mp-side-item-top' : ''}} {{index === sortedCategories.length - 1 ? 'mp-side-item-bottom' : ''}}"
+        wx:for="{{sortedCategories}}"
+        wx:key="_id"
+      >
+        <view class="mp-side-sort-arrows">
+          <text class="mp-side-sort-arrow" data-index="{{index}}" bindtap="onCatMoveUp">▲</text>
+          <text class="mp-side-sort-name">{{item.name}}</text>
+          <text class="mp-side-sort-arrow" data-index="{{index}}" bindtap="onCatMoveDown">▼</text>
+        </view>
+      </view>
+      <view class="mp-side-sort-btns">
+        <text class="mp-side-sort-cancel" bindtap="onToggleSortMode">取消</text>
+        <text class="mp-side-sort-save" bindtap="onSaveSort">保存排序</text>
+      </view>
+    </block>
+    <!-- 普通模式：分类列表 -->
+    <block wx:else>
+      <view
+        class="mp-side-item {{activeCat === '' ? 'active' : ''}}"
+        data-id=""
+        bindtap="onCatTap"
+      >全部</view>
+      <view
+        class="mp-side-item {{activeCat === item._id ? 'active' : ''}}"
+        wx:for="{{categories}}"
+        wx:key="_id"
+        data-id="{{item._id}}"
+        data-name="{{item.name}}"
+        bindtap="onCatTap"
+        bindlongpress="onCatLongPress"
+      >{{item.name}}</view>
+    </block>
+    <view style="height: 140rpx;"></view>
+  </scroll-view>
+
+  <!-- ========== 右侧内容区（80%） ========== -->
+  <view class="mp-content">
+    <!-- ===== 广告管理模式 ===== -->
+    <block wx:if="{{bannerMode}}">
+      <view class="mp-banner-topbar">
+        <text class="mp-banner-topbar-title">首页滚动广告</text>
+        <text class="mp-banner-topbar-save" bindtap="onSaveBanners">保存</text>
+      </view>
+      <scroll-view class="mp-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+        <view class="mp-banner-list" wx:if="{{banners.length > 0}}">
+          <view
+            class="mp-banner-card {{editingBannerIndex === index ? 'editing' : ''}} {{banner.status === 'off' ? 'mp-banner-off' : ''}}"
+            wx:for="{{banners}}"
+            wx:key="_id"
+          >
+            <view class="mp-banner-main" data-index="{{index}}" bindtap="onEditBanner">
+              <view class="mp-banner-img-wrap" data-index="{{index}}" catchtap="onBannerImageUpload">
+                <image class="mp-banner-img" src="{{item.image}}" mode="aspectFill" wx:if="{{item.image}}" />
+                <text class="mp-banner-img-empty" wx:else>📷</text>
+              </view>
+              <view class="mp-banner-info">
+                <text class="mp-banner-title-text">{{item.title || '(未命名)'}}</text>
+                <text class="mp-banner-sub-text">{{item.subtitle || '点击编辑副标题'}}</text>
+              </view>
+              <view class="mp-banner-del" data-index="{{index}}" catchtap="onDelBanner">✕</view>
+            </view>
+            <view class="mp-banner-edit" wx:if="{{editingBannerIndex === index}}">
+              <view class="mp-banner-edit-row">
+                <text class="mp-banner-edit-label">广告标题</text>
+                <input class="mp-banner-edit-input" placeholder="如：新鲜活鸡 每日直达" value="{{item.title}}" data-index="{{index}}" data-field="title" bindinput="onBannerInput" />
+              </view>
+              <view class="mp-banner-edit-row">
+                <text class="mp-banner-edit-label">副标题</text>
+                <input class="mp-banner-edit-input" placeholder="如：现宰现发 · 冷链配送" value="{{item.subtitle}}" data-index="{{index}}" data-field="subtitle" bindinput="onBannerInput" />
+              </view>
+              <view class="mp-banner-edit-row">
+                <text class="mp-banner-edit-label">背景色</text>
+                <input class="mp-banner-edit-input mp-banner-color-input" placeholder="#f5f5f5" value="{{item.bg}}" data-index="{{index}}" data-field="bg" bindinput="onBannerInput" />
+                <view class="mp-banner-color-preview" style="background:{{item.bg || '#f5f5f5'}};"></view>
+              </view>
+              <view class="mp-banner-edit-row mp-banner-edit-actions">
+                <view class="mp-banner-edit-left">
+                  <text class="mp-banner-switch-label">{{item.status === 'on' ? '已启用' : '已禁用'}}</text>
+                  <switch checked="{{item.status === 'on'}}" data-index="{{index}}" bindchange="onBannerToggleStatus" color="#D4420A" />
+                </view>
+                <view class="mp-banner-edit-right">
+                  <text class="mp-banner-move-btn {{index === 0 ? 'mp-banner-move-disabled' : ''}}" data-index="{{index}}" catchtap="onBannerMoveUp">▲</text>
+                  <text class="mp-banner-move-btn {{index === banners.length - 1 ? 'mp-banner-move-disabled' : ''}}" data-index="{{index}}" catchtap="onBannerMoveDown">▼</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+        <view class="empty-state" wx:if="{{banners.length === 0}}">
+          <text class="empty-icon">🎨</text>
+          <text>暂无广告</text>
+          <text class="empty-hint">点击下方按钮添加首页广告</text>
+        </view>
+        <view class="mp-banner-add-row" wx:if="{{banners.length < 5}}">
+          <view class="mp-banner-add-btn" bindtap="onAddBanner">
+            <text>+ 添加广告</text>
+          </view>
+        </view>
+        <view class="mp-banner-limit-hint" wx:else>
+          <text>最多添加 5 个广告</text>
+        </view>
+        <view style="height: 48rpx;"></view>
+      </scroll-view>
+    </block>
+
+    <!-- ===== 商品列表模式 ===== -->
+    <block wx:else>
+      <!-- 搜索框（搜索模式下显示） -->
+      <view class="mp-content-search" wx:if="{{showSearch}}">
+        <view class="mp-content-search-input-wrap">
+          <text class="mp-content-search-icon">🔍</text>
+          <input
+            class="mp-content-search-input"
+            value="{{searchKeyword}}"
+            placeholder="搜索商品名称、卖点..."
+            placeholder-class="mp-content-search-ph"
+            focus="{{true}}"
+            confirm-type="search"
+            bindinput="onSearchInput"
+          />
+          <text class="mp-content-search-clr" wx:if="{{searchKeyword}}" bindtap="onSearchClear">✕</text>
+        </view>
+        <text class="mp-content-search-cancel" bindtap="onSearchCancel">取消</text>
+      </view>
+
+      <!-- 搜索结果提示 / 排序模式提示 -->
+      <view class="mp-content-hint" wx:if="{{showSearch && searchKeyword}}">
+        <text>搜索"{{searchKeyword}}"找到 {{filteredProducts.length}} 个商品</text>
+      </view>
+      <view class="mp-content-hint mp-content-sort-hint" wx:elif="{{sortMode}}">
+        <text>在左侧调整分类顺序后，点击"保存排序"生效</text>
+      </view>
+
+      <!-- 商品卡片列表 -->
+      <scroll-view class="mp-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+        <view class="mp-list" wx:if="{{filteredProducts.length > 0}}">
+          <view
+            class="mp-card {{item.status === 'off' ? 'mp-off' : ''}}"
+            wx:for="{{filteredProducts}}"
+            wx:key="_id"
+          >
+            <view class="mp-card-main" data-id="{{item._id}}" bindtap="onEditProduct">
+              <view class="mp-img-wrap">
+                <image class="mp-img" src="{{item.images[0]}}" mode="aspectFill" wx:if="{{item.images && item.images.length > 0}}" />
+                <text class="mp-img-empty" wx:else>🐔</text>
+              </view>
+              <view class="mp-info">
+                <text class="mp-name">{{item.name}}</text>
+                <text class="mp-desc">{{item.selling_point || item.description || ''}}</text>
+                <view class="mp-meta">
+                  <text class="mp-price">¥{{item.minPrice || '--'}}<text class="mp-unit">{{item.priceUnit}}</text></text>
+                  <text class="mp-sales">已售{{item.sales || 0}}</text>
+                </view>
+              </view>
+            </view>
+            <view class="mp-card-foot">
+              <text class="mp-status-tag {{item.status === 'on' ? (item.out_of_stock ? 'mp-out' : 'mp-on') : 'mp-off-tag'}}">{{item.status === 'on' ? (item.out_of_stock ? '缺货中' : '上架中') : '已下架'}}</text>
+              <view class="mp-switches">
+                <view class="mp-switch-item {{item.status !== 'on' ? 'mp-switch-disabled' : ''}}">
+                  <text class="mp-switch-label">缺货</text>
+                  <switch
+                    checked="{{item.out_of_stock}}"
+                    disabled="{{item.status !== 'on'}}"
+                    data-id="{{item._id}}"
+                    data-out-of-stock="{{item.out_of_stock}}"
+                    bindchange="onToggleOutOfStock"
+                    color="#FF9800"
+                  />
+                </view>
+                <view class="mp-switch-item">
+                  <text class="mp-switch-label">{{item.status === 'on' ? '上架' : '下架'}}</text>
+                  <switch
+                    checked="{{item.status === 'on'}}"
+                    data-id="{{item._id}}"
+                    bindchange="onToggleStatus"
+                    color="#D4420A"
+                  />
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 空状态 -->
+        <view class="empty-state" wx:if="{{filteredProducts.length === 0 && !loading}}">
+          <text class="empty-icon">{{showSearch && searchKeyword ? '🔍' : '📦'}}</text>
+          <text>{{showSearch && searchKeyword ? '没有找到匹配的商品' : '当前分类暂无商品'}}</text>
+          <text class="empty-hint">{{showSearch && searchKeyword ? '换个关键词试试吧' : '点击顶部 + 新增商品'}}</text>
+        </view>
+        <view class="load-more" wx:if="{{loading}}">加载中...</view>
+        <view style="height: 140rpx;"></view>
+      <view class="mp-side-hint" wx:if="{{categories.length > 0}}">长按分类可删除</view>
+      </scroll-view>
+    </block>
+  </view>
+</view>
+
+<custom-tab-bar current="products" theme="merchant" bind:change="onTabChange" />
+</view>

@@ -1,0 +1,210 @@
+@import '../../../utils/printer-panel.wxss';
+
+/* ========== 线下收银 ========== */
+.mof-page {
+  min-height: 100vh;
+  background: #F5F5F5;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 金额显示 */
+.mof-amount-area {
+  background: linear-gradient(135deg, var(--color-brand-dark-red), var(--color-brand-main-red));
+  padding: 48rpx 32rpx;
+  text-align: center;
+}
+.mof-currency {
+  font-size: 40rpx;
+  color: rgba(255,255,255,0.6);
+  margin-right: 8rpx;
+}
+.mof-amount {
+  font-size: 80rpx;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* 区块 */
+.mof-section {
+  padding: 24rpx;
+}
+.mof-section-title {
+  font-size: 30rpx;
+  color: #999;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+/* 付款方式 */
+.mof-pay-types {
+  display: flex;
+  gap: 16rpx;
+}
+.mof-pay-type {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx 0;
+  border-radius: 12rpx;
+  font-size: 30rpx;
+  background: #fff;
+  color: #999;
+  border: 2rpx solid #E0E0E0;
+}
+.mof-pay-type.on {
+  background: #FFF0EB;
+  color: #FF5722;
+  border-color: #FF5722;
+}
+
+/* 号码牌 */
+.mof-card-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+.mof-card-chip {
+  padding: 16rpx 28rpx;
+  border-radius: 12rpx;
+  background: #fff;
+  border: 2rpx solid #E0E0E0;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1A1A1A;
+}
+.mof-card-chip.selected {
+  background: #FF5722;
+  color: #fff;
+  border-color: #FF5722;
+}
+.mof-no-card {
+  font-size: 28rpx;
+  color: #FF3B30;
+}
+
+/* 提交按钮 */
+.mof-submit-wrap {
+  padding: 0 24rpx 16rpx;
+}
+.mof-submit {
+  width: 100%;
+  background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red));
+  color: #fff;
+  border-radius: 40rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  padding: 24rpx 0;
+  border: none;
+  box-shadow: 0 4rpx 12rpx var(--color-brand-soy-red-shadow);
+}
+.mof-submit[disabled] {
+  background: #C7C7CC;
+}
+
+/* 数字键盘 */
+.mof-keyboard {
+  background: #E0E0E0;
+  padding: 8rpx;
+  margin-top: auto;
+}
+.mof-key-row {
+  display: flex;
+  gap: 8rpx;
+  margin-bottom: 8rpx;
+}
+.mof-key {
+  flex: 1;
+  background: #fff;
+  border-radius: 8rpx;
+  text-align: center;
+  padding: 28rpx 0;
+  font-size: 36rpx;
+  font-weight: 500;
+  color: #1A1A1A;
+}
+.mof-key:active {
+  background: #E0E0E0;
+}
+.mof-key-func {
+  background: #D0D0D0;
+}
+.mof-key-clear {
+  background: var(--color-brand-gold);
+  color: #fff;
+  font-size: 30rpx;
+}
+.mof-key-submit {
+  flex: 2;
+  background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red));
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: 600;
+  box-shadow: 0 4rpx 12rpx var(--color-brand-soy-red-shadow);
+}
+
+/* 结果页 */
+.mof-result {
+  text-align: center;
+  padding: 80rpx 32rpx;
+}
+.mof-check {
+  font-size: 104rpx;
+  color: #FF5722;
+  display: block;
+}
+.mof-result-title {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #1A1A1A;
+  display: block;
+  margin: 24rpx 0 40rpx;
+}
+.mof-result-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  text-align: left;
+  margin-bottom: 40rpx;
+}
+.mof-result-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #F5F5F5;
+}
+.mof-result-l {
+  color: #999;
+  font-size: 30rpx;
+}
+.mof-result-v {
+  color: #1A1A1A;
+  font-size: 30rpx;
+  font-weight: 500;
+}
+.mof-result-num {
+  font-size: 44rpx;
+  font-weight: 800;
+  color: #FF5722;
+}
+.mof-result-price {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #FF4B26;
+}
+.mof-result-btns {
+  display: flex;
+  gap: 20rpx;
+}
+.mof-result-btn {
+  flex: 1;
+  background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red));
+  color: #fff;
+  border-radius: 40rpx;
+  font-size: 32rpx;
+  padding: 24rpx 0;
+  border: none;
+  box-shadow: 0 4rpx 12rpx var(--color-brand-soy-red-shadow);
+}
+.mof-result-btn-back {
+  background: var(--color-brand-dark-red);
+}

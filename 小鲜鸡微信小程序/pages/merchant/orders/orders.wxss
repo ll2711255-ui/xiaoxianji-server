@@ -1,0 +1,596 @@
+@import '../../../utils/printer-panel.wxss';
+
+.mo-page {
+  min-height: 100vh;
+  background: #F5F5F5;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ========== 顶部段切换 ========== */
+.mo-segment {
+  display: flex;
+  background: linear-gradient(135deg, var(--color-brand-dark-red), var(--color-brand-main-red));
+  padding: 20rpx 48rpx 16rpx;
+  gap: 0;
+}
+.mo-seg-item {
+  flex: 1;
+  text-align: center;
+  padding: 18rpx 0;
+  font-size: 34rpx;
+  font-weight: 600;
+  color: rgba(255,255,255,0.7);
+  border-bottom: 4rpx solid transparent;
+  transition: all 0.2s;
+}
+.mo-seg-item.on {
+  color: #fff;
+  border-bottom-color: #FFFFFF;
+}
+
+/* ========== 线上统计 ========== */
+.mo-stats-bar {
+  display: flex;
+  background: linear-gradient(180deg, var(--color-brand-main-red), var(--color-brand-chili-red));
+  padding: 0 32rpx 28rpx;
+  gap: 0;
+}
+.mo-stat {
+  flex: 1;
+  text-align: center;
+}
+.mo-stat-num {
+  font-size: 48rpx;
+  font-weight: 800;
+  color: #fff;
+  display: block;
+}
+.mo-stat-label {
+  font-size: 26rpx;
+  color: rgba(255,255,255,0.8);
+  margin-top: 4rpx;
+  display: block;
+}
+
+/* 子 Tab */
+.mo-tabs {
+  display: flex;
+  background: var(--color-brand-chili-red);
+  padding: 0 24rpx 16rpx;
+  gap: 8rpx;
+}
+.mo-tab {
+  flex: 1;
+  text-align: center;
+  padding: 14rpx 0;
+  font-size: 26rpx;
+  color: rgba(255,255,255,0.85);
+  background: rgba(255,255,255,0.18);
+  border-radius: 8rpx;
+  white-space: nowrap;
+}
+.mo-tab.on {
+  color: #FF5722;
+  font-weight: 700;
+  background: #fff;
+}
+
+/* 配送/待取货 子 Tab */
+.mo-sub-tabs {
+  display: flex;
+  background: var(--color-brand-chili-red);
+  padding: 0 48rpx 20rpx;
+  gap: 24rpx;
+}
+.mo-sub-tab {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 0 10rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: rgba(255,255,255,0.7);
+  border-bottom: 4rpx solid transparent;
+  transition: all 0.2s;
+}
+.mo-sub-tab.on {
+  color: #fff;
+  border-bottom-color: #FFFFFF;
+}
+
+/* ========== 滚动区 ========== */
+.mo-scroll {
+  flex: 1;
+  height: 0;
+}
+
+.mo-body {
+  padding: 16rpx 24rpx;
+}
+
+/* ========== 订单卡片 ========== */
+.mo-card {
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.06);
+}
+.mo-card-new {
+  border-left: 6rpx solid #FF5722;
+  padding-left: 16rpx;
+}
+
+.mo-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14rpx;
+}
+.mo-head-left {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+.mo-no {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1A1A1A;
+}
+.mo-type-tag {
+  font-size: 24rpx;
+  padding: 2rpx 10rpx;
+  border-radius: 4rpx;
+  background: #F0F0F0;
+  color: #999;
+}
+.mo-time {
+  font-size: 24rpx;
+  color: #B0B0B0;
+  margin-left: 4rpx;
+}
+.mo-tag-offline {
+  background: #FFF3E0;
+  color: #FF9500;
+}
+.mo-tag-wechat {
+  background: #FFF0EB;
+  color: #FF5722;
+}
+.mo-status {
+  font-size: 28rpx;
+  font-weight: 600;
+}
+.mo-status-warn { color: #FF9500; }
+.mo-status-ok { color: #FF5722; }
+.mo-status-cancel { color: #FF3B30; }
+
+/* Items */
+.mo-items {
+  padding: 14rpx 0;
+  border-top: 1rpx solid #F5F5F5;
+  border-bottom: 1rpx solid #F5F5F5;
+}
+.mo-item {
+  display: flex;
+  align-items: center;
+  padding: 6rpx 0;
+  gap: 10rpx;
+}
+.mo-pname {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #1A1A1A;
+}
+.mo-pspec {
+  font-size: 26rpx;
+  color: #999;
+}
+.mo-pqty {
+  margin-left: auto;
+  font-size: 26rpx;
+  color: #999;
+}
+
+/* 配送距离 */
+.mo-distance {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 8rpx 0;
+}
+.mo-distance-text {
+  font-size: 26rpx;
+  color: #FF5722;
+}
+
+/* Foot */
+.mo-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14rpx;
+}
+.mo-amount {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #FF4B26;
+}
+.mo-refund-info {
+  padding: 10rpx 0;
+  text-align: right;
+}
+.mo-refund-amount {
+  font-size: 28rpx;
+  color: #FF3B30;
+  font-weight: 600;
+}
+.mo-actions {
+  display: flex;
+  gap: 10rpx;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.mo-btn {
+  font-size: 26rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 24rpx;
+  border: none;
+  line-height: 1.4;
+}
+.mo-btn-accept  { background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red)); color: #fff; box-shadow: 0 4rpx 12rpx var(--color-brand-soy-red-shadow); }
+.mo-btn-reject  { background: #fff; color: #FF3B30; border: 2rpx solid #FF3B30; }
+.mo-btn-weigh   { background: linear-gradient(135deg, var(--color-brand-gold), var(--color-brand-yolk)); color: #fff; box-shadow: 0 4rpx 12rpx rgba(245,166,35,0.35); }
+.mo-btn-process { background: var(--color-brand-tangerine); color: #fff; }
+.mo-btn-deliver { background: var(--color-brand-amber); color: #fff; }
+.mo-btn-ready   { background: linear-gradient(135deg, var(--color-brand-gold), var(--color-brand-yolk)); color: #fff; box-shadow: 0 4rpx 12rpx rgba(245,166,35,0.35); }
+.mo-btn-done    { background: #8E8E93; color: #fff; }
+.mo-btn-arrive  { background: #34C759; color: #fff; }
+.mo-btn-pickup  { background: linear-gradient(135deg, var(--color-brand-gold), var(--color-brand-yolk)); color: #fff; box-shadow: 0 4rpx 12rpx rgba(245,166,35,0.35); }
+.mo-btn-cancel  { background: #fff; color: #FF3B30; border: 2rpx solid #FF3B30; }
+.mo-btn-pay     { background: #34C759; color: #fff; }
+.mo-btn-retry-refund { background: #FF3B30; color: #fff; }
+
+/* 已完成标签 */
+.mo-done-tag {
+  font-size: 26rpx;
+  color: #FF5722;
+  font-weight: 600;
+  padding: 8rpx 20rpx;
+  border-radius: 24rpx;
+  background: #FFF0EB;
+}
+
+/* ========== 线下新增按钮 ========== */
+.mo-offline-add {
+  position: fixed;
+  bottom: 130rpx;
+  left: 0;
+  right: 0;
+  padding: 16rpx 48rpx;
+  background: linear-gradient(180deg, rgba(245,245,245,0) 0%, #F5F5F5 40%);
+}
+.mo-add-btn {
+  width: 100%;
+  background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red));
+  color: #fff;
+  font-size: 34rpx;
+  font-weight: 700;
+  border-radius: 44rpx;
+  border: none;
+  padding: 22rpx 0;
+  box-shadow: 0 6rpx 20rpx var(--color-brand-soy-red-shadow);
+}
+
+/* ========== 空态 ========== */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120rpx 0 80rpx;
+  color: #999;
+  font-size: 32rpx;
+}
+.empty-icon {
+  font-size: 68rpx;
+  margin-bottom: 16rpx;
+}
+.empty-sub {
+  font-size: 28rpx;
+  color: #B0B0B0;
+  margin-top: 8rpx;
+}
+.load-more {
+  text-align: center;
+  padding: 32rpx;
+  color: #B0B0B0;
+  font-size: 28rpx;
+}
+
+/* ========== 号码牌网格 ========== */
+.md-card-scroll {
+  max-height: 420rpx;
+  overflow-y: auto;
+}
+.md-card-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  justify-content: center;
+}
+.md-card-item {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 12rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid transparent;
+}
+.md-card-item.idle {
+  background: #4CAF50;
+  border-color: #4CAF50;
+}
+.md-card-item.used {
+  background: #CCCCCC;
+  border-color: #CCCCCC;
+}
+.md-card-item.selected {
+  border: 4rpx solid #FF9500;
+  box-shadow: 0 4rpx 16rpx rgba(255,149,0,0.35);
+  transform: scale(1.12);
+  position: relative;
+  z-index: 2;
+}
+.md-card-num-text {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: #FFFFFF;
+}
+
+/* ========== 线下收银（嵌入） ========== */
+.mof-amount-area {
+  background: linear-gradient(135deg, var(--color-brand-dark-red), var(--color-brand-main-red));
+  padding: 48rpx 32rpx;
+  text-align: center;
+}
+.mof-currency {
+  font-size: 40rpx;
+  color: rgba(255,255,255,0.6);
+  margin-right: 8rpx;
+}
+.mof-amount {
+  font-size: 80rpx;
+  font-weight: 700;
+  color: #fff;
+}
+
+.mof-section {
+  padding: 24rpx;
+}
+.mof-section-title {
+  font-size: 30rpx;
+  color: #999;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.mof-pay-types {
+  display: flex;
+  gap: 16rpx;
+}
+.mof-pay-type {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx 0;
+  border-radius: 12rpx;
+  font-size: 30rpx;
+  background: #fff;
+  color: #999;
+  border: 2rpx solid #E0E0E0;
+}
+.mof-pay-type.on {
+  background: #FFF0EB;
+  color: #FF5722;
+  border-color: #FF5722;
+}
+
+.mof-no-card {
+  font-size: 28rpx;
+  color: #FF3B30;
+}
+
+.mof-submit-wrap {
+  padding: 0 24rpx 16rpx;
+}
+.mof-submit {
+  width: 100%;
+  background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red));
+  color: #fff;
+  border-radius: 40rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  padding: 24rpx 0;
+  border: none;
+  box-shadow: 0 4rpx 12rpx var(--color-brand-soy-red-shadow);
+}
+.mof-submit[disabled] {
+  background: #C7C7CC;
+}
+
+/* ========== 计算器弹窗 ========== */
+.calc-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.calc-modal {
+  width: 100%;
+  background: #F5F5F5;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 32rpx 24rpx;
+  padding-bottom: calc(32rpx + 100rpx + env(safe-area-inset-bottom));
+  animation: calcSlideUp 0.25s ease;
+}
+@keyframes calcSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.calc-screen {
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  min-height: 120rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  margin-bottom: 16rpx;
+}
+.calc-expr {
+  font-size: 28rpx;
+  color: #999;
+  word-break: break-all;
+  text-align: right;
+  min-height: 32rpx;
+}
+.calc-display-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4rpx;
+}
+.calc-currency {
+  font-size: 40rpx;
+  color: #999;
+  font-weight: 600;
+}
+.calc-display {
+  font-size: 60rpx;
+  font-weight: 700;
+  color: #1A1A1A;
+}
+.calc-keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+.calc-row {
+  display: flex;
+  gap: 10rpx;
+}
+.calc-key {
+  flex: 1;
+  background: #fff;
+  border-radius: 12rpx;
+  text-align: center;
+  padding: 24rpx 0;
+  font-size: 40rpx;
+  font-weight: 500;
+  color: #1A1A1A;
+}
+.calc-key:active {
+  background: #E0E0E0;
+}
+.calc-key-func {
+  background: #F0F0F0;
+  color: #666;
+  font-size: 32rpx;
+}
+.calc-key-op {
+  background: #FFF0EB;
+  color: #FF5722;
+  font-weight: 600;
+}
+.calc-key-eq {
+  background: linear-gradient(135deg, var(--color-brand-gold), var(--color-brand-yolk));
+  color: #fff;
+  font-weight: 700;
+}
+.calc-key-confirm {
+  background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red));
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 700;
+  box-shadow: 0 4rpx 12rpx var(--color-brand-soy-red-shadow);
+}
+
+/* ========== 金额点击提示 ========== */
+.mof-amount-hint {
+  font-size: 24rpx;
+  color: rgba(255,255,255,0.5);
+  display: block;
+  margin-top: 4rpx;
+}
+
+.mof-result {
+  text-align: center;
+  padding: 80rpx 32rpx;
+}
+.mof-check {
+  font-size: 104rpx;
+  color: #FF5722;
+  display: block;
+}
+.mof-result-title {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #1A1A1A;
+  display: block;
+  margin: 24rpx 0 40rpx;
+}
+.mof-result-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  text-align: left;
+  margin-bottom: 40rpx;
+}
+.mof-result-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #F5F5F5;
+}
+.mof-result-l {
+  color: #999;
+  font-size: 30rpx;
+}
+.mof-result-v {
+  color: #1A1A1A;
+  font-size: 30rpx;
+  font-weight: 500;
+}
+.mof-result-num {
+  font-size: 44rpx;
+  font-weight: 800;
+  color: #FF5722;
+}
+.mof-result-price {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #FF4B26;
+}
+.mof-result-btns {
+  display: flex;
+  gap: 20rpx;
+}
+.mof-result-btn {
+  flex: 1;
+  background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red));
+  color: #fff;
+  border-radius: 40rpx;
+  font-size: 32rpx;
+  padding: 24rpx 0;
+  border: none;
+  box-shadow: 0 4rpx 12rpx var(--color-brand-soy-red-shadow);
+}
+.mof-result-btn-back {
+  background: var(--color-brand-dark-red);
+}

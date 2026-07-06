@@ -1,0 +1,56 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/goods/detail/detail",
+    "pages/cart/cart",
+    "pages/checkout/checkout",
+    "pages/orders/orders",
+    "pages/orders/detail/detail",
+    "pages/login/login",
+    "pages/mine/mine",
+    "pages/mine/address/address",
+    "pages/mine/address/form",
+    "pages/pickup/pickup",
+    "pages/merchantLogin/merchantLogin"
+  ],
+  "subpackages": [
+    {
+      "root": "pages/merchant",
+      "name": "merchant",
+      "pages": [
+        "orders/orders",
+        "orders/detail/detail",
+        "orders/weigh/weigh",
+        "products/products",
+        "products/edit/edit",
+        "operations/operations",
+        "profile/profile",
+        "numbers/numbers",
+        "offline/offline",
+        "dashboard/dashboard"
+      ]
+    }
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#D4420A",
+    "navigationBarTitleText": "小鲜鸡",
+    "navigationBarTextStyle": "white"
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "您的位置信息将用于计算配送距离和地图选点"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation",
+    "chooseLocation"
+  ],
+  "sitemapLocation": "sitemap.json",
+  "style": "v2",
+  "networkTimeout": {
+    "request": 15000,
+    "uploadFile": 30000
+  },
+  "__warning__": "生产部署前请在微信公众平台 → 开发管理 → 开发设置 → 服务器域名中配置以下域名：request合法域名: https://api.你的域名.com; uploadFile合法域名: https://api.你的域名.com; downloadFile合法域名: https://api.你的域名.com"
+}

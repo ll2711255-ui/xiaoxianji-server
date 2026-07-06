@@ -1,0 +1,220 @@
+<view class="pe-page">
+  <view class="pe-body">
+    <!-- Basic info -->
+    <view class="pe-section">
+      <text class="pe-sec-title">基本信息</text>
+
+      <view class="pe-row">
+        <text class="pe-label">商品名称</text>
+        <input class="pe-input" placeholder="请输入商品名称" value="{{name}}" data-field="name" bindinput="onInput" />
+      </view>
+
+      <view class="pe-row pe-cat-row">
+        <text class="pe-label">所属分类</text>
+        <view class="pe-cat-wrap">
+          <picker range="{{categoryNames}}" value="{{categoryIndex}}" bindchange="onCategoryChange" class="pe-cat-picker">
+            <view class="pe-picker">{{categoryNames[categoryIndex] || '请选择分类'}}</view>
+          </picker>
+          <text class="pe-cat-add-btn" bindtap="onShowAddCategory">+ 分类</text>
+          <text class="pe-cat-del-btn" bindtap="onDeleteCategory">− 删除</text>
+        </view>
+      </view>
+      <!-- 内联添加分类 -->
+      <view class="pe-add-cat" wx:if="{{showAddCat}}">
+        <input class="pe-add-cat-input" placeholder="输入新分类名称" value="{{newCatName}}" bindinput="onNewCatInput" focus="{{true}}" />
+        <view class="pe-add-cat-actions">
+          <text class="pe-add-cat-cancel" bindtap="onCancelAddCat">取消</text>
+          <text class="pe-add-cat-confirm" bindtap="onConfirmAddCat">确定</text>
+        </view>
+      </view>
+
+      <view class="pe-row">
+        <text class="pe-label">计价类型</text>
+        <picker range="{{pricingTypes}}" value="{{pricingIndex}}" bindchange="onPricingChange" wx:if="{{!isEdit}}">
+          <view class="pe-picker">{{pricingTypes[pricingIndex]}}</view>
+        </picker>
+        <text class="pe-value" wx:else>{{pricingTypes[pricingIndex]}}</text>
+      </view>
+
+      <view class="pe-row">
+        <text class="pe-label">一句话卖点</text>
+        <input class="pe-input" placeholder="如：散养180天｜肉质紧实" value="{{sellingPoint}}" data-field="sellingPoint" bindinput="onInput" />
+      </view>
+
+      <view class="pe-row">
+        <text class="pe-label">商品描述</text>
+        <textarea class="pe-textarea" placeholder="详细描述..." value="{{description}}" data-field="description" bindinput="onInput" />
+      </view>
+    </view>
+
+    <!-- Pricing (varies by type) -->
+    <view class="pe-section" wx:if="{{pricingType === 'exact_weight'}}">
+      <text class="pe-sec-title">计价设置 — 按斤计价</text>
+      <view class="pe-row">
+        <text class="pe-label">每斤单价（分）</text>
+        <input class="pe-input" type="number" placeholder="如 1580 表示 ¥15.80/斤" value="{{pricePerJin}}" data-field="pricePerJin" bindinput="onInput" />
+      </view>
+      <!-- 重量选项（逐条编辑） -->
+      <view class="pe-spec-block">
+        <view class="pe-spec-block-hd">
+          <text class="pe-sub-title">重量选项</text>
+          <text class="pe-spec-count">{{weightOptionsList.length}} 个</text>
+        </view>
+        <block wx:for="{{weightOptionsList}}" wx:key="idx">
+          <view class="pe-spec-item">
+            <view class="pe-spec-item-row">
+              <input
+                class="pe-spec-input pe-spec-flex1"
+                type="number"
+                placeholder="克重，如500"
+                value="{{item.grams > 0 ? item.grams : ''}}"
+                data-idx="{{item.idx}}"
+                bindinput="onWeightOptionInput"
+              />
+              <text class="pe-weight-jin-hint" wx:if="{{item.jinDisplay}}">{{item.jinDisplay}}</text>
+              <text class="pe-weight-jin-hint pe-weight-jin-empty" wx:else>--斤</text>
+              <text class="pe-spec-del" bindtap="onDelWeightOption" data-idx="{{item.idx}}">✕</text>
+            </view>
+          </view>
+        </block>
+        <view class="pe-spec-add" bindtap="onAddWeightOption">+ 添加重量选项</view>
+      </view>
+      <view class="pe-row">
+        <text class="pe-label">切块附加费（分）</text>
+        <input class="pe-input" type="number" placeholder="0 表示免费" value="{{processingFee}}" data-field="processingFee" bindinput="onInput" />
+      </view>
+      <view class="pe-row pe-proc-row">
+        <text class="pe-label">处理方式</text>
+        <view class="pe-proc-wrap">
+          <view class="pe-proc-chips">
+            <view class="pe-proc-chip {{item.checked ? 'on' : ''}}" wx:for="{{procOptions}}" wx:key="label" data-label="{{item.label}}" bindtap="onToggleProcOption">{{item.label}}</view>
+          </view>
+          <view class="pe-proc-add-wrap" wx:if="{{showAddProc}}">
+            <input class="pe-proc-add-input" placeholder="输入名称" value="{{newProcName}}" bindinput="onNewProcInput" focus="{{true}}" />
+            <text class="pe-proc-add-cancel" bindtap="onCancelAddProcOption">取消</text>
+            <text class="pe-proc-add-confirm" bindtap="onConfirmAddProcOption">确定</text>
+          </view>
+          <text class="pe-proc-add-btn" bindtap="onShowAddProcOption" wx:else>+ 添加</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="pe-section" wx:if="{{pricingType === 'per_piece'}}">
+      <text class="pe-sec-title">计价设置 — 按只计价</text>
+      <view class="pe-row">
+        <text class="pe-label">每只单价（分）</text>
+        <input class="pe-input" type="number" placeholder="如 2500 表示 ¥25/只" value="{{unitPrice}}" data-field="unitPrice" bindinput="onInput" />
+      </view>
+      <view class="pe-row">
+        <text class="pe-label">切块附加费（分）</text>
+        <input class="pe-input" type="number" placeholder="0 表示免费" value="{{processingFee}}" data-field="processingFee" bindinput="onInput" />
+      </view>
+      <view class="pe-row pe-proc-row">
+        <text class="pe-label">处理方式</text>
+        <view class="pe-proc-wrap">
+          <view class="pe-proc-chips">
+            <view class="pe-proc-chip {{item.checked ? 'on' : ''}}" wx:for="{{procOptions}}" wx:key="label" data-label="{{item.label}}" bindtap="onToggleProcOption">{{item.label}}</view>
+          </view>
+          <view class="pe-proc-add-wrap" wx:if="{{showAddProc}}">
+            <input class="pe-proc-add-input" placeholder="输入名称" value="{{newProcName}}" bindinput="onNewProcInput" focus="{{true}}" />
+            <text class="pe-proc-add-cancel" bindtap="onCancelAddProcOption">取消</text>
+            <text class="pe-proc-add-confirm" bindtap="onConfirmAddProcOption">确定</text>
+          </view>
+          <text class="pe-proc-add-btn" bindtap="onShowAddProcOption" wx:else>+ 添加</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="pe-section" wx:if="{{pricingType === 'range_weight'}}">
+      <text class="pe-sec-title">计价设置 — 按斤范围计价（整鸡）</text>
+
+      <!-- 称重类型卡片（每个 type 包含自己的重量范围） -->
+      <block wx:for="{{typeConfigs}}" wx:key="idx">
+        <view class="pe-type-card">
+          <!-- 卡片头部：类型名 + 单价 + 删除 -->
+          <view class="pe-type-card-hd">
+            <text class="pe-type-card-label">称重类型 #{{index + 1}}</text>
+            <text class="pe-spec-del" bindtap="onDelTypeConfig" data-idx="{{item.idx}}">✕</text>
+          </view>
+          <view class="pe-spec-item-row">
+            <input class="pe-spec-input pe-spec-flex2" placeholder="类型名，如毛鸡称重" value="{{item.type}}" data-idx="{{item.idx}}" data-field="type" bindinput="onTypeConfigInput" />
+            <input class="pe-spec-input pe-spec-flex1" type="number" placeholder="单价(分)" value="{{item.price_per_jin}}" data-idx="{{item.idx}}" data-field="price_per_jin" bindinput="onTypeConfigInput" />
+          </view>
+
+          <!-- 该类型的重量范围 -->
+          <view class="pe-spec-block">
+            <view class="pe-spec-block-hd">
+              <text class="pe-sub-title">重量范围</text>
+              <text class="pe-spec-count">{{item.weightConfigs.length}} 档</text>
+            </view>
+            <block wx:for="{{item.weightConfigs}}" wx:key="idx" wx:for-item="w">
+              <view class="pe-spec-item">
+                <view class="pe-spec-item-row">
+                  <input class="pe-spec-input pe-spec-flex2" placeholder="标签(如3.0-3.5斤)" value="{{w.weight_label}}" data-type-idx="{{item.idx}}" data-idx="{{w.idx}}" data-field="weight_label" bindinput="onWeightConfigInput" />
+                  <input class="pe-spec-input pe-spec-flex1" type="number" placeholder="最大克重" value="{{w.weight_max}}" data-type-idx="{{item.idx}}" data-idx="{{w.idx}}" data-field="weight_max" bindinput="onWeightConfigInput" />
+                  <text class="pe-spec-del" bindtap="onDelWeightConfig" data-type-idx="{{item.idx}}" data-idx="{{w.idx}}">✕</text>
+                </view>
+              </view>
+            </block>
+            <view class="pe-spec-add" bindtap="onAddWeightConfig" data-type-idx="{{item.idx}}">+ 添加重量范围</view>
+          </view>
+        </view>
+      </block>
+
+      <view class="pe-spec-add" bindtap="onAddTypeConfig">+ 添加称重类型</view>
+
+      <!-- 处理方式 -->
+      <view class="pe-row pe-proc-row">
+        <text class="pe-label">处理方式</text>
+        <view class="pe-proc-wrap">
+          <view class="pe-proc-chips">
+            <view class="pe-proc-chip {{item.checked ? 'on' : ''}}" wx:for="{{procOptions}}" wx:key="label" data-label="{{item.label}}" bindtap="onToggleProcOption">{{item.label}}</view>
+          </view>
+          <view class="pe-proc-add-wrap" wx:if="{{showAddProc}}">
+            <input class="pe-proc-add-input" placeholder="输入名称" value="{{newProcName}}" bindinput="onNewProcInput" focus="{{true}}" />
+            <text class="pe-proc-add-cancel" bindtap="onCancelAddProcOption">取消</text>
+            <text class="pe-proc-add-confirm" bindtap="onConfirmAddProcOption">确定</text>
+          </view>
+          <text class="pe-proc-add-btn" bindtap="onShowAddProcOption" wx:else>+ 添加</text>
+        </view>
+      </view>
+
+      <!-- 规格预览 -->
+      <view class="pe-spec-preview" wx:if="{{specsPreviewCount > 0}}">
+        <text class="pe-preview-text">将生成 {{specsPreviewCount}} 条规格（{{typeConfigs.length}} 类型 × 共 {{specsPreviewCount / (procOptCount || 1)}} 范围 × {{procOptCount}} 处理方式）</text>
+      </view>
+    </view>
+
+    <!-- Delivery modes -->
+    <view class="pe-section">
+      <text class="pe-sec-title">取货方式</text>
+      <view class="pe-check-row" wx:for="{{deliveryModes}}" wx:key="value" data-value="{{item.value}}" bindtap="onDeliveryTap">
+        <checkbox value="{{item.value}}" checked="{{item.checked}}" />
+        <text>{{item.label}}</text>
+      </view>
+    </view>
+
+    <!-- Images -->
+    <view class="pe-section">
+      <text class="pe-sec-title">商品图片</text>
+      <view class="pe-imgs">
+        <view class="pe-img-item" wx:for="{{images}}" wx:key="*this">
+          <image class="pe-img" src="{{item}}" mode="aspectFill" />
+          <view class="pe-img-del" data-index="{{index}}" bindtap="onDelImage">✕</view>
+        </view>
+        <view class="pe-img-add" bindtap="onAddImage" wx:if="{{images.length < 6}}">
+          <text class="pe-img-add-icon">+</text>
+          <text class="pe-img-add-text">添加图片</text>
+        </view>
+      </view>
+    </view>
+
+    <view style="height: 48rpx;"></view>
+  </view>
+
+  <!-- Bottom bar -->
+  <view class="pe-bar">
+    <button class="pe-btn-cancel" bindtap="onCancel">取消</button>
+    <button class="pe-btn-save" bindtap="onSave" loading="{{saving}}">保存</button>
+  </view>
+</view>

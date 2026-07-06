@@ -1,0 +1,240 @@
+<view class="page">
+  <!-- ========== 搜索全屏浮层 ========== -->
+  <view class="search-overlay" wx:if="{{showSearch}}" catchtouchmove="noop">
+    <!-- 搜索输入栏 -->
+    <view class="search-header">
+      <view class="search-header-input-wrap">
+        <text class="search-header-icon">🔍</text>
+        <input
+          class="search-header-input"
+          value="{{searchKeyword}}"
+          placeholder="搜索鸡肉、鸭肉..."
+          placeholder-class="search-ph-cls"
+          focus="{{true}}"
+          confirm-type="search"
+          bindinput="onSearchInput"
+          bindconfirm="onSearchConfirm"
+        />
+        <text class="search-header-clear" wx:if="{{searchKeyword}}" bindtap="onSearchClear">✕</text>
+      </view>
+      <text class="search-header-cancel" bindtap="onSearchCancel">取消</text>
+    </view>
+
+    <!-- 搜索结果 -->
+    <scroll-view class="search-body" scroll-y enhanced show-scrollbar="{{false}}" wx:if="{{searchKeyword}}">
+      <view class="search-results" wx:if="{{searchResults.length > 0}}">
+        <view
+          wx:for="{{searchResults}}"
+          wx:key="_id"
+          class="search-result-card"
+          data-id="{{item._id}}"
+          bindtap="onSearchResultTap"
+        >
+          <view class="sri-thumb">
+            <image
+              class="sri-img"
+              src="{{item.images[0]}}"
+              mode="aspectFill"
+              wx:if="{{item.images && item.images.length > 0}}"
+            />
+            <text class="sri-emoji" wx:else>🐔</text>
+          </view>
+          <view class="sri-info">
+            <text class="sri-name">{{item.name}}</text>
+            <text class="sri-desc">{{item.sellingPoint || item.description || ''}}</text>
+            <text class="goods-spec" wx:if="{{item.specSummary}}">{{item.specSummary}}</text>
+            <view class="sri-price">
+              <text class="price-symbol">¥</text>
+              <text class="price-value">{{item.displayPrice}}</text>
+              <text class="price-unit">{{item.priceLabel}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view class="search-empty" wx:if="{{searchHasNoResult}}">
+        <text class="search-empty-icon">🔍</text>
+        <text class="search-empty-text">没有找到相关商品</text>
+        <text class="search-empty-hint">换个关键词试试吧</text>
+      </view>
+    </scroll-view>
+
+    <!-- 搜索历史（未输入关键词时） -->
+    <scroll-view class="search-body" scroll-y enhanced show-scrollbar="{{false}}" wx:else>
+      <view class="search-history" wx:if="{{searchHistory.length > 0}}">
+        <view class="search-history-header">
+          <text class="search-history-title">搜索历史</text>
+          <text class="search-history-clear" bindtap="onClearHistory">清空</text>
+        </view>
+        <view class="search-history-tags">
+          <view
+            wx:for="{{searchHistory}}"
+            wx:key="*this"
+            class="search-history-tag"
+            data-keyword="{{item}}"
+            bindtap="onHistoryTap"
+          >{{item}}</view>
+        </view>
+      </view>
+      <view class="search-hot" wx:else>
+        <text class="search-hot-title">🔥 热门搜索</text>
+        <view class="search-hot-tags">
+          <view class="search-hot-tag" data-keyword="鸡" bindtap="onHistoryTap">鸡</view>
+          <view class="search-hot-tag" data-keyword="鸡腿" bindtap="onHistoryTap">鸡腿</view>
+          <view class="search-hot-tag" data-keyword="鸡翅" bindtap="onHistoryTap">鸡翅</view>
+          <view class="search-hot-tag" data-keyword="鸽子" bindtap="onHistoryTap">鸽子</view>
+          <view class="search-hot-tag" data-keyword="鸭" bindtap="onHistoryTap">鸭</view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- ========== 顶部搜索栏（固定） ========== -->
+  <view class="search-bar" wx:if="{{!showSearch}}">
+    <view class="search-input" bindtap="onSearchTap">
+      <text class="search-icon">🔍</text>
+      <text class="search-placeholder">搜索鸡肉、鸭肉...</text>
+    </view>
+    <text class="brand-name">小鲜鸡</text>
+  </view>
+
+  <!-- ========== Banner 轮播 ========== -->
+  <swiper class="banner-swiper" autoplay interval="3000" circular indicator-dots indicator-color="rgba(0,0,0,0.2)" indicator-active-color="#D4420A" wx:if="{{bannerList.length > 0}}">
+    <swiper-item wx:for="{{bannerList}}" wx:key="_id">
+      <!-- 有图片的 Banner -->
+      <view class="banner-slide" wx:if="{{item.image}}">
+        <image class="banner-slide-img" src="{{item.image}}" mode="aspectFill" />
+        <view class="banner-img-mask" wx:if="{{item.title}}">
+          <text class="banner-img-title">{{item.title}}</text>
+          <text class="banner-img-sub" wx:if="{{item.subtitle}}">{{item.subtitle}}</text>
+        </view>
+      </view>
+      <!-- 纯文字 Banner（无图片） -->
+      <view class="banner-slide banner-slide-text" wx:else style="background: {{item.bg || '#f5f5f5'}};">
+        <view class="banner-text">
+          <text class="banner-title">{{item.title}}</text>
+          <text class="banner-sub">{{item.subtitle}}</text>
+        </view>
+        <view class="banner-emoji-wrap">
+          <text class="banner-emoji">{{item.title.includes('鸡') ? '🐔' : (item.title.includes('鸭') ? '🦆' : (item.title.includes('鸽') ? '🕊️' : '🎉'))}}</text>
+        </view>
+      </view>
+    </swiper-item>
+  </swiper>
+
+  <!-- ========== 加载中状态 ========== -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">正在加载商品...</text>
+  </view>
+
+  <!-- ========== 加载失败状态 ========== -->
+  <view class="error-state" wx:elif="{{loadError}}">
+    <text class="error-icon">😵</text>
+    <text class="error-text">{{errorMsg}}</text>
+    <view class="error-retry-btn" bindtap="reload">
+      <text>重新加载</text>
+    </view>
+  </view>
+
+  <!-- ========== 商品为空状态 ========== -->
+  <view class="empty-state" wx:elif="{{!loading && !loadError && groupedProducts.length === 0}}">
+    <text class="empty-icon">📦</text>
+    <text class="empty-text">暂无商品</text>
+    <text class="empty-hint">商家正在准备新鲜好货，请稍后再来</text>
+  </view>
+
+  <!-- ========== 左右联动主体（正常状态） ========== -->
+  <view class="main-content" wx:else>
+    <!-- 左侧分类导航 -->
+    <scroll-view class="left-nav" scroll-y enhanced show-scrollbar="{{false}}">
+      <view
+        wx:for="{{categories}}"
+        wx:key="_id"
+        class="cate-item {{activeCategoryId === item._id ? 'cate-active' : ''}}"
+        data-id="{{item._id}}"
+        bindtap="onCategoryTap"
+      >
+        <view class="cate-bar" wx:if="{{activeCategoryId === item._id}}"></view>
+        <text class="cate-name">{{item.name}}</text>
+      </view>
+    </scroll-view>
+
+    <!-- 右侧商品列表 -->
+    <scroll-view
+      class="right-scroll"
+      scroll-y
+      enhanced
+      show-scrollbar="{{false}}"
+      scroll-into-view="{{scrollToSection}}"
+      bindscroll="onRightScroll"
+      scroll-with-animation
+    >
+      <view
+        wx:for="{{groupedProducts}}"
+        wx:key="categoryId"
+        class="section-wrap {{item.categoryId === 'cat_00' ? 'section-featured' : ''}}"
+        id="s-{{item.categoryId}}"
+      >
+        <!-- 分类标题 -->
+        <view class="section-title">{{item.categoryName}}</view>
+
+        <!-- 商品列表（单列横向卡片） -->
+        <view
+          wx:for="{{item.products}}"
+          wx:for-item="product"
+          wx:key="_id"
+          class="goods-card {{product.out_of_stock ? 'goods-out-of-stock' : ''}}"
+          data-id="{{product._id}}"
+          bindtap="onProductTap"
+        >
+          <view class="goods-img-wrap">
+            <image
+              class="goods-img"
+              src="{{product.images[0]}}"
+              mode="aspectFill"
+              lazy-load
+              wx:if="{{product.images.length > 0}}"
+            />
+            <view class="goods-img-placeholder" wx:else>
+              <text>🐔</text>
+            </view>
+            <!-- 缺货遮罩 -->
+            <view class="out-of-stock-mask" wx:if="{{product.out_of_stock}}">
+              <text class="out-of-stock-text">缺货</text>
+            </view>
+          </view>
+          <view class="goods-info">
+            <text class="goods-name">{{product.name}}</text>
+            <text class="goods-desc">{{product.sellingPoint}}</text>
+            <text class="goods-sales-tag">{{product.salesTag}}</text>
+            <view class="goods-price">
+              <text class="price-symbol">¥</text>
+              <text class="price-value">{{product.displayPrice}}</text>
+              <text class="price-unit">{{product.priceLabel}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view style="height: 120rpx;"></view>
+    </scroll-view>
+  </view>
+
+  <!-- ========== 底部购物车浮栏 ========== -->
+  <view class="cart-float" wx:if="{{cartCount > 0}}" bindtap="onCartTap">
+    <view class="cart-float-left">
+      <view class="cart-float-icon">
+        <text>🛒</text>
+        <view class="cart-badge">{{cartCount}}</view>
+      </view>
+      <text class="cart-float-total">¥{{cartTotalDisplay}}</text>
+    </view>
+    <view class="cart-float-btn">
+      <text>去结算</text>
+    </view>
+  </view>
+
+</view>
+
+  <!-- Custom TabBar -->
+  <custom-tab-bar current="index" theme="customer" bind:change="onTabChange" />

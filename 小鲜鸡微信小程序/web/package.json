@@ -1,0 +1,30 @@
+{
+  "name": "xiaoxianji-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:admin": "vite --config vite.config.admin.ts",
+    "dev:cashier": "vite --config vite.config.cashier.ts",
+    "build:admin": "vite build --config vite.config.admin.ts",
+    "build:cashier": "vite build --config vite.config.cashier.ts",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "dayjs": "^1.11.10",
+    "echarts": "^5.5.0",
+    "element-plus": "^2.5.0",
+    "pinia": "^2.1.7",
+    "socket.io-client": "^4.7.4",
+    "vue": "^3.4.0",
+    "vue-router": "^4.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.0",
+    "sass": "^1.70.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.1.0",
+    "vue-tsc": "^1.8.27"
+  }
+}

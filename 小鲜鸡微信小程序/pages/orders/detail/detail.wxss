@@ -1,0 +1,257 @@
+/* ========== 订单详情页 ========== */
+
+/* 状态头部 - 绿色 */
+.od-header {
+  background: linear-gradient(160deg, #1DB96A, #2ecc71);
+  padding: 48rpx 32rpx;
+  text-align: center;
+}
+
+.od-status {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #fff;
+  display: block;
+}
+
+.od-desc {
+  font-size: 30rpx;
+  color: rgba(255,255,255,0.85);
+  margin-top: 10rpx;
+  display: block;
+}
+
+/* 号码牌 */
+.od-pickup {
+  text-align: center;
+  padding: 36rpx 24rpx;
+}
+
+.pickup-tag {
+  font-size: 28rpx;
+  color: #999;
+  display: block;
+}
+
+.pickup-num {
+  font-size: 104rpx;
+  font-weight: 800;
+  color: #1DB96A;
+  line-height: 1.2;
+  display: block;
+  margin: 8rpx 0;
+}
+
+.pickup-hint {
+  font-size: 30rpx;
+  color: #999;
+  display: block;
+}
+
+/* 区块标题 */
+.od-section-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1A1A1A;
+  display: block;
+  margin-bottom: 20rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 1rpx solid #F5F5F5;
+}
+
+/* 商品行 */
+.od-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 14rpx 0;
+}
+
+.od-item + .od-item {
+  border-top: 1rpx solid #F8F8F8;
+}
+
+.od-item-left {
+  flex: 1;
+}
+
+.od-pname {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #1A1A1A;
+  display: block;
+}
+
+.od-ptags {
+  display: flex;
+  gap: 8rpx;
+  margin-top: 8rpx;
+}
+
+.od-item-right {
+  text-align: right;
+  flex-shrink: 0;
+  margin-left: 16rpx;
+}
+
+.od-pqty {
+  font-size: 28rpx;
+  color: #999;
+  display: block;
+}
+
+.od-pprice {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #FF4B26;
+  margin-top: 6rpx;
+  display: block;
+}
+
+/* 称重照片 */
+.weigh-photo-section {
+  text-align: center;
+  margin-bottom: 20rpx;
+}
+
+.weigh-photo {
+  width: 100%;
+  max-width: 500rpx;
+  height: 400rpx;
+  border-radius: 12rpx;
+  background: #F5F5F5;
+}
+
+.weigh-photo-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 280rpx;
+  background: #FAFAFA;
+  border-radius: 12rpx;
+  border: 2rpx dashed #E0E0E0;
+}
+
+.weigh-photo-icon {
+  font-size: 80rpx;
+  margin-bottom: 16rpx;
+  opacity: 0.5;
+}
+
+.weigh-photo-text {
+  font-size: 28rpx;
+  color: #C7C7CC;
+}
+
+.weigh-photo-hint {
+  font-size: 26rpx;
+  color: #C7C7CC;
+  display: block;
+  margin-top: 10rpx;
+}
+
+/* 信息行 */
+.od-inforow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14rpx 0;
+  font-size: 30rpx;
+}
+
+.od-infol {
+  color: #999;
+  flex-shrink: 0;
+}
+
+.od-infor {
+  color: #1A1A1A;
+}
+
+.od-price {
+  color: #FF4B26;
+  font-weight: 700;
+}
+
+.od-addr {
+  text-align: right;
+  flex: 1;
+}
+
+/* 可点击的行内容（地址导航 / 电话拨号） */
+.od-clickable {
+  color: #1DB96A;
+}
+
+.od-clickable:active {
+  opacity: 0.6;
+}
+
+.od-action-icon {
+  font-size: 30rpx;
+  margin-left: 6rpx;
+}
+
+.od-refund {
+  margin-top: 8rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #EEEEEE;
+}
+
+.od-refund-amount {
+  color: #1DB96A;
+  font-weight: 700;
+}
+
+/* 操作按钮区 */
+.od-actions {
+  padding: 32rpx 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+/* 去支付按钮 — 填充品牌色 */
+.od-pay {
+  text-align: center;
+  padding: 24rpx;
+  color: #fff;
+  font-size: 34rpx;
+  font-weight: 600;
+  background: linear-gradient(135deg, #D4420A, #E85520);
+  border-radius: 40rpx;
+}
+
+.od-pay:active {
+  opacity: 0.85;
+}
+
+/* 取消按钮 */
+.od-cancel {
+  text-align: center;
+  padding: 24rpx;
+  color: #FF3B30;
+  font-size: 32rpx;
+  border: 2rpx solid #FF3B30;
+  border-radius: 40rpx;
+  background: #fff;
+}
+
+.od-cancel:active {
+  background: #FFF5F5;
+}
+
+/* 离线提示 */
+.od-offline {
+  text-align: center;
+  padding: 24rpx;
+  background: #FFF5F0;
+  margin: 16rpx 24rpx;
+  border-radius: 12rpx;
+}
+
+.od-offline-text {
+  font-size: 28rpx;
+  color: #FF9500;
+  display: block;
+}

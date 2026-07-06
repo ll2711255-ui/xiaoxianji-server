@@ -1,0 +1,76 @@
+<view class="ctb-root ctb-theme-{{theme}}" wx:if="{{visible}}">
+  <!-- 顶部细线 -->
+  <view class="ctb-line"></view>
+
+  <!-- 顾客端 Tab 定义 -->
+  <block wx:if="{{theme === 'customer'}}">
+    <view
+      class="ctb-item {{current === 'index' ? 'ctb-active' : ''}}"
+      data-key="index"
+      bindtap="onTabTap"
+    >
+      <text class="ctb-icon">🏠</text>
+      <text class="ctb-label">首页</text>
+    </view>
+    <view
+      class="ctb-item {{current === 'cart' ? 'ctb-active' : ''}}"
+      data-key="cart"
+      bindtap="onTabTap"
+    >
+      <text class="ctb-icon">🛒</text>
+      <text class="ctb-label">购物车</text>
+    </view>
+    <view
+      class="ctb-item {{current === 'orders' ? 'ctb-active' : ''}}"
+      data-key="orders"
+      bindtap="onTabTap"
+    >
+      <text class="ctb-icon">📋</text>
+      <text class="ctb-label">订单</text>
+    </view>
+    <view
+      class="ctb-item {{current === 'mine' ? 'ctb-active' : ''}}"
+      data-key="mine"
+      bindtap="onTabTap"
+    >
+      <text class="ctb-icon">👤</text>
+      <text class="ctb-label">我的</text>
+    </view>
+  </block>
+
+  <!-- 商家端 Tab 定义 -->
+  <block wx:if="{{theme === 'merchant'}}">
+    <view
+      class="ctb-item {{current === 'orders' ? 'ctb-active' : ''}}"
+      data-key="orders"
+      bindtap="onTabTap"
+    >
+      <text class="ctb-icon">📋</text>
+      <text class="ctb-label">订单</text>
+    </view>
+    <view
+      class="ctb-item {{current === 'products' ? 'ctb-active' : ''}}"
+      data-key="products"
+      bindtap="onTabTap"
+    >
+      <text class="ctb-icon">📦</text>
+      <text class="ctb-label">商品管理</text>
+    </view>
+    <view
+      class="ctb-item {{current === 'operations' ? 'ctb-active' : ''}}"
+      data-key="operations"
+      bindtap="onTabTap"
+    >
+      <text class="ctb-icon">📊</text>
+      <text class="ctb-label">商品运营</text>
+    </view>
+    <view
+      class="ctb-item {{current === 'profile' ? 'ctb-active' : ''}}"
+      data-key="profile"
+      bindtap="onTabTap"
+    >
+      <text class="ctb-icon">⚙️</text>
+      <text class="ctb-label">我的</text>
+    </view>
+  </block>
+</view>

@@ -1,0 +1,83 @@
+/* ========== 号码牌管理 ========== */
+.mn-page {
+  min-height: 100vh;
+  background: #F5F5F5;
+  padding-bottom: 40rpx;
+}
+
+.mn-header {
+  background: linear-gradient(135deg, var(--color-brand-dark-red), var(--color-brand-main-red));
+  padding: 24rpx 32rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.mn-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #fff;
+}
+.mn-legend {
+  display: flex;
+  gap: 24rpx;
+}
+.mn-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  font-size: 26rpx;
+  color: rgba(255,255,255,0.7);
+}
+.mn-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+}
+.mn-dot.idle { background: #4CAF50; }
+.mn-dot.used { background: #CCCCCC; }
+
+/* 网格 */
+.mn-grid {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 24rpx;
+  gap: 16rpx;
+}
+.mn-card {
+  width: calc(25% - 12rpx);
+  aspect-ratio: 1;
+  border-radius: 12rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid transparent;
+}
+.mn-card.idle {
+  background: #4CAF50;
+  border-color: #4CAF50;
+}
+.mn-card.used {
+  background: #CCCCCC;
+  border-color: #CCCCCC;
+}
+.mn-num {
+  font-size: 44rpx;
+  font-weight: 800;
+  color: #FFFFFF;
+}
+.mn-label {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 4rpx;
+}
+
+.mn-refresh {
+  text-align: center;
+  padding: 24rpx;
+  color: #FF5722;
+  font-size: 32rpx;
+}

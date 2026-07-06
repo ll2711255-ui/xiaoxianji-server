@@ -1,0 +1,68 @@
+.ctb-root {
+  display: flex;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100rpx;
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 1000;
+}
+
+/* 顶部细线 */
+.ctb-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1rpx;
+}
+
+/* ========== 顾客端主题 ========== */
+.ctb-theme-customer {
+  background: #FFFFFF;
+  box-shadow: 0 -2rpx 8rpx rgba(0,0,0,0.06);
+}
+.ctb-theme-customer .ctb-line {
+  background: #EEEEEE;
+}
+.ctb-theme-customer .ctb-label {
+  color: #999999;
+}
+.ctb-theme-customer .ctb-active .ctb-label {
+  color: #1DB96A;
+}
+
+/* ========== 商家端主题 ========== */
+.ctb-theme-merchant {
+  background: var(--color-brand-main-red);
+  box-shadow: 0 -2rpx 8rpx rgba(0,0,0,0.20);
+}
+.ctb-theme-merchant .ctb-line {
+  background: var(--color-brand-dark-red);
+}
+.ctb-theme-merchant .ctb-label {
+  color: rgba(255,255,255,0.6);
+}
+.ctb-theme-merchant .ctb-active .ctb-label {
+  color: #FFFFFF;
+}
+
+/* ========== 项样式 ========== */
+.ctb-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  gap: 2rpx;
+}
+.ctb-icon {
+  font-size: 44rpx;
+  line-height: 1;
+}
+.ctb-label {
+  font-size: 24rpx;
+  line-height: 1;
+}
