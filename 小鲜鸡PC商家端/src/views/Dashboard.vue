@@ -9,10 +9,19 @@
         <StatCard icon="Loading" label="处理中" :value="stats.activeCount" color="#F5A623" @click="$router.push('/orders')" />
       </el-col>
       <el-col :span="6">
-        <StatCard icon="Money" label="今日营收" :value="'¥' + stats.todayRevenue" color="#67C23A" />
+        <StatCard icon="WarningFilled" label="待处理退款" :value="stats.refundAlertCount" color="#F56C6C" @click="$router.push('/orders')" />
       </el-col>
       <el-col :span="6">
+        <StatCard icon="Money" label="今日营收" :value="'¥' + stats.todayRevenue" color="#67C23A" />
+      </el-col>
+    </el-row>
+
+    <el-row :gutter="20" style="margin-top:20px">
+      <el-col :span="12">
         <StatCard icon="Document" label="今日订单" :value="stats.todayOrders" color="#409EFF" />
+      </el-col>
+      <el-col :span="12">
+        <!-- 占位，保持对齐 -->
       </el-col>
     </el-row>
 
@@ -66,15 +75,23 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/utils/api'
+import { useNotification } from '@/composables/useNotification'
 import StatCard from '@/components/StatCard.vue'
 import OrderStatusTag from '@/components/OrderStatusTag.vue'
 
 const router = useRouter()
-const stats = reactive({ pendingCount: 0, activeCount: 0, todayRevenue: '0.00', todayOrders: 0 })
+const { notify, requestPermission } = useNotification()
+const stats = reactive({ pendingCount: 0, activeCount: 0, refundAlertCount: 0, todayRevenue: '0.00', todayOrders: 0 })
 const recentOrders = ref([])
+
+// 上次轮询值（用于检测增量触发通知）
+let lastPendingCount = 0
+let lastRefundCount = 0
+let _pollTimer = null
+const POLL_INTERVAL = 30000 // 30 秒轮询一次
 
 function formatMoney(fen) { return (fen / 100).toFixed(2) }
 function formatTime(t) {
@@ -96,19 +113,33 @@ function onRowClick(row) {
   router.push('/orders/' + row.orderNo)
 }
 
-onMounted(async () => {
+// 加载仪表盘数据
+async function loadDashboard() {
   try {
-    const [paidRes, activeRes, dashRes] = await Promise.all([
+    const [paidRes, activeRes, refundAlertRes] = await Promise.all([
       api.get('/merchant/orders', { status: 'paid', pageSize: 200, type: 'online' }),
       api.get('/merchant/orders', { status: 'accepted,weighed,processing,delivering,ready', pageSize: 200, type: 'online' }),
-      api.get('/dashboard')
+      api.get('/merchant/refund-alerts', { type: 'count' })
     ])
-    stats.pendingCount = ((paidRes && paidRes.data && paidRes.data.orders) || []).length
-    stats.activeCount = ((activeRes && activeRes.data && activeRes.data.orders) || []).length
-    if (dashRes && dashRes.data) {
-      stats.todayRevenue = dashRes.data.todayRevenue || '0.00'
-      stats.todayOrders = dashRes.data.todayOrders || 0
+    const newPendingCount = ((paidRes && paidRes.data && paidRes.data.orders) || []).length
+    const newActiveCount = ((activeRes && activeRes.data && activeRes.data.orders) || []).length
+    const newRefundCount = (refundAlertRes && refundAlertRes.data && refundAlertRes.data.count) || 0
+
+    // 检测新订单增量 → 系统通知（跳过首次加载）
+    if (lastPendingCount > 0 && newPendingCount > lastPendingCount) {
+      const delta = newPendingCount - lastPendingCount
+      notify('新订单提醒', `有 ${delta} 个新订单待接单`)
     }
+    if (lastRefundCount > 0 && newRefundCount > lastRefundCount) {
+      const delta = newRefundCount - lastRefundCount
+      notify('退款告警', `有 ${delta} 个新退款申请待处理`)
+    }
+
+    lastPendingCount = newPendingCount
+    lastRefundCount = newRefundCount
+    stats.pendingCount = newPendingCount
+    stats.activeCount = newActiveCount
+    stats.refundAlertCount = newRefundCount
   } catch (err) {
     console.error('加载仪表盘失败:', err)
   }
@@ -118,6 +149,24 @@ onMounted(async () => {
     const orders = (res && res.data && res.data.orders) || []
     recentOrders.value = orders.map(o => ({ ...o, statusText: getStatusText(o.status, o.type) }))
   } catch (err) { console.error('加载最近订单失败:', err) }
+}
+
+onMounted(async () => {
+  // 请求通知权限（首次由用户手势触发）
+  await requestPermission()
+
+  // 首次加载
+  await loadDashboard()
+
+  // 启动轮询
+  _pollTimer = setInterval(loadDashboard, POLL_INTERVAL)
+})
+
+onUnmounted(() => {
+  if (_pollTimer) {
+    clearInterval(_pollTimer)
+    _pollTimer = null
+  }
 })
 </script>
 

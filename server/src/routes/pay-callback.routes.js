@@ -50,7 +50,7 @@ router.post('/', async (req, res) => {
     const signOk = await wxpay.verifyCallbackSign(headers, rawBody);
     if (!signOk) {
       payLogger.error('[pay-callback] 签名验证失败！');
-      return res.status(200).json({ code: 'FAIL', message: '签名验证失败' });
+      return res.status(400).json({ code: 'FAIL', message: '签名验证失败' });
     }
     payLogger.info('[pay-callback] 签名验证通过');
   }
@@ -110,17 +110,30 @@ router.post('/', async (req, res) => {
 
   // ========== 4. 金额校验 ==========
   if (totalAmount !== order.pay_amount) {
-    payLogger.error(`[pay-callback] ⚠️ 金额不一致! 回调:${totalAmount} 本地:${order.pay_amount} 订单:${outTradeNo}`);
-    // 告警但继续执行（以本地金额为准）
+    payLogger.error(`[pay-callback] ❌ 金额不一致! 回调:${totalAmount} 本地:${order.pay_amount} 订单:${outTradeNo}`);
+    return res.status(200).json({ code: 'FAIL', message: '金额不一致' });
   }
 
-  // ========== 5. 更新订单状态 ==========
+  // ========== 5. 更新订单状态（原子幂等：WHERE order_status = 0） ==========
   try {
-    await db.execute(
+    // 先确认库存扣减（放在改状态之前，失败不污染订单）
+    const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+    for (const item of (items || [])) {
+      await stockService.confirmStock(item.productId, 'default', item.quantity);
+    }
+
+    // 原子更新：只有 order_status = 0 时才执行，防并发重复处理
+    const affectedRows = await db.execute(
       `UPDATE order_info SET order_status = 1, status_label = 'paid',
-       pay_time = NOW(), transaction_id = ? WHERE order_no = ?`,
+       pay_time = NOW(), transaction_id = ? WHERE order_no = ? AND order_status = 0`,
       [transactionId, outTradeNo]
     );
+
+    if (affectedRows === 0) {
+      // 被另一个进程抢先处理了 → 幂等返回成功
+      payLogger.info(`[pay-callback] 订单已被并发处理，幂等返回成功: ${outTradeNo}`);
+      return res.status(200).json({ code: 'SUCCESS', message: '已处理' });
+    }
 
     // 更新支付流水
     await db.execute(
@@ -128,12 +141,6 @@ router.post('/', async (req, res) => {
        WHERE order_no = ?`,
       [transactionId, rawBody.substring(0, 10000), outTradeNo]
     );
-
-    // ========== 6. 确认库存扣减（原子永久扣减） ==========
-    const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
-    for (const item of (items || [])) {
-      await stockService.confirmStock(item.productId, 'default', item.quantity);
-    }
 
     // 更新库存锁定记录
     await db.execute(
@@ -169,7 +176,7 @@ router.post('/refund', async (req, res) => {
   if (isApiV3 && rawBody) {
     const signOk = await wxpay.verifyCallbackSign(headers, rawBody);
     if (!signOk) {
-      return res.status(200).json({ code: 'FAIL', message: '签名验证失败' });
+      return res.status(400).json({ code: 'FAIL', message: '签名验证失败' });
     }
   }
 
@@ -197,6 +204,23 @@ router.post('/refund', async (req, res) => {
 
   if (!outTradeNo || !outRefundNo) {
     return res.status(200).json({ code: 'FAIL', message: '缺少订单号' });
+  }
+
+  // ========== 幂等检查：已处理的退款记录直接返回 ==========
+  const existingRefund = await db.queryOne(
+    'SELECT refund_status FROM refund_record WHERE refund_no = ?',
+    [outRefundNo]
+  );
+  if (existingRefund) {
+    // refund_status: 0=处理中, 1=成功, 2=失败
+    if (existingRefund.refund_status === 1) {
+      payLogger.info(`[refund-callback] 退款已成功处理，幂等返回: ${outRefundNo}`);
+      return res.status(200).json({ code: 'SUCCESS', message: '已处理' });
+    }
+    if (existingRefund.refund_status === 2) {
+      payLogger.info(`[refund-callback] 退款已标记失败，幂等返回: ${outRefundNo}`);
+      return res.status(200).json({ code: 'SUCCESS', message: '已处理' });
+    }
   }
 
   // 更新退款流水

@@ -18,6 +18,10 @@ module.exports = {
         PORT: 3000,
       },
       max_memory_restart: '500M',
+      // 崩溃重启保护：连续崩溃 10 次后停止重启，防止无限重启打满 CPU
+      max_restarts: 10,
+      min_uptime: '10s',
+      restart_delay: 5000,
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       error_file: './logs/pm2-error.log',
       out_file: './logs/pm2-out.log',

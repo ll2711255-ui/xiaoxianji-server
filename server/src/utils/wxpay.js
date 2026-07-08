@@ -278,8 +278,57 @@ async function queryRefund(outRefundNo) {
 
 // ========== 回调验签与解密 ==========
 
+// 微信平台证书缓存：serialNo → { publicKey, expiresAt }
+const certCache = new Map();
+
+/**
+ * 从微信支付获取平台证书列表并缓存
+ * 文档：https://pay.weixin.qq.com/doc/v3/merchant/4012791856
+ */
+async function fetchPlatformCertificates() {
+  const result = await v3Request('GET', '/v3/certificates');
+
+  if (result.status !== 200 || !result.data || !result.data.data) {
+    logger.error('[wxpay] 获取平台证书失败:', JSON.stringify(result));
+    throw new Error('获取微信平台证书失败');
+  }
+
+  for (const cert of result.data.data) {
+    const ec = cert.encrypt_certificate;
+    const pem = decryptResource(ec.ciphertext, ec.nonce, ec.associated_data || '');
+
+    certCache.set(cert.serial_no, {
+      publicKey: crypto.createPublicKey(pem),
+      expiresAt: new Date(cert.expire_time).getTime(),
+    });
+  }
+
+  logger.info(`[wxpay] 平台证书已更新，共 ${certCache.size} 个`);
+}
+
+/**
+ * 按序列号查找缓存的平台证书
+ * @param {string} serialNo - 回调头 wechatpay-serial
+ * @returns {{ publicKey: crypto.KeyObject, expiresAt: number } | null}
+ */
+function getCachedCert(serialNo) {
+  const cert = certCache.get(serialNo);
+  if (!cert) return null;
+  if (Date.now() > cert.expiresAt) {
+    certCache.delete(serialNo);
+    return null;
+  }
+  return cert;
+}
+
 /**
  * 验证微信支付回调签名
+ *
+ * 正确流程（APIv3）：
+ *   1. 根据回调头 wechatpay-serial 查缓存平台证书
+ *   2. 缓存未命中 → 调用 /v3/certificates 获取最新证书列表
+ *   3. 用证书公钥验签（不是商户私钥！）
+ *
  * @param {object} headers - 请求头
  * @param {string} rawBody - 原始请求体字符串
  * @returns {Promise<boolean>}
@@ -296,16 +345,32 @@ async function verifyCallbackSign(headers, rawBody) {
       return false;
     }
 
+    // 防重放：时间戳偏差超过 5 分钟则拒绝
+    const now = Math.floor(Date.now() / 1000);
+    if (Math.abs(now - parseInt(timestamp, 10)) > 300) {
+      logger.error('[wxpay] 回调时间戳偏差过大:', { timestamp, now });
+      return false;
+    }
+
     // 构建签名串: timestamp\nnonce\nbody\n
     const msg = timestamp + '\n' + nonce + '\n' + rawBody + '\n';
 
-    // 获取微信平台证书公钥（简化：使用本地商户私钥对应的公钥提取）
-    // 生产环境需从平台证书接口获取对应序列号的证书
-    const cert = require('crypto').createPublicKey(PRIVATE_KEY);
+    // 查找对应序列号的平台证书
+    let cert = getCachedCert(serialNo);
+    if (!cert) {
+      logger.info('[wxpay] 证书缓存未命中，重新获取平台证书...');
+      await fetchPlatformCertificates();
+      cert = getCachedCert(serialNo);
+      if (!cert) {
+        logger.error('[wxpay] 未找到序列号对应的平台证书:', serialNo);
+        return false;
+      }
+    }
 
+    // 用平台证书公钥验签
     const verify = crypto.createVerify('RSA-SHA256');
     verify.update(msg);
-    const isValid = verify.verify(cert, signature, 'base64');
+    const isValid = verify.verify(cert.publicKey, signature, 'base64');
 
     if (!isValid) {
       logger.error('[wxpay] 回调签名验证失败');
@@ -353,4 +418,5 @@ module.exports = {
   queryRefund,
   verifyCallbackSign,
   decryptResource,
+  fetchPlatformCertificates,
 };

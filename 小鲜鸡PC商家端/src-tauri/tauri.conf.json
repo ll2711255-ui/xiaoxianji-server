@@ -1,0 +1,29 @@
+{
+  "productName": "小鲜鸡商家端",
+  "version": "1.0.0",
+  "identifier": "top.xuaioxianji.merchant",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build -- --mode tauri"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "小鲜鸡商家端",
+        "width": 1280,
+        "height": 800
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "plugins": {
+    "os": {},
+    "notification": {
+      "all": true
+    }
+  }
+}

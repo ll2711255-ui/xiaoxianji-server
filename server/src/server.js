@@ -96,6 +96,15 @@ async function preflightCheck(maxRetries = 5, delayMs = 3000) {
   const app = require('./app');
   const { startAllJobs } = require('./jobs');
 
+  // 2.5 预热 Redis 库存（从 MySQL 回填，防止 Redis 重启后库存归零）
+  try {
+    const { warmupStock } = require('./services/stock.service');
+    const warmResult = await warmupStock();
+    logger.info(`[启动] 库存预热结果: 写入${warmResult.warmed}个, 跳过${warmResult.skipped}个`);
+  } catch (err) {
+    logger.error('[启动] 库存预热异常:', err.message);
+  }
+
   // 3. 启动 HTTP 服务
   app.listen(PORT, () => {
     logger.info(`✅ 小鲜鸡服务端已启动 → http://localhost:${PORT}`);

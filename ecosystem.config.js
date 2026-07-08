@@ -1,4 +1,6 @@
 /**
+ * 已废弃，请使用 server/ecosystem.config.js
+ *
  * PM2 生产环境配置
  *
  * 部署方式：

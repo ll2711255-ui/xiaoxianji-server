@@ -6,10 +6,17 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "tauri:android": "tauri android build",
+    "tauri:ios": "tauri ios build"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-notification": "^2.3.3",
+    "@tauri-apps/plugin-os": "^2.3.2",
     "axios": "^1.7.9",
     "echarts": "^5.5.1",
     "element-plus": "^2.9.1",
@@ -19,6 +26,7 @@
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4",
     "@vitejs/plugin-vue": "^5.2.1",
     "vite": "^6.0.7"
   }

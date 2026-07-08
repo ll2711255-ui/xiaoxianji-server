@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
     nick_name   VARCHAR(100) DEFAULT '',
     avatar_url  VARCHAR(500) DEFAULT '',
     role        ENUM('customer','merchant','admin') DEFAULT 'customer',
-    password    VARCHAR(128) DEFAULT '' COMMENT 'SHA256 hash for merchant login',
+    password    VARCHAR(128) DEFAULT '' COMMENT 'bcrypt hash for merchant login',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_login  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_role (role)

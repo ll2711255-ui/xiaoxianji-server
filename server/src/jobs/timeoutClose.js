@@ -47,18 +47,26 @@ async function timeoutClose() {
           logger.warn(`[timeoutClose] 微信关单失败: ${orderNo}`, wxErr.message);
         }
 
-        // 4. 释放 Redis 库存
+        // 4. 原子关单：UPDATE 加条件 WHERE order_status = 0
+        //    防止与支付回调竞态：如果回调已改为 paid，affectedRows=0，跳过释放库存
+        const affectedRows = await db.execute(
+          `UPDATE order_info SET order_status = 2, status_label = 'cancelled',
+           cancel_time = NOW(), cancel_reason = '超时未支付自动取消' WHERE order_no = ? AND order_status = 0`,
+          [orderNo]
+        );
+
+        if (affectedRows === 0) {
+          // 订单已被支付回调处理，跳过释放库存
+          logger.info(`[timeoutClose] 订单已被支付，跳过关单: ${orderNo}`);
+          await redis.zrem('order:timeout:queue', orderNo);
+          continue;
+        }
+
+        // 5. 释放 Redis 库存（只有确认关单成功才释放）
         const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
         for (const item of (items || [])) {
           await stockService.releaseStock(item.productId, 'default', item.quantity);
         }
-
-        // 5. 更新订单状态
-        await db.execute(
-          `UPDATE order_info SET order_status = 2, status_label = 'cancelled',
-           cancel_time = NOW(), cancel_reason = '超时未支付自动取消' WHERE order_no = ?`,
-          [orderNo]
-        );
 
         // 更新库存锁定记录
         await db.execute(

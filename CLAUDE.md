@@ -6,17 +6,22 @@
 
 ## 1. 项目概览
 
-小鲜鸡是一个生鲜零售三端系统：
+小鲜鸡是一个生鲜零售多端系统：
 
-| 端 | 目录 | 技术 | 用户 |
+**小程序端**（C 端顾客）→ **迁移到 uni-app**，一套代码发布微信 + 支付宝 + 抖音三个小程序平台
+
+**PC 商家端**（店员/管理员）→ **Tauri 2 全平台打包**，一套 Vue 代码库覆盖网站 + Windows + Mac + iOS + Android 五个端
+
+| 端 | 目录 | 技术 | 平台 |
 |---|------|------|------|
-| 服务端 | `server/` | Node.js + Express + MySQL + Redis | 提供 API |
-| 小程序 | `小鲜鸡微信小程序/` | 微信原生框架 | C 端顾客 |
-| PC 商家端 | `小鲜鸡PC商家端/` | Vue 3 + Vite + Element Plus | 店员/管理员 |
+| 服务端 | `server/` | Node.js + Express + MySQL + Redis | 服务器 |
+| 小程序 | `小鲜鸡微信小程序/` → 将迁移为 uni-app 项目 | uni-app（Vue 3） | 微信 + 支付宝 + 抖音 |
+| PC 商家端 | `小鲜鸡PC商家端/` | Vue 3 + Vite + Tauri 2 + Element Plus | Web + Windows + Mac + iOS + Android |
 
 - **服务器**：腾讯云 4C4G，IP `159.75.0.194`，域名 `www.xuaioxianji.top`
 - **部署**：PM2 双实例 → Nginx 反代 → HTTPS
 - **对标**：朴朴超市的支付和订单体系
+- **跨平台总策略**：小程序用 uni-app 一码三端，商家端用 Tauri 2 一码五端。两套代码库覆盖全部用户触点。
 
 ---
 
@@ -38,19 +43,26 @@
 │   ├── uploads/                # 上传的图片（git ignore）
 │   └── .env                    # 环境变量（git ignore，绝不提交！）
 │
-├── 小鲜鸡微信小程序/            # 小程序前端
+├── 小鲜鸡微信小程序/            # 小程序（当前微信原生，将迁移到 uni-app）
 │   ├── pages/                  # 页面（22个页面）
 │   ├── utils/                  # 工具（config.js=API地址, orderActions.js=订单操作）
 │   ├── api.js                  # HTTP 请求封装
 │   └── app.js / app.json       # 小程序入口
 │
-└── 小鲜鸡PC商家端/              # PC 管理后台（Vue SPA）
+└── 小鲜鸡PC商家端/              # PC 管理后台（Vue SPA + Tauri 2）
     ├── src/
     │   ├── views/              # 页面（24个 Vue 组件）
     │   ├── router/             # Vue Router（路由配置）
     │   ├── stores/             # Pinia 状态管理（auth.js = 登录状态）
+    │   ├── utils/              # 工具（api.js=HTTP 封装, platform.js=平台检测）
+    │   ├── composables/        # 组合式函数（useNotification.js=跨平台通知）
     │   └── api.js              # Axios 封装
-    └── vite.config.js          # Vite 配置（base: '/admin/'）
+    ├── src-tauri/              # Tauri 2 原生壳（Rust 源码 + 配置）
+    │   ├── tauri.conf.json     # 窗口大小、插件、构建配置
+    │   ├── Cargo.toml          # Rust 依赖
+    │   ├── src/                # Rust 入口（main.rs + lib.rs）
+    │   └── capabilities/       # 权限声明
+    └── vite.config.js          # Vite 配置（条件 base：Web=/admin/，Tauri=./）
 ```
 
 ---
@@ -153,6 +165,16 @@ curl -s https://www.xuaioxianji.top/admin/         # PC 端首页
 **规则：** 小程序代码修改后，用微信开发者工具点击"上传"，填写版本号，去 MP 后台提交审核
 > 大白话：小程序代码不在我们服务器上跑，是微信托管。改完必须在微信开发者工具里手动上传。
 
+**规则：PC 商家端必须同时支持 Web + 桌面 App + 移动 App 五端（一条代码库）**
+> 大白话：同一套 Vue 代码库通过 Tauri 2 打包成 Windows/Mac 桌面 + iOS/Android 移动应用，Web 端部署到 Nginx。写 UI 时必须考虑不同屏幕尺寸，路由用 hash 模式兼容 `tauri://` 协议，平台相关功能（通知、文件系统）通过 `src/utils/platform.js` + composables 封装隔离。
+>
+> - Web 部署：`npm run build` → `dist/` → Nginx `/admin/`
+> - 桌面 App：`npm run tauri:build` → `src-tauri/target/release/bundle/`
+> - 移动 App：`npm run tauri:android` / `npm run tauri:ios`（需 Android Studio / Xcode）
+
+**规则：小程序端迁移到 uni-app，一套代码发布微信 + 支付宝 + 抖音三个小程序平台**
+> 大白话：当前 `小鲜鸡微信小程序/` 是微信原生框架写的，只有微信一个平台。未来迁移到 uni-app（Vue 3），用条件编译 `#ifdef MP-WEIXIN` / `#ifdef MP-ALIPAY` / `#ifdef MP-TOUTIAO` 处理平台差异，一套代码同时发布三个小程序。在此之前，对现有微信原生代码的改动要保持可迁移性——不要把平台特定逻辑写死在业务逻辑里。
+
 ---
 
 ## 8. 技术栈速查
@@ -165,8 +187,9 @@ curl -s https://www.xuaioxianji.top/admin/         # PC 端首页
 | 缓存 | Redis 6.x |
 | 进程管理 | PM2（cluster 模式，2 实例） |
 | 反向代理 | Nginx（`/etc/nginx/conf.d/xiaoxianji.conf`） |
-| 小程序框架 | 微信原生 + `wx.` API |
-| PC 框架 | Vue 3 + Vite + Pinia + Element Plus |
+| 小程序框架 | uni-app（Vue 3）→ 一套代码三端发布：微信/支付宝/抖音 |
+| PC 框架 | Vue 3 + Vite + Pinia + Element Plus + Tauri 2 |
+| PC 跨平台 | Web / Windows / Mac / iOS / Android（同一套 Vue 代码） |
 | 支付 | 微信支付 V3 JSAPI |
 | 代码托管 | GitHub `ll2711255-ui/xiaoxianji-server` |
 | SSL | Let's Encrypt 证书 |
@@ -191,7 +214,9 @@ nginx -s reload
 
 # 本地开发启动
 cd server && npm run dev        # 后端（nodemon）
-cd 小鲜鸡PC商家端 && npm run dev  # PC 端（Vite）
+cd 小鲜鸡PC商家端 && npm run dev  # PC Web 端（Vite）
+cd 小鲜鸡PC商家端 && npm run tauri:dev  # PC 桌面端（Tauri 窗口）
+cd 小鲜鸡PC商家端 && npm run tauri:build  # 打包桌面 App
 ```
 
 **关键文件路径（服务器上）：**

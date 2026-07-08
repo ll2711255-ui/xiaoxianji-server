@@ -137,7 +137,7 @@ router.post('/orders/:orderNo/:action', async (req, res) => {
       });
     }
 
-    // 通过校验 → 执行状态更新
+    // 通过校验 → 执行状态更新（原子条件：加 status_label 防止 TOCTOU 竞态）
     const updates = [];
     const params = [];
 
@@ -160,11 +160,28 @@ router.post('/orders/:orderNo/:action', async (req, res) => {
       updates.push(`${timeField} = NOW()`);
     }
 
-    params.push(orderNo);
-    await db.execute(
-      `UPDATE order_info SET ${updates.join(', ')} WHERE order_no = ?`,
+    // 构建状态前置条件：单状态用 =，多状态用 IN（如 complete 可从 delivering/ready 执行）
+    const requireStates = rule.require;
+    let statusCondition;
+    if (requireStates.length === 1) {
+      statusCondition = 'status_label = ?';
+    } else {
+      statusCondition = `status_label IN (${requireStates.map(() => '?').join(', ')})`;
+    }
+    params.push(...requireStates);  // 状态条件参数
+    params.push(orderNo);           // WHERE 最后一个参数
+
+    const [updateResult] = await db.execute(
+      `UPDATE order_info SET ${updates.join(', ')} WHERE order_no = ? AND ${statusCondition}`,
       params
     );
+
+    if (updateResult.affectedRows === 0) {
+      return res.status(409).json({
+        success: false, code: 409,
+        message: '订单状态已变更，请刷新页面',
+      });
+    }
 
     logger.info(`[merchant] ${action} → ${orderNo} (${order.status_label} → ${rule.nextLabel})`);
 
@@ -229,6 +246,57 @@ router.post('/orders/:orderNo/refund', async (req, res) => {
   } catch (err) {
     logger.error('[merchant] 退款重试失败:', err.message);
     res.status(500).json({ success: false, code: 500, message: err.message || '退款失败' });
+  }
+});
+
+/**
+ * GET /api/merchant/refund-alerts — 退款告警列表/计数
+ *
+ * 供 PC 商家端首页「待处理退款」角标使用
+ * ?type=count → 只返回未处理数量；?type=list → 返回详细列表
+ */
+router.get('/refund-alerts', async (req, res) => {
+  try {
+    const { type = 'count' } = req.query;
+
+    if (type === 'count') {
+      const row = await db.queryOne(
+        "SELECT COUNT(*) AS count FROM refund_alert WHERE status = 0"
+      );
+      res.json({ success: true, code: 200, data: { count: row ? row.count : 0 } });
+    } else {
+      const alerts = await db.query(
+        "SELECT * FROM refund_alert WHERE status = 0 ORDER BY create_time DESC LIMIT 50"
+      );
+      res.json({ success: true, code: 200, data: { alerts } });
+    }
+  } catch (err) {
+    logger.error('[merchant] 退款告警查询失败:', err.message);
+    res.status(500).json({ success: false, code: 500, message: err.message });
+  }
+});
+
+/**
+ * PATCH /api/merchant/refund-alerts/:id — 标记告警为已处理/已忽略
+ */
+router.patch('/refund-alerts/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status = 1 } = req.body; // 1=已处理, 2=已忽略
+
+    if (![1, 2].includes(status)) {
+      return res.status(400).json({ success: false, code: 400, message: '无效状态' });
+    }
+
+    await db.execute(
+      'UPDATE refund_alert SET status = ?, resolved_by = ?, resolved_at = NOW() WHERE id = ?',
+      [status, req.user.openid, id]
+    );
+
+    res.json({ success: true, code: 200, message: '已更新' });
+  } catch (err) {
+    logger.error('[merchant] 退款告警更新失败:', err.message);
+    res.status(500).json({ success: false, code: 500, message: err.message });
   }
 });
 
