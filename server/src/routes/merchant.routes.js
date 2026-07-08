@@ -160,26 +160,19 @@ router.post('/orders/:orderNo/:action', async (req, res) => {
       updates.push(`${timeField} = NOW()`);
     }
 
-    // 构建状态前置条件：单状态用 =，多状态用 IN（如 complete 可从 delivering/ready 执行）
-    const requireStates = rule.require;
-    let statusCondition;
-    if (requireStates.length === 1) {
-      statusCondition = 'status_label = ?';
-    } else {
-      statusCondition = `status_label IN (${requireStates.map(() => '?').join(', ')})`;
-    }
-    params.push(...requireStates);  // 状态条件参数
-    params.push(orderNo);           // WHERE 最后一个参数
+    // 状态前置条件：UPDATE 带 status_label 防 TOCTOU 竞态
+    params.push(orderNo);              // WHERE order_no = ?
+    params.push(rule.require[0]);      // WHERE status_label = ?
 
     const [updateResult] = await db.execute(
-      `UPDATE order_info SET ${updates.join(', ')} WHERE order_no = ? AND ${statusCondition}`,
+      `UPDATE order_info SET ${updates.join(', ')} WHERE order_no = ? AND status_label = ?`,
       params
     );
 
     if (updateResult.affectedRows === 0) {
       return res.status(409).json({
         success: false, code: 409,
-        message: '订单状态已变更，请刷新页面',
+        message: '订单状态已变更，请刷新页面后重试',
       });
     }
 
