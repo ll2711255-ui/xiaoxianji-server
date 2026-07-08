@@ -131,13 +131,41 @@ async function hashPassword(password) {
 }
 
 /**
- * 验证密码
+ * 验证密码（兼容 SHA256 旧密码自动迁移）
+ *
+ * 迁移策略：
+ *   1. 先尝试 bcrypt 比对（新格式）
+ *   2. 失败则判断是否为 64 位 hex（SHA256 旧格式）
+ *   3. 是旧格式 → 用原 SHA256+旧salt 验证，通过后自动升级为 bcrypt
+ *   4. 都不是 → 拒绝
+ *
  * @param {string} password - 用户输入的明文
- * @param {string} hash - 数据库中存储的 bcrypt 哈希
- * @returns {Promise<boolean>}
+ * @param {string} hash - 数据库中存储的哈希值
+ * @returns {Promise<{valid: boolean, needsRehash: boolean}>}
  */
-async function verifyPassword(password, hash) {
-  return bcrypt.compare(password, hash);
+async function verifyPasswordCompat(password, hash) {
+  // 1. bcrypt 验证（新格式，以 $2a$ / $2b$ 开头）
+  if (hash.startsWith('$2')) {
+    const match = await bcrypt.compare(password, hash);
+    return { valid: match, needsRehash: false };
+  }
+
+  // 2. 旧 SHA256 hex 格式兼容（64 位十六进制字符串）
+  if (/^[a-f0-9]{64}$/i.test(hash)) {
+    const legacySalt = 'xiaoxianji_salt'; // 旧系统硬编码的默认 salt
+    const legacyHash = crypto
+      .createHash('sha256')
+      .update(password + legacySalt)
+      .digest('hex');
+
+    if (legacyHash === hash) {
+      return { valid: true, needsRehash: true }; // 密码正确，需升级
+    }
+    return { valid: false, needsRehash: false };
+  }
+
+  // 3. 未知格式
+  return { valid: false, needsRehash: false };
 }
 
 /**
@@ -155,10 +183,17 @@ async function merchantLogin(phone, password) {
     throw new Error('账号不存在或非商家账号');
   }
 
-  // bcrypt 密码验证（抗彩虹表 + 抗暴力破解）
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) {
+  // 密码验证（兼容 SHA256 旧密码 → 自动升级为 bcrypt）
+  const { valid, needsRehash } = await verifyPasswordCompat(password, user.password);
+  if (!valid) {
     throw new Error('密码错误');
+  }
+
+  // 旧 SHA256 密码自动升级为 bcrypt
+  if (needsRehash) {
+    const newHash = await hashPassword(password);
+    await db.execute('UPDATE users SET password = ? WHERE id = ?', [newHash, user.id]);
+    logger.info(`[auth] 商家 ${phone} 密码已自动升级为 bcrypt`);
   }
 
   // 更新登录时间
@@ -259,4 +294,4 @@ async function handlePhoneAuth(openid, { phoneCode, phone }) {
   return phoneAuth(openid, phoneNumber);
 }
 
-module.exports = { wxLogin, phoneAuth, merchantLogin, refreshToken, handlePhoneAuth, validatePasswordStrength, hashPassword, verifyPassword };
+module.exports = { wxLogin, phoneAuth, merchantLogin, refreshToken, handlePhoneAuth, validatePasswordStrength, hashPassword, verifyPassword: verifyPasswordCompat };
