@@ -1,7 +1,7 @@
 /* 商家登录页 */
 .ml-root {
   min-height: 100vh;
-  background: #F5F5F5;
+  background: var(--color-bg-page);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -17,8 +17,8 @@
 .ml-logo {
   width: 140rpx;
   height: 140rpx;
-  border-radius: 50%;
-  background: #FFF3E0;
+  border-radius: var(--radius-full);
+  background: var(--color-warning-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -32,13 +32,13 @@
 .ml-title {
   font-size: 44rpx;
   font-weight: 700;
-  color: #1A1A1A;
+  color: var(--color-text-1);
   display: block;
 }
 
 .ml-desc {
-  font-size: 30rpx;
-  color: #999;
+  font-size: var(--font-base);
+  color: var(--color-text-3);
   margin-top: 8rpx;
   display: block;
 }
@@ -46,8 +46,8 @@
 /* 登录卡片 */
 .ml-card {
   width: 630rpx;
-  background: #fff;
-  border-radius: 20rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
   padding: 40rpx 36rpx 36rpx;
   box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.08);
 }
@@ -55,30 +55,30 @@
 .ml-field {
   display: flex;
   align-items: center;
-  border-bottom: 1rpx solid #E8E8E8;
+  border-bottom: 1rpx solid var(--color-border);
   padding: 24rpx 0;
   margin-bottom: 8rpx;
 }
 
 .ml-label {
-  font-size: 32rpx;
-  color: #666;
+  font-size: var(--font-base);
+  color: var(--color-text-2);
   width: 120rpx;
   flex-shrink: 0;
 }
 
 .ml-input {
   flex: 1;
-  font-size: 32rpx;
-  color: #1A1A1A;
+  font-size: var(--font-base);
+  color: var(--color-text-1);
 }
 
 .ml-submit {
   width: 100%;
   background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red));
   color: #fff;
-  border-radius: 40rpx;
-  font-size: 34rpx;
+  border-radius: var(--radius-full);
+  font-size: var(--font-lg);
   font-weight: 600;
   padding: 22rpx 0;
   margin-top: 40rpx;
@@ -92,7 +92,7 @@
 
 /* 底部 */
 .ml-footer {
-  font-size: 26rpx;
-  color: #B0B0B0;
+  font-size: var(--font-sm);
+  color: var(--color-text-3);
   margin-top: 40rpx;
 }

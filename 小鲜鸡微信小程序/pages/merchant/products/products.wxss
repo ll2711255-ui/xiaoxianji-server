@@ -1,6 +1,6 @@
 .mp-page {
   min-height: 100vh;
-  background: #F5F5F5;
+  background: var(--color-bg-page);
   display: flex;
   flex-direction: column;
 }
@@ -14,7 +14,7 @@
   background: linear-gradient(135deg, var(--color-brand-dark-red), var(--color-brand-main-red));
 }
 .mp-topbar-title {
-  font-size: 38rpx;
+  font-size: var(--font-lg);
   font-weight: 700;
   color: #fff;
 }
@@ -26,12 +26,12 @@
 .mp-topbar-btn {
   width: 64rpx;
   height: 64rpx;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background: rgba(255,255,255,0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32rpx;
+  font-size: var(--font-base);
   color: #fff;
 }
 .mp-topbar-btn.on {
@@ -53,40 +53,40 @@
 /* ========== 左侧分类导航（160rpx） ========== */
 .mp-sidebar {
   width: 160rpx;
-  background: #fff;
-  border-right: 1rpx solid #F0F0F0;
+  background: var(--color-bg-card);
+  border-right: 1rpx solid var(--color-border);
   flex-shrink: 0;
 }
 .mp-side-item {
   padding: 24rpx 8rpx;
   text-align: center;
-  font-size: 28rpx;
-  color: #666;
+  font-size: var(--font-md);
+  color: var(--color-text-2);
   border-left: 6rpx solid transparent;
   position: relative;
 }
 .mp-side-item.active {
-  color: #FF5722;
+  color: var(--color-primary);
   font-weight: 600;
-  background: #FFF0EB;
-  border-left-color: #FF5722;
+  background: var(--color-primary-pale);
+  border-left-color: var(--color-primary);
 }
 
 /* 排序模式 */
 .mp-side-sort-hint {
   display: block;
   text-align: center;
-  font-size: 24rpx;
-  color: #999;
+  font-size: var(--font-sm);
+  color: var(--color-text-3);
   padding: 16rpx 8rpx;
-  background: #F5F5F5;
-  border-bottom: 1rpx solid #E8E8E8;
+  background: var(--color-bg-page);
+  border-bottom: 1rpx solid var(--color-border);
 }
 .mp-side-item-sort {
   padding: 18rpx 6rpx;
 }
-.mp-side-item-top { border-top: 2rpx solid #FF5722; }
-.mp-side-item-bottom { border-bottom: 2rpx solid #FF5722; }
+.mp-side-item-top { border-top: 2rpx solid var(--color-primary); }
+.mp-side-item-bottom { border-bottom: 2rpx solid var(--color-primary); }
 .mp-side-sort-arrows {
   display: flex;
   flex-direction: column;
@@ -94,13 +94,13 @@
   gap: 4rpx;
 }
 .mp-side-sort-arrow {
-  font-size: 22rpx;
-  color: #FF5722;
+  font-size: var(--font-xs);
+  color: var(--color-primary);
   padding: 4rpx 8rpx;
 }
 .mp-side-sort-name {
-  font-size: 26rpx;
-  color: #1A1A1A;
+  font-size: var(--font-sm);
+  color: var(--color-text-1);
   font-weight: 500;
 }
 .mp-side-sort-btns {
@@ -111,17 +111,17 @@
   text-align: center;
 }
 .mp-side-sort-save {
-  font-size: 28rpx;
+  font-size: var(--font-md);
   color: #fff;
-  background: #FF5722;
-  border-radius: 8rpx;
+  background: var(--color-primary);
+  border-radius: var(--radius-md);
   padding: 10rpx 0;
   display: block;
   text-align: center;
 }
 .mp-side-sort-cancel {
-  font-size: 26rpx;
-  color: #999;
+  font-size: var(--font-sm);
+  color: var(--color-text-3);
   padding: 6rpx 0;
   display: block;
   text-align: center;
@@ -130,10 +130,10 @@
 /* 侧边栏底部提示 */
 .mp-side-hint {
   text-align: center;
-  font-size: 22rpx;
-  color: #C7C7CC;
+  font-size: var(--font-xs);
+  color: var(--color-text-3);
   padding: 12rpx 8rpx;
-  border-top: 1rpx solid #F5F5F5;
+  border-top: 1rpx solid var(--color-border);
 }
 
 /* ========== 右侧内容区（flex 1） ========== */
@@ -149,55 +149,55 @@
   display: flex;
   align-items: center;
   padding: 12rpx 16rpx;
-  background: #fff;
+  background: var(--color-bg-card);
   gap: 12rpx;
 }
 .mp-content-search-input-wrap {
   flex: 1;
   display: flex;
   align-items: center;
-  background: #F5F5F5;
-  border-radius: 32rpx;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-xl);
   padding: 8rpx 20rpx;
   gap: 8rpx;
 }
 .mp-content-search-icon {
-  font-size: 32rpx;
+  font-size: var(--font-base);
   flex-shrink: 0;
 }
 .mp-content-search-input {
   flex: 1;
-  font-size: 28rpx;
-  color: #1A1A1A;
+  font-size: var(--font-md);
+  color: var(--color-text-1);
   height: 52rpx;
   line-height: 52rpx;
 }
 .mp-content-search-ph {
-  color: #B0B0B0;
-  font-size: 28rpx;
+  color: var(--color-text-3);
+  font-size: var(--font-md);
 }
 .mp-content-search-clr {
-  font-size: 28rpx;
-  color: #999;
+  font-size: var(--font-md);
+  color: var(--color-text-3);
   padding: 4rpx 8rpx;
   flex-shrink: 0;
 }
 .mp-content-search-cancel {
-  color: #FF5722;
-  font-size: 28rpx;
+  color: var(--color-primary);
+  font-size: var(--font-md);
   padding: 8rpx 0 8rpx 4rpx;
   flex-shrink: 0;
   white-space: nowrap;
 }
 .mp-content-hint {
   padding: 14rpx 20rpx;
-  font-size: 26rpx;
-  color: #999;
-  background: #FBFBFB;
+  font-size: var(--font-sm);
+  color: var(--color-text-3);
+  background: var(--color-bg-page);
 }
 .mp-content-sort-hint {
-  background: #FFF8E1;
-  color: #F57F17;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
 /* 滚动区域 */
@@ -213,8 +213,8 @@
 
 /* 商品卡片 */
 .mp-card {
-  background: #fff;
-  border-radius: 12rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
   margin-bottom: 16rpx;
   overflow: hidden;
   box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.04);
@@ -232,8 +232,8 @@
 .mp-img-wrap {
   width: 140rpx;
   height: 140rpx;
-  border-radius: 10rpx;
-  background: #F5F5F5;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-page);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -257,16 +257,16 @@
   min-width: 0;
 }
 .mp-name {
-  font-size: 34rpx;
+  font-size: var(--font-lg);
   font-weight: 600;
-  color: #1A1A1A;
+  color: var(--color-text-1);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .mp-desc {
-  font-size: 28rpx;
-  color: #999;
+  font-size: var(--font-md);
+  color: var(--color-text-3);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -277,19 +277,19 @@
   gap: 16rpx;
 }
 .mp-price {
-  font-size: 30rpx;
+  font-size: var(--font-base);
   font-weight: 700;
-  color: #FF4B26;
+  color: var(--color-primary);
 }
 .mp-unit {
-  font-size: 26rpx;
+  font-size: var(--font-sm);
   font-weight: 400;
-  color: #999;
+  color: var(--color-text-3);
   margin-left: 2rpx;
 }
 .mp-sales {
-  font-size: 26rpx;
-  color: #C7C7CC;
+  font-size: var(--font-sm);
+  color: var(--color-text-3);
 }
 
 /* 卡片底部操作 */
@@ -298,25 +298,25 @@
   justify-content: space-between;
   align-items: center;
   padding: 12rpx 20rpx;
-  border-top: 1rpx solid #F5F5F5;
-  background: #FAFAFA;
+  border-top: 1rpx solid var(--color-border);
+  background: var(--color-bg-page);
 }
 .mp-status-tag {
-  font-size: 26rpx;
+  font-size: var(--font-sm);
   padding: 4rpx 14rpx;
-  border-radius: 4rpx;
+  border-radius: var(--radius-sm);
 }
 .mp-on {
-  background: #FFF0EB;
-  color: #FF5722;
+  background: var(--color-primary-pale);
+  color: var(--color-primary);
 }
 .mp-off-tag {
-  background: #F5F5F5;
-  color: #999;
+  background: var(--color-bg-page);
+  color: var(--color-text-3);
 }
 .mp-out {
-  background: #FFF3E0;
-  color: #FF9800;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
 /* 开关组 */
@@ -331,8 +331,8 @@
   gap: 4rpx;
 }
 .mp-switch-label {
-  font-size: 26rpx;
-  color: #999;
+  font-size: var(--font-sm);
+  color: var(--color-text-3);
 }
 .mp-switch-disabled .mp-switch-label {
   color: #E0E0E0;
@@ -345,24 +345,24 @@
   align-items: center;
   justify-content: center;
   padding: 80rpx 32rpx;
-  color: #999;
-  font-size: 30rpx;
+  color: var(--color-text-3);
+  font-size: var(--font-base);
 }
 .empty-icon {
   font-size: 80rpx;
   margin-bottom: 16rpx;
 }
 .empty-hint {
-  font-size: 26rpx;
-  color: #C7C7CC;
+  font-size: var(--font-sm);
+  color: var(--color-text-3);
   margin-top: 8rpx;
 }
 
 .load-more {
   text-align: center;
   padding: 24rpx;
-  color: #999;
-  font-size: 28rpx;
+  color: var(--color-text-3);
+  font-size: var(--font-md);
 }
 
 /* ========== 广告管理模式 ========== */
@@ -371,21 +371,21 @@
   align-items: center;
   justify-content: space-between;
   padding: 20rpx 24rpx;
-  background: #fff;
-  border-bottom: 1rpx solid #F0F0F0;
+  background: var(--color-bg-card);
+  border-bottom: 1rpx solid var(--color-border);
 }
 .mp-banner-topbar-title {
-  font-size: 34rpx;
+  font-size: var(--font-lg);
   font-weight: 700;
-  color: #1A1A1A;
+  color: var(--color-text-1);
 }
 .mp-banner-topbar-save {
-  font-size: 30rpx;
+  font-size: var(--font-base);
   font-weight: 600;
   color: #fff;
-  background: #FF5722;
+  background: var(--color-primary);
   padding: 10rpx 28rpx;
-  border-radius: 32rpx;
+  border-radius: var(--radius-xl);
 }
 
 .mp-banner-list {
@@ -393,14 +393,14 @@
 }
 
 .mp-banner-card {
-  background: #fff;
-  border-radius: 12rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
   margin-bottom: 16rpx;
   overflow: hidden;
   box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.04);
 }
 .mp-banner-card.editing {
-  border: 2rpx solid #FF5722;
+  border: 2rpx solid var(--color-primary);
 }
 .mp-banner-off {
   opacity: 0.6;
@@ -415,8 +415,8 @@
 .mp-banner-img-wrap {
   width: 120rpx;
   height: 120rpx;
-  border-radius: 8rpx;
-  background: #F5F5F5;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-page);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -429,24 +429,24 @@
 }
 .mp-banner-img-empty {
   font-size: 48rpx;
-  color: #CCC;
+  color: var(--color-text-3);
 }
 .mp-banner-info {
   flex: 1;
   min-width: 0;
 }
 .mp-banner-title-text {
-  font-size: 30rpx;
+  font-size: var(--font-base);
   font-weight: 600;
-  color: #1A1A1A;
+  color: var(--color-text-1);
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .mp-banner-sub-text {
-  font-size: 26rpx;
-  color: #999;
+  font-size: var(--font-sm);
+  color: var(--color-text-3);
   display: block;
   margin-top: 4rpx;
   overflow: hidden;
@@ -456,10 +456,10 @@
 .mp-banner-del {
   width: 48rpx;
   height: 48rpx;
-  border-radius: 50%;
-  background: #FFF2F0;
-  color: #FF3B30;
-  font-size: 28rpx;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-pale);
+  color: var(--color-danger);
+  font-size: var(--font-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -469,7 +469,7 @@
 /* 广告编辑区 */
 .mp-banner-edit {
   padding: 0 16rpx 16rpx;
-  border-top: 1rpx solid #F5F5F5;
+  border-top: 1rpx solid var(--color-border);
 }
 .mp-banner-edit-row {
   display: flex;
@@ -478,19 +478,19 @@
   margin-top: 12rpx;
 }
 .mp-banner-edit-label {
-  font-size: 26rpx;
-  color: #666;
+  font-size: var(--font-sm);
+  color: var(--color-text-2);
   flex-shrink: 0;
   width: 110rpx;
 }
 .mp-banner-edit-input {
   flex: 1;
   height: 56rpx;
-  border: 1rpx solid #E8E8E8;
-  border-radius: 8rpx;
+  border: 1rpx solid var(--color-border);
+  border-radius: var(--radius-md);
   padding: 0 16rpx;
-  font-size: 28rpx;
-  color: #1A1A1A;
+  font-size: var(--font-md);
+  color: var(--color-text-1);
 }
 .mp-banner-color-input {
   max-width: 200rpx;
@@ -498,8 +498,8 @@
 .mp-banner-color-preview {
   width: 48rpx;
   height: 48rpx;
-  border-radius: 8rpx;
-  border: 1rpx solid #E0E0E0;
+  border-radius: var(--radius-md);
+  border: 1rpx solid var(--color-border);
   flex-shrink: 0;
 }
 .mp-banner-edit-actions {
@@ -512,16 +512,16 @@
   gap: 8rpx;
 }
 .mp-banner-switch-label {
-  font-size: 26rpx;
-  color: #666;
+  font-size: var(--font-sm);
+  color: var(--color-text-2);
 }
 .mp-banner-move-btn {
-  font-size: 28rpx;
-  color: #FF5722;
+  font-size: var(--font-md);
+  color: var(--color-primary);
   padding: 6rpx 12rpx;
 }
 .mp-banner-move-disabled {
-  color: #D1D1D1;
+  color: var(--color-text-3);
 }
 .mp-banner-add-row {
   padding: 16rpx;
@@ -530,15 +530,15 @@
 .mp-banner-add-btn {
   display: inline-block;
   padding: 14rpx 48rpx;
-  border-radius: 32rpx;
-  border: 2rpx dashed #FF5722;
-  color: #FF5722;
-  font-size: 28rpx;
+  border-radius: var(--radius-xl);
+  border: 2rpx dashed var(--color-primary);
+  color: var(--color-primary);
+  font-size: var(--font-md);
   font-weight: 600;
 }
 .mp-banner-limit-hint {
   text-align: center;
   padding: 16rpx;
-  font-size: 26rpx;
-  color: #999;
+  font-size: var(--font-sm);
+  color: var(--color-text-3);
 }

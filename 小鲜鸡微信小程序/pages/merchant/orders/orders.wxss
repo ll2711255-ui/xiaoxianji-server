@@ -2,7 +2,7 @@
 
 .mo-page {
   min-height: 100vh;
-  background: #F5F5F5;
+  background: var(--color-bg-page);
   display: flex;
   flex-direction: column;
 }
@@ -18,7 +18,7 @@
   flex: 1;
   text-align: center;
   padding: 18rpx 0;
-  font-size: 34rpx;
+  font-size: var(--font-lg);
   font-weight: 600;
   color: rgba(255,255,255,0.7);
   border-bottom: 4rpx solid transparent;
@@ -47,7 +47,7 @@
   display: block;
 }
 .mo-stat-label {
-  font-size: 26rpx;
+  font-size: var(--font-sm);
   color: rgba(255,255,255,0.8);
   margin-top: 4rpx;
   display: block;
@@ -64,16 +64,16 @@
   flex: 1;
   text-align: center;
   padding: 14rpx 0;
-  font-size: 26rpx;
+  font-size: var(--font-sm);
   color: rgba(255,255,255,0.85);
   background: rgba(255,255,255,0.18);
-  border-radius: 8rpx;
+  border-radius: var(--radius-md);
   white-space: nowrap;
 }
 .mo-tab.on {
-  color: #FF5722;
+  color: var(--color-primary);
   font-weight: 700;
-  background: #fff;
+  background: var(--color-bg-card);
 }
 
 /* 配送/待取货 子 Tab */
@@ -87,7 +87,7 @@
   flex: 1;
   text-align: center;
   padding: 16rpx 0 10rpx;
-  font-size: 32rpx;
+  font-size: var(--font-base);
   font-weight: 600;
   color: rgba(255,255,255,0.7);
   border-bottom: 4rpx solid transparent;
@@ -110,14 +110,14 @@
 
 /* ========== 订单卡片 ========== */
 .mo-card {
-  background: #fff;
-  border-radius: 12rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
   padding: 20rpx;
   margin-bottom: 16rpx;
   box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.06);
 }
 .mo-card-new {
-  border-left: 6rpx solid #FF5722;
+  border-left: 6rpx solid var(--color-primary);
   padding-left: 16rpx;
 }
 
@@ -133,43 +133,43 @@
   gap: 12rpx;
 }
 .mo-no {
-  font-size: 32rpx;
+  font-size: var(--font-base);
   font-weight: 700;
-  color: #1A1A1A;
+  color: var(--color-text-1);
 }
 .mo-type-tag {
-  font-size: 24rpx;
+  font-size: var(--font-sm);
   padding: 2rpx 10rpx;
-  border-radius: 4rpx;
-  background: #F0F0F0;
-  color: #999;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-page);
+  color: var(--color-text-3);
 }
 .mo-time {
-  font-size: 24rpx;
-  color: #B0B0B0;
+  font-size: var(--font-sm);
+  color: var(--color-text-3);
   margin-left: 4rpx;
 }
 .mo-tag-offline {
-  background: #FFF3E0;
-  color: #FF9500;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 .mo-tag-wechat {
-  background: #FFF0EB;
-  color: #FF5722;
+  background: var(--color-primary-pale);
+  color: var(--color-primary);
 }
 .mo-status {
-  font-size: 28rpx;
+  font-size: var(--font-md);
   font-weight: 600;
 }
-.mo-status-warn { color: #FF9500; }
-.mo-status-ok { color: #FF5722; }
-.mo-status-cancel { color: #FF3B30; }
+.mo-status-warn { color: var(--color-warning); }
+.mo-status-ok { color: var(--color-primary); }
+.mo-status-cancel { color: var(--color-danger); }
 
 /* Items */
 .mo-items {
   padding: 14rpx 0;
-  border-top: 1rpx solid #F5F5F5;
-  border-bottom: 1rpx solid #F5F5F5;
+  border-top: 1rpx solid var(--color-border);
+  border-bottom: 1rpx solid var(--color-border);
 }
 .mo-item {
   display: flex;
@@ -178,18 +178,18 @@
   gap: 10rpx;
 }
 .mo-pname {
-  font-size: 30rpx;
+  font-size: var(--font-base);
   font-weight: 500;
-  color: #1A1A1A;
+  color: var(--color-text-1);
 }
 .mo-pspec {
-  font-size: 26rpx;
-  color: #999;
+  font-size: var(--font-sm);
+  color: var(--color-text-3);
 }
 .mo-pqty {
   margin-left: auto;
-  font-size: 26rpx;
-  color: #999;
+  font-size: var(--font-sm);
+  color: var(--color-text-3);
 }
 
 /* 配送距离 */
@@ -200,8 +200,8 @@
   padding: 8rpx 0;
 }
 .mo-distance-text {
-  font-size: 26rpx;
-  color: #FF5722;
+  font-size: var(--font-sm);
+  color: var(--color-primary);
 }
 
 /* Foot */
@@ -212,17 +212,17 @@
   margin-top: 14rpx;
 }
 .mo-amount {
-  font-size: 32rpx;
+  font-size: var(--font-base);
   font-weight: 700;
-  color: #FF4B26;
+  color: var(--color-primary);
 }
 .mo-refund-info {
   padding: 10rpx 0;
   text-align: right;
 }
 .mo-refund-amount {
-  font-size: 28rpx;
-  color: #FF3B30;
+  font-size: var(--font-md);
+  color: var(--color-danger);
   font-weight: 600;
 }
 .mo-actions {
@@ -232,33 +232,33 @@
   justify-content: flex-end;
 }
 .mo-btn {
-  font-size: 26rpx;
+  font-size: var(--font-sm);
   padding: 8rpx 20rpx;
-  border-radius: 24rpx;
+  border-radius: var(--radius-lg);
   border: none;
   line-height: 1.4;
 }
 .mo-btn-accept  { background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red)); color: #fff; box-shadow: 0 4rpx 12rpx var(--color-brand-soy-red-shadow); }
-.mo-btn-reject  { background: #fff; color: #FF3B30; border: 2rpx solid #FF3B30; }
+.mo-btn-reject  { background: #fff; color: var(--color-danger); border: 2rpx solid var(--color-danger); }
 .mo-btn-weigh   { background: linear-gradient(135deg, var(--color-brand-gold), var(--color-brand-yolk)); color: #fff; box-shadow: 0 4rpx 12rpx rgba(245,166,35,0.35); }
 .mo-btn-process { background: var(--color-brand-tangerine); color: #fff; }
 .mo-btn-deliver { background: var(--color-brand-amber); color: #fff; }
 .mo-btn-ready   { background: linear-gradient(135deg, var(--color-brand-gold), var(--color-brand-yolk)); color: #fff; box-shadow: 0 4rpx 12rpx rgba(245,166,35,0.35); }
-.mo-btn-done    { background: #8E8E93; color: #fff; }
-.mo-btn-arrive  { background: #34C759; color: #fff; }
+.mo-btn-done    { background: var(--color-text-3); color: #fff; }
+.mo-btn-arrive  { background: var(--color-success); color: #fff; }
 .mo-btn-pickup  { background: linear-gradient(135deg, var(--color-brand-gold), var(--color-brand-yolk)); color: #fff; box-shadow: 0 4rpx 12rpx rgba(245,166,35,0.35); }
-.mo-btn-cancel  { background: #fff; color: #FF3B30; border: 2rpx solid #FF3B30; }
-.mo-btn-pay     { background: #34C759; color: #fff; }
-.mo-btn-retry-refund { background: #FF3B30; color: #fff; }
+.mo-btn-cancel  { background: #fff; color: var(--color-danger); border: 2rpx solid var(--color-danger); }
+.mo-btn-pay     { background: var(--color-success); color: #fff; }
+.mo-btn-retry-refund { background: var(--color-danger); color: #fff; }
 
 /* 已完成标签 */
 .mo-done-tag {
-  font-size: 26rpx;
-  color: #FF5722;
+  font-size: var(--font-sm);
+  color: var(--color-primary);
   font-weight: 600;
   padding: 8rpx 20rpx;
-  border-radius: 24rpx;
-  background: #FFF0EB;
+  border-radius: var(--radius-lg);
+  background: var(--color-primary-pale);
 }
 
 /* ========== 线下新增按钮 ========== */
@@ -268,15 +268,15 @@
   left: 0;
   right: 0;
   padding: 16rpx 48rpx;
-  background: linear-gradient(180deg, rgba(245,245,245,0) 0%, #F5F5F5 40%);
+  background: linear-gradient(180deg, rgba(245,245,245,0) 0%, var(--color-bg-page) 40%);
 }
 .mo-add-btn {
   width: 100%;
   background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red));
   color: #fff;
-  font-size: 34rpx;
+  font-size: var(--font-lg);
   font-weight: 700;
-  border-radius: 44rpx;
+  border-radius: var(--radius-full);
   border: none;
   padding: 22rpx 0;
   box-shadow: 0 6rpx 20rpx var(--color-brand-soy-red-shadow);
@@ -290,23 +290,23 @@
   align-items: center;
   justify-content: center;
   padding: 120rpx 0 80rpx;
-  color: #999;
-  font-size: 32rpx;
+  color: var(--color-text-3);
+  font-size: var(--font-base);
 }
 .empty-icon {
   font-size: 68rpx;
   margin-bottom: 16rpx;
 }
 .empty-sub {
-  font-size: 28rpx;
-  color: #B0B0B0;
+  font-size: var(--font-md);
+  color: var(--color-text-3);
   margin-top: 8rpx;
 }
 .load-more {
   text-align: center;
   padding: 32rpx;
-  color: #B0B0B0;
-  font-size: 28rpx;
+  color: var(--color-text-3);
+  font-size: var(--font-md);
 }
 
 /* ========== 号码牌网格 ========== */
@@ -323,7 +323,7 @@
 .md-card-item {
   width: 100rpx;
   height: 100rpx;
-  border-radius: 12rpx;
+  border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -331,22 +331,22 @@
   border: 2rpx solid transparent;
 }
 .md-card-item.idle {
-  background: #4CAF50;
-  border-color: #4CAF50;
+  background: var(--color-success);
+  border-color: var(--color-success);
 }
 .md-card-item.used {
   background: #CCCCCC;
-  border-color: #CCCCCC;
+  border-color: var(--color-border);
 }
 .md-card-item.selected {
-  border: 4rpx solid #FF9500;
+  border: 4rpx solid var(--color-warning);
   box-shadow: 0 4rpx 16rpx rgba(255,149,0,0.35);
   transform: scale(1.12);
   position: relative;
   z-index: 2;
 }
 .md-card-num-text {
-  font-size: 36rpx;
+  font-size: var(--font-lg);
   font-weight: 800;
   color: #FFFFFF;
 }
@@ -358,7 +358,7 @@
   text-align: center;
 }
 .mof-currency {
-  font-size: 40rpx;
+  font-size: var(--font-xl);
   color: rgba(255,255,255,0.6);
   margin-right: 8rpx;
 }
@@ -372,8 +372,8 @@
   padding: 24rpx;
 }
 .mof-section-title {
-  font-size: 30rpx;
-  color: #999;
+  font-size: var(--font-base);
+  color: var(--color-text-3);
   display: block;
   margin-bottom: 16rpx;
 }
@@ -386,21 +386,21 @@
   flex: 1;
   text-align: center;
   padding: 20rpx 0;
-  border-radius: 12rpx;
-  font-size: 30rpx;
-  background: #fff;
-  color: #999;
-  border: 2rpx solid #E0E0E0;
+  border-radius: var(--radius-md);
+  font-size: var(--font-base);
+  background: var(--color-bg-card);
+  color: var(--color-text-3);
+  border: 2rpx solid var(--color-border);
 }
 .mof-pay-type.on {
-  background: #FFF0EB;
-  color: #FF5722;
-  border-color: #FF5722;
+  background: var(--color-primary-pale);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .mof-no-card {
-  font-size: 28rpx;
-  color: #FF3B30;
+  font-size: var(--font-md);
+  color: var(--color-danger);
 }
 
 .mof-submit-wrap {
@@ -410,8 +410,8 @@
   width: 100%;
   background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red));
   color: #fff;
-  border-radius: 40rpx;
-  font-size: 32rpx;
+  border-radius: var(--radius-full);
+  font-size: var(--font-base);
   font-weight: 600;
   padding: 24rpx 0;
   border: none;
@@ -433,7 +433,7 @@
 }
 .calc-modal {
   width: 100%;
-  background: #F5F5F5;
+  background: var(--color-bg-page);
   border-radius: 24rpx 24rpx 0 0;
   padding: 32rpx 24rpx;
   padding-bottom: calc(32rpx + 100rpx + env(safe-area-inset-bottom));
@@ -444,8 +444,8 @@
   to { transform: translateY(0); }
 }
 .calc-screen {
-  background: #fff;
-  border-radius: 12rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
   padding: 24rpx;
   min-height: 120rpx;
   display: flex;
@@ -455,8 +455,8 @@
   margin-bottom: 16rpx;
 }
 .calc-expr {
-  font-size: 28rpx;
-  color: #999;
+  font-size: var(--font-md);
+  color: var(--color-text-3);
   word-break: break-all;
   text-align: right;
   min-height: 32rpx;
@@ -467,14 +467,14 @@
   gap: 4rpx;
 }
 .calc-currency {
-  font-size: 40rpx;
-  color: #999;
+  font-size: var(--font-xl);
+  color: var(--color-text-3);
   font-weight: 600;
 }
 .calc-display {
   font-size: 60rpx;
   font-weight: 700;
-  color: #1A1A1A;
+  color: var(--color-text-1);
 }
 .calc-keyboard {
   display: flex;
@@ -487,25 +487,25 @@
 }
 .calc-key {
   flex: 1;
-  background: #fff;
-  border-radius: 12rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
   text-align: center;
   padding: 24rpx 0;
-  font-size: 40rpx;
+  font-size: var(--font-xl);
   font-weight: 500;
-  color: #1A1A1A;
+  color: var(--color-text-1);
 }
 .calc-key:active {
-  background: #E0E0E0;
+  background: var(--color-bg-page);
 }
 .calc-key-func {
-  background: #F0F0F0;
-  color: #666;
-  font-size: 32rpx;
+  background: var(--color-bg-page);
+  color: var(--color-text-2);
+  font-size: var(--font-base);
 }
 .calc-key-op {
-  background: #FFF0EB;
-  color: #FF5722;
+  background: var(--color-primary-pale);
+  color: var(--color-primary);
   font-weight: 600;
 }
 .calc-key-eq {
@@ -516,14 +516,14 @@
 .calc-key-confirm {
   background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red));
   color: #fff;
-  font-size: 28rpx;
+  font-size: var(--font-md);
   font-weight: 700;
   box-shadow: 0 4rpx 12rpx var(--color-brand-soy-red-shadow);
 }
 
 /* ========== 金额点击提示 ========== */
 .mof-amount-hint {
-  font-size: 24rpx;
+  font-size: var(--font-sm);
   color: rgba(255,255,255,0.5);
   display: block;
   margin-top: 4rpx;
@@ -535,19 +535,19 @@
 }
 .mof-check {
   font-size: 104rpx;
-  color: #FF5722;
+  color: var(--color-primary);
   display: block;
 }
 .mof-result-title {
   font-size: 44rpx;
   font-weight: 700;
-  color: #1A1A1A;
+  color: var(--color-text-1);
   display: block;
   margin: 24rpx 0 40rpx;
 }
 .mof-result-card {
-  background: #fff;
-  border-radius: 16rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
   padding: 32rpx;
   text-align: left;
   margin-bottom: 40rpx;
@@ -556,26 +556,26 @@
   display: flex;
   justify-content: space-between;
   padding: 16rpx 0;
-  border-bottom: 1rpx solid #F5F5F5;
+  border-bottom: 1rpx solid var(--color-border);
 }
 .mof-result-l {
-  color: #999;
-  font-size: 30rpx;
+  color: var(--color-text-3);
+  font-size: var(--font-base);
 }
 .mof-result-v {
-  color: #1A1A1A;
-  font-size: 30rpx;
+  color: var(--color-text-1);
+  font-size: var(--font-base);
   font-weight: 500;
 }
 .mof-result-num {
   font-size: 44rpx;
   font-weight: 800;
-  color: #FF5722;
+  color: var(--color-primary);
 }
 .mof-result-price {
-  font-size: 36rpx;
+  font-size: var(--font-lg);
   font-weight: 700;
-  color: #FF4B26;
+  color: var(--color-primary);
 }
 .mof-result-btns {
   display: flex;
@@ -585,8 +585,8 @@
   flex: 1;
   background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red));
   color: #fff;
-  border-radius: 40rpx;
-  font-size: 32rpx;
+  border-radius: var(--radius-full);
+  font-size: var(--font-base);
   padding: 24rpx 0;
   border: none;
   box-shadow: 0 4rpx 12rpx var(--color-brand-soy-red-shadow);

@@ -3,7 +3,7 @@
 /* ========== 商家订单详情 ========== */
 .md-page {
   min-height: 100vh;
-  background: #F5F5F5;
+  background: var(--color-bg-page);
 }
 
 /* 头部 */
@@ -19,26 +19,26 @@
   display: block;
 }
 .md-no {
-  font-size: 28rpx;
+  font-size: var(--font-md);
   color: rgba(255,255,255,0.6);
   margin-top: 8rpx;
   display: block;
 }
 .md-type {
-  font-size: 26rpx;
+  font-size: var(--font-sm);
   color: rgba(255,255,255,0.4);
   margin-top: 4rpx;
   display: block;
 }
 
 .md-section-title {
-  font-size: 32rpx;
+  font-size: var(--font-base);
   font-weight: 700;
-  color: #1A1A1A;
+  color: var(--color-text-1);
   display: block;
   margin-bottom: 20rpx;
   padding-bottom: 16rpx;
-  border-bottom: 1rpx solid #F5F5F5;
+  border-bottom: 1rpx solid var(--color-border);
 }
 
 /* 商品 */
@@ -47,23 +47,23 @@
   align-items: flex-start;
   padding: 14rpx 0;
 }
-.md-item + .md-item { border-top: 1rpx solid #F8F8F8; }
+.md-item + .md-item { border-top: 1rpx solid var(--color-border); }
 .md-item-left { flex: 1; }
-.md-pname { font-size: 32rpx; font-weight: 500; color: #1A1A1A; display: block; }
+.md-pname { font-size: var(--font-base); font-weight: 500; color: var(--color-text-1); display: block; }
 .md-ptags { display: flex; gap: 8rpx; margin-top: 8rpx; }
 .md-item-right { text-align: right; flex-shrink: 0; margin-left: 16rpx; }
-.md-pqty { font-size: 28rpx; color: #999; display: block; }
-.md-pprice { font-size: 32rpx; font-weight: 700; color: #FF4B26; margin-top: 6rpx; display: block; }
+.md-pqty { font-size: var(--font-md); color: var(--color-text-3); display: block; }
+.md-pprice { font-size: var(--font-base); font-weight: 700; color: var(--color-primary); margin-top: 6rpx; display: block; }
 
 .md-card-num {
   font-weight: 800;
-  color: #FF5722;
-  font-size: 36rpx;
+  color: var(--color-primary);
+  font-size: var(--font-lg);
 }
 
 .weigh-photo-hint {
-  font-size: 26rpx;
-  color: #B0B0B0;
+  font-size: var(--font-sm);
+  color: var(--color-text-3);
   display: block;
   text-align: center;
   margin-top: 8rpx;
@@ -74,8 +74,8 @@
   width: 100%;
   max-width: 500rpx;
   height: 400rpx;
-  border-radius: 12rpx;
-  background: #F5F5F5;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-page);
   display: block;
   margin: 0 auto;
 }
@@ -88,8 +88,8 @@
 .md-action-btn {
   width: 100%;
   border: none;
-  border-radius: 40rpx;
-  font-size: 34rpx;
+  border-radius: var(--radius-full);
+  font-size: var(--font-lg);
   font-weight: 600;
   padding: 24rpx 0;
   margin-bottom: 16rpx;
@@ -100,10 +100,10 @@
 .md-process { background: var(--color-brand-tangerine); }
 .md-deliver { background: var(--color-brand-amber); }
 .md-ready { background: linear-gradient(135deg, var(--color-brand-gold), var(--color-brand-yolk)); box-shadow: 0 4rpx 12rpx rgba(245,166,35,0.35); }
-.md-done { background: #8E8E93; }
+.md-done { background: var(--color-text-3); }
 .md-pickup { background: linear-gradient(135deg, var(--color-brand-gold), var(--color-brand-yolk)); box-shadow: 0 4rpx 12rpx rgba(245,166,35,0.35); }
-.md-cancel { background: #fff; color: #FF3B30; border: 2rpx solid #FF3B30; }
-.md-pay { background: #34C759; }
+.md-cancel { background: #fff; color: var(--color-danger); border: 2rpx solid var(--color-danger); }
+.md-pay { background: var(--color-success); }
 
 /* 弹窗 */
 .md-overlay {
@@ -117,14 +117,14 @@
 }
 .md-modal {
   width: 85vw;
-  background: #fff;
-  border-radius: 16rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
   padding: 32rpx;
   max-height: 80vh;
   overflow-y: auto;
 }
 .md-modal-title {
-  font-size: 36rpx;
+  font-size: var(--font-lg);
   font-weight: 700;
   display: block;
   text-align: center;
@@ -136,24 +136,24 @@
   margin-bottom: 24rpx;
 }
 .md-form-label {
-  font-size: 30rpx;
-  color: #666;
+  font-size: var(--font-base);
+  color: var(--color-text-2);
   display: block;
   margin-bottom: 10rpx;
 }
 .md-form-input {
-  border: 1px solid #E0E0E0;
-  border-radius: 8rpx;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   padding: 16rpx;
-  font-size: 32rpx;
+  font-size: var(--font-base);
   width: 100%;
   box-sizing: border-box;
 }
 .md-photo-area {
   width: 100%;
   height: 240rpx;
-  border: 2rpx dashed #E0E0E0;
-  border-radius: 8rpx;
+  border: 2rpx dashed var(--color-border);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -164,8 +164,8 @@
   height: 100%;
 }
 .md-photo-placeholder {
-  font-size: 30rpx;
-  color: #C7C7CC;
+  font-size: var(--font-base);
+  color: var(--color-text-3);
 }
 
 /* 称重内联表单 */
@@ -176,15 +176,15 @@
 }
 .wi-input {
   flex: 1;
-  border: 1px solid #E0E0E0;
-  border-radius: 8rpx;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   padding: 16rpx;
-  font-size: 32rpx;
+  font-size: var(--font-base);
 }
 .wi-unit {
-  font-size: 32rpx;
+  font-size: var(--font-base);
   font-weight: 600;
-  color: #FF5722;
+  color: var(--color-primary);
   flex-shrink: 0;
   width: 60rpx;
   text-align: center;
@@ -192,13 +192,13 @@
 .wi-photo {
   width: 100%;
   height: 280rpx;
-  border: 2rpx dashed #E0E0E0;
-  border-radius: 12rpx;
+  border: 2rpx dashed var(--color-border);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: #FAFAFA;
+  background: var(--color-bg-page);
 }
 .wi-photo-img {
   width: 100%;
@@ -214,8 +214,8 @@
   font-size: 56rpx;
 }
 .wi-photo-text {
-  font-size: 28rpx;
-  color: #B0B0B0;
+  font-size: var(--font-md);
+  color: var(--color-text-3);
 }
 
 .md-modal-btns {
@@ -226,13 +226,13 @@
 .md-modal-cancel, .md-modal-confirm {
   flex: 1;
   border: none;
-  border-radius: 40rpx;
-  font-size: 32rpx;
+  border-radius: var(--radius-full);
+  font-size: var(--font-base);
   padding: 20rpx 0;
 }
 .md-modal-cancel {
-  background: #F5F5F5;
-  color: #999;
+  background: var(--color-bg-page);
+  color: var(--color-text-3);
 }
 .md-modal-confirm {
   background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red));
@@ -254,7 +254,7 @@
 .md-card-item {
   width: 100rpx;
   height: 100rpx;
-  border-radius: 12rpx;
+  border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -262,22 +262,22 @@
   border: 2rpx solid transparent;
 }
 .md-card-item.idle {
-  background: #4CAF50;
-  border-color: #4CAF50;
+  background: var(--color-success);
+  border-color: var(--color-success);
 }
 .md-card-item.used {
   background: #CCCCCC;
-  border-color: #CCCCCC;
+  border-color: var(--color-border);
 }
 .md-card-item.selected {
-  border: 4rpx solid #FF9500;
+  border: 4rpx solid var(--color-warning);
   box-shadow: 0 4rpx 16rpx rgba(255,149,0,0.35);
   transform: scale(1.12);
   position: relative;
   z-index: 2;
 }
 .md-card-num-text {
-  font-size: 36rpx;
+  font-size: var(--font-lg);
   font-weight: 800;
   color: #FFFFFF;
 }
@@ -288,19 +288,19 @@
   justify-content: space-between;
   align-items: center;
   padding: 14rpx 0;
-  font-size: 30rpx;
+  font-size: var(--font-base);
 }
 .od-infol {
-  color: #999;
+  color: var(--color-text-3);
   flex-shrink: 0;
 }
 .od-infor {
-  color: #1A1A1A;
+  color: var(--color-text-1);
   flex: 1;
   text-align: right;
 }
 .od-price {
-  color: #FF4B26;
+  color: var(--color-primary);
   font-weight: 700;
 }
 .od-addr {
@@ -312,28 +312,28 @@
   cursor: pointer;
 }
 .od-tappable:active {
-  background: #F5F5F5;
+  background: var(--color-bg-page);
   margin: 0 -32rpx;
   padding-left: 32rpx;
   padding-right: 32rpx;
 }
 .od-link {
-  color: #1DB96A;
+  color: var(--color-primary);
   font-weight: 500;
 }
 .od-arrow {
-  font-size: 36rpx;
-  color: #C0C0C0;
+  font-size: var(--font-lg);
+  color: var(--color-text-3);
   margin-left: 8rpx;
   flex-shrink: 0;
 }
 .od-copy-btn {
-  font-size: 32rpx;
+  font-size: var(--font-base);
   padding: 6rpx 12rpx;
   margin-left: 8rpx;
   flex-shrink: 0;
-  border-radius: 8rpx;
-  background: #F0F0F0;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-page);
 }
 .od-copy-btn:active {
   background: #D0D0D0;

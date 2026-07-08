@@ -1,15 +1,15 @@
 /* ========== 地址表单页 ========== */
 .form-page {
   min-height: 100vh;
-  background: #F5F5F5;
+  background: var(--color-bg-page);
   padding-top: 16rpx;
 }
 
 /* ========== 表单卡片 ========== */
 .form-card {
-  background: #fff;
+  background: var(--color-bg-card);
   margin: 0 24rpx 16rpx;
-  border-radius: 16rpx;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
 }
@@ -18,7 +18,7 @@
   display: flex;
   align-items: center;
   padding: 28rpx 24rpx;
-  border-bottom: 1rpx solid #F0F0F0;
+  border-bottom: 1rpx solid var(--color-border);
 }
 
 .form-row-last {
@@ -27,21 +27,21 @@
 
 .form-label {
   width: 140rpx;
-  font-size: 32rpx;
+  font-size: var(--font-base);
   font-weight: 500;
-  color: #1A1A1A;
+  color: var(--color-text-1);
   flex-shrink: 0;
 }
 
 .form-input {
   flex: 1;
-  font-size: 32rpx;
-  color: #1A1A1A;
+  font-size: var(--font-base);
+  color: var(--color-text-1);
   text-align: right;
 }
 
 .form-input::placeholder {
-  color: #C7C7CC;
+  color: var(--color-text-3);
 }
 
 .form-picker-val {
@@ -53,17 +53,17 @@
 }
 
 .form-picker-val text {
-  font-size: 32rpx;
-  color: #1A1A1A;
+  font-size: var(--font-base);
+  color: var(--color-text-1);
 }
 
 .form-placeholder {
-  color: #C7C7CC !important;
+  color: var(--color-text-3) !important;
 }
 
 .form-arrow {
-  font-size: 36rpx;
-  color: #C7C7CC;
+  font-size: var(--font-lg);
+  color: var(--color-text-3);
 }
 
 .form-row-switch {
@@ -80,8 +80,8 @@
   width: 100%;
   background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red));
   color: #fff;
-  border-radius: 40rpx;
-  font-size: 34rpx;
+  border-radius: var(--radius-full);
+  font-size: var(--font-lg);
   font-weight: 600;
   padding: 24rpx 0;
   border: none;
@@ -102,6 +102,6 @@
 }
 
 .form-delete-btn text {
-  font-size: 30rpx;
-  color: #FF3B30;
+  font-size: var(--font-base);
+  color: var(--color-danger);
 }

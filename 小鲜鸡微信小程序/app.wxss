@@ -1,54 +1,36 @@
+@import './styles/tokens.wxss';
+@import './styles/components.wxss';
+
 /* ========== 全局设计系统 ========== */
-/* 叮咚买菜风格：绿色主调、清新、圆角卡片 */
+/* 暖橙主调 · 卡片圆角 · 轻量阴影（视觉 token 见 styles/tokens.wxss） */
 
+/* ---------- 保留：页面 wxss 仍在 var() 引用的品牌邻近色变量 ---------- */
+/* 说明：这些变量被商家端头部/按钮/订单状态色等 20+ 页面引用，暂原样保留，
+   后续步骤可逐个重映射到新橙色 token；此处删除会导致这些页面变量未定义而破样 */
 page {
-  --color-primary: #1DB96A;
-  --color-primary-light: #f0faf5;
-  --color-price: #FF4B26;
-  --color-danger: #FF3B30;
-  --color-warning: #FF9500;
-  --color-text: #1A1A1A;
-  --color-text-secondary: #999;
-  --color-text-hint: #C7C7CC;
-  --color-bg: #F5F5F5;
-  --color-card: #FFFFFF;
-  --color-border: #EEEEEE;
-  --radius-sm: 8rpx;
-  --radius-md: 16rpx;
-  --radius-lg: 24rpx;
-  --radius-round: 40rpx;
-  --shadow-card: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
-
-  /* ========== 2.0 品牌邻近色体系 ========== */
-  /* 主红 → 辣椒红 → 深红（核心渐变轴） */
   --color-brand-main-red: #D4420A;
   --color-brand-chili-red: #FF5722;
   --color-brand-dark-red: #A83108;
-  /* 蜜橘橙 → 琥珀 → 金黄 → 蛋黄（暖色渐变轴） */
   --color-brand-tangerine: #FF6B35;
   --color-brand-amber: #F5A623;
   --color-brand-gold: #FF9500;
   --color-brand-yolk: #FFCC00;
-  /* 奶黄 / 米底 */
   --color-brand-cream: #FFF8E1;
   --color-brand-cream-bg: #FFFEF7;
-  /* 品牌浅底变体 */
   --color-brand-gold-bg: #FFF8E1;
   --color-brand-orange-bg: #FFF0E6;
   --color-brand-red-bg: #FFEBEE;
-  /* 酱红投影（按钮/卡片用） */
   --color-brand-soy-red-shadow: rgba(212, 66, 10, 0.35);
-  /* 暖白页背景 */
   --color-bg-warm-white: #FFFEF9;
-  /* 语义色补充 */
-  --color-success: #34C759;
-  --color-success-bg: #E8F8F0;
+}
 
-  background-color: #F5F5F5;
-  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC', sans-serif;
-  font-size: 32rpx;
-  color: #1A1A1A;
-  line-height: 1.5;
+/* ---------- page 基础（第一步：改为 token 驱动） ---------- */
+page {
+  background-color: var(--color-bg-page);
+  color: var(--color-text-1);
+  font-size: var(--font-base);
+  font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -58,114 +40,90 @@ page {
 }
 
 /* ========== 卡片 ========== */
+/* 卡片通用 */
 .card {
-  background-color: #fff;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  margin: 0 24rpx 16rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
 }
 
 .card-full {
-  background-color: #fff;
-  border-radius: 16rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
   padding: 24rpx;
   margin-bottom: 16rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-card);
 }
 
 /* ========== 按钮 ========== */
-.btn-primary {
-  background: #1DB96A;
-  color: #fff;
-  border-radius: 40rpx;
-  font-size: 32rpx;
-  font-weight: 600;
-  padding: 16rpx 32rpx;
-  text-align: center;
-  border: none;
-}
-
+/* .btn-primary 基础样式由 styles/components.wxss 提供（删旧用新）；此处仅保留交互态 */
 .btn-primary:active {
-  background: #18a05b;
+  background: var(--color-primary-dark);
 }
 
 .btn-primary[disabled] {
-  background: #E0E0E0;
-  color: #999;
+  background: var(--color-bg-input);
+  color: var(--color-text-3);
 }
 
 .btn-outline {
   background: #fff;
-  color: #1DB96A;
-  border: 2rpx solid #1DB96A;
+  color: var(--color-primary);
+  border: 2rpx solid var(--color-primary);
   border-radius: 40rpx;
-  font-size: 32rpx;
+  font-size: var(--font-base);
   padding: 16rpx 32rpx;
   text-align: center;
 }
 
 .btn-outline:active {
-  background: #f0faf5;
+  background: var(--color-primary-pale);
 }
 
 /* ========== 价格 ========== */
+/* 价格统一用主色（橙），如需独立价格色可在后续步骤单列 token */
 .price {
-  color: #FF4B26;
+  color: var(--color-primary);
   font-weight: 700;
 }
 
 .price-symbol {
   font-size: 28rpx;
   font-weight: 700;
-  color: #FF4B26;
+  color: var(--color-primary);
 }
 
 .price-value {
   font-size: 40rpx;
   font-weight: 700;
-  color: #FF4B26;
+  color: var(--color-primary);
 }
 
 /* ========== 标签 ========== */
-.tag {
-  display: inline-block;
-  padding: 4rpx 12rpx;
-  border-radius: 4rpx;
-  font-size: 26rpx;
-  font-weight: 500;
-}
-
+/* .tag 基础样式由 styles/components.wxss 提供（删旧用新）；此处保留项目已用的颜色 modifier */
 .tag-green {
-  background-color: #E8F8F0;
-  color: #1DB96A;
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 .tag-orange {
-  background-color: #FFF5F0;
-  color: #FF9500;
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
 .tag-red {
-  background-color: #FFEBEE;
-  color: #FF3B30;
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
 }
 
 .tag-gray {
-  background-color: #F5F5F5;
-  color: #999;
+  background-color: var(--color-bg-input);
+  color: var(--color-text-2);
 }
 
 /* ========== 空状态 ========== */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 120rpx 48rpx;
-  color: #C7C7CC;
-}
-
+/* .empty-state 基础样式由 styles/components.wxss 提供（删旧用新）；此处保留子元素样式 */
 .empty-state .empty-icon {
   font-size: 104rpx;
   margin-bottom: 24rpx;
@@ -185,15 +143,16 @@ page {
 .load-more {
   text-align: center;
   padding: 24rpx;
-  color: #C7C7CC;
+  color: var(--color-text-3);
   font-size: 28rpx;
 }
 
 /* ========== 分割线 ========== */
+/* 分割线 */
 .divider {
   height: 1rpx;
-  background-color: #EEEEEE;
-  margin: 20rpx 0;
+  background: var(--color-border);
+  margin: 0 var(--space-md);
 }
 
 /* ========== 规格选择（全局复用） ========== */
@@ -204,7 +163,7 @@ page {
 .spec-title {
   font-size: 32rpx;
   font-weight: 600;
-  color: #1A1A1A;
+  color: var(--color-text-1);
   margin-bottom: 16rpx;
 }
 
@@ -218,20 +177,21 @@ page {
   padding: 16rpx 32rpx;
   border-radius: 24rpx;
   font-size: 30rpx;
-  background-color: #F5F5F5;
-  color: #1A1A1A;
-  border: 1px solid #ddd;
+  background-color: var(--color-bg-input);
+  color: var(--color-text-1);
+  border: 1px solid var(--color-border);
 }
 
 .spec-option.selected {
-  background-color: #f0faf5;
-  color: #1DB96A;
-  border-color: #1DB96A;
+  background-color: var(--color-primary-pale);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 /* ========== 底部安全区 ========== */
+/* 安全区底部占位 */
 .safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom);
+  height: env(safe-area-inset-bottom);
 }
 
 /* ========== 手机号授权浮层（全局复用） ========== */
@@ -260,8 +220,8 @@ page {
   position: relative;
   z-index: 1;
   width: 560rpx;
-  background: #FFFFFF;
-  border-radius: 24rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
   padding: 48rpx 40rpx 40rpx;
   display: flex;
   flex-direction: column;
@@ -272,13 +232,13 @@ page {
 .phone-auth-title {
   font-size: 40rpx;
   font-weight: 700;
-  color: #1A1A1A;
+  color: var(--color-text-1);
   margin-bottom: 12rpx;
 }
 
 .phone-auth-desc {
   font-size: 30rpx;
-  color: #999;
+  color: var(--color-text-2);
   margin-bottom: 36rpx;
   line-height: 1.5;
 }
@@ -286,7 +246,7 @@ page {
 .phone-auth-btn {
   width: 100%;
   height: 96rpx;
-  background: #1DB96A;
+  background: var(--color-primary);
   color: #FFFFFF;
   border-radius: 48rpx;
   font-size: 36rpx;
@@ -312,5 +272,5 @@ page {
 
 .phone-auth-cancel text {
   font-size: 30rpx;
-  color: #C7C7CC;
+  color: var(--color-text-3);
 }

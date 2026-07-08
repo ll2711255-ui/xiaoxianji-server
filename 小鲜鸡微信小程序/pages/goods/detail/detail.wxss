@@ -4,7 +4,7 @@
 .detail-img-area {
   width: 100%;
   height: 420rpx;
-  background: #fff;
+  background: var(--color-bg-card);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -21,7 +21,7 @@
   justify-content: center;
   width: 100%;
   height: 100%;
-  background: #f0faf5;
+  background: var(--color-primary-pale);
 }
 
 .detail-emoji {
@@ -30,7 +30,7 @@
 
 /* ========== 价格信息卡片 ========== */
 .price-card {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 24rpx 24rpx 0 0;
   padding: 28rpx 24rpx 24rpx;
   margin-top: -24rpx;
@@ -50,28 +50,28 @@
 }
 
 .price-symbol {
-  font-size: 32rpx;
-  color: #FF4B26;
+  font-size: var(--font-base);
+  color: var(--color-primary);
   font-weight: 700;
 }
 
 .price-value {
   font-size: 52rpx;
-  color: #FF4B26;
+  color: var(--color-primary);
   font-weight: 700;
   line-height: 1;
 }
 
 .price-label {
-  font-size: 28rpx;
-  color: #999;
+  font-size: var(--font-md);
+  color: var(--color-text-3);
   margin-left: 8rpx;
 }
 
 .price-name {
-  font-size: 32rpx;
+  font-size: var(--font-base);
   font-weight: 500;
-  color: #1A1A1A;
+  color: var(--color-text-1);
   display: block;
   margin-top: 14rpx;
 }
@@ -83,15 +83,15 @@
 }
 
 .price-sales {
-  font-size: 28rpx;
-  color: #999;
+  font-size: var(--font-md);
+  color: var(--color-text-3);
   display: block;
   margin-top: 12rpx;
 }
 
 /* ========== 规格选择卡片 ========== */
 .spec-card {
-  background: #fff;
+  background: var(--color-bg-card);
   margin: 16rpx 0 0;
   padding: 24rpx;
 }
@@ -105,8 +105,8 @@
 }
 
 .spec-label {
-  font-size: 30rpx;
-  color: #999;
+  font-size: var(--font-base);
+  color: var(--color-text-3);
   display: block;
   margin-bottom: 16rpx;
 }
@@ -120,17 +120,17 @@
 /* 规格胶囊按钮 */
 .spec-btn {
   padding: 10rpx 24rpx;
-  border-radius: 24rpx;
-  font-size: 30rpx;
-  color: #555;
-  background: #fff;
-  border: 1px solid #ddd;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-base);
+  color: var(--color-text-2);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
 }
 
 .spec-btn.active {
-  color: #1DB96A;
-  border-color: #1DB96A;
-  background: #f0faf5;
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-primary-pale);
 }
 
 /* ========== 数量步进器 ========== */
@@ -143,19 +143,19 @@
 .stepper-btn {
   width: 56rpx;
   height: 56rpx;
-  border-radius: 50%;
-  background: #F5F5F5;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-page);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40rpx;
-  color: #333;
+  font-size: var(--font-xl);
+  color: var(--color-text-1);
   font-weight: 500;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
 }
 
 .stepper-btn:active {
-  background: #E5E5E5;
+  background: var(--color-bg-page);
 }
 
 .stepper-plus {
@@ -173,7 +173,7 @@
 }
 
 .stepper-val {
-  font-size: 38rpx;
+  font-size: var(--font-lg);
   font-weight: 700;
   min-width: 56rpx;
   text-align: center;
@@ -183,19 +183,19 @@
 .pricing-note-card {
   margin: 16rpx 0 0;
   padding: 24rpx;
-  background: #F5F5F5;
+  background: var(--color-bg-page);
 }
 
 .pricing-note-title {
-  font-size: 30rpx;
+  font-size: var(--font-base);
   font-weight: 600;
-  color: #666;
+  color: var(--color-text-2);
   display: block;
 }
 
 .pricing-note-text {
-  font-size: 28rpx;
-  color: #999;
+  font-size: var(--font-md);
+  color: var(--color-text-3);
   display: block;
   margin-top: 10rpx;
   line-height: 1.6;
@@ -207,8 +207,8 @@
   align-items: center;
   justify-content: center;
   min-height: 60vh;
-  font-size: 32rpx;
-  color: #C7C7CC;
+  font-size: var(--font-base);
+  color: var(--color-text-3);
 }
 
 /* ========== 底部操作栏 ========== */
@@ -219,7 +219,7 @@
   right: 0;
   display: flex;
   align-items: center;
-  background: #fff;
+  background: var(--color-bg-card);
   padding: 16rpx 24rpx;
   padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
   box-shadow: 0 -2rpx 16rpx rgba(0, 0, 0, 0.06);
@@ -234,14 +234,14 @@
 }
 
 .action-price-symbol {
-  font-size: 28rpx;
-  color: #FF4B26;
+  font-size: var(--font-md);
+  color: var(--color-primary);
   font-weight: 700;
 }
 
 .action-price-val {
   font-size: 44rpx;
-  color: #FF4B26;
+  color: var(--color-primary);
   font-weight: 700;
   line-height: 1;
 }
@@ -249,9 +249,9 @@
 .action-btn {
   flex: 1;
   text-align: center;
-  border-radius: 40rpx;
+  border-radius: var(--radius-full);
   padding: 24rpx;
-  font-size: 30rpx;
+  font-size: var(--font-base);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -262,9 +262,9 @@
 
 /* 加入购物车 — 描边样式 */
 .action-btn-cart {
-  background: #FFF4F0;
-  color: #FF5722;
-  border: 2rpx solid #FF5722;
+  background: var(--color-primary-pale);
+  color: var(--color-primary);
+  border: 2rpx solid var(--color-primary);
   flex: 1.1;
 }
 

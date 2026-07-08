@@ -3,7 +3,7 @@
 /* ========== 线下收银 ========== */
 .mof-page {
   min-height: 100vh;
-  background: #F5F5F5;
+  background: var(--color-bg-page);
   display: flex;
   flex-direction: column;
 }
@@ -15,7 +15,7 @@
   text-align: center;
 }
 .mof-currency {
-  font-size: 40rpx;
+  font-size: var(--font-xl);
   color: rgba(255,255,255,0.6);
   margin-right: 8rpx;
 }
@@ -30,8 +30,8 @@
   padding: 24rpx;
 }
 .mof-section-title {
-  font-size: 30rpx;
-  color: #999;
+  font-size: var(--font-base);
+  color: var(--color-text-3);
   display: block;
   margin-bottom: 16rpx;
 }
@@ -45,16 +45,16 @@
   flex: 1;
   text-align: center;
   padding: 20rpx 0;
-  border-radius: 12rpx;
-  font-size: 30rpx;
-  background: #fff;
-  color: #999;
-  border: 2rpx solid #E0E0E0;
+  border-radius: var(--radius-md);
+  font-size: var(--font-base);
+  background: var(--color-bg-card);
+  color: var(--color-text-3);
+  border: 2rpx solid var(--color-border);
 }
 .mof-pay-type.on {
-  background: #FFF0EB;
-  color: #FF5722;
-  border-color: #FF5722;
+  background: var(--color-primary-pale);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 /* 号码牌 */
@@ -65,21 +65,21 @@
 }
 .mof-card-chip {
   padding: 16rpx 28rpx;
-  border-radius: 12rpx;
-  background: #fff;
-  border: 2rpx solid #E0E0E0;
-  font-size: 32rpx;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  border: 2rpx solid var(--color-border);
+  font-size: var(--font-base);
   font-weight: 600;
-  color: #1A1A1A;
+  color: var(--color-text-1);
 }
 .mof-card-chip.selected {
-  background: #FF5722;
+  background: var(--color-primary);
   color: #fff;
-  border-color: #FF5722;
+  border-color: var(--color-primary);
 }
 .mof-no-card {
-  font-size: 28rpx;
-  color: #FF3B30;
+  font-size: var(--font-md);
+  color: var(--color-danger);
 }
 
 /* 提交按钮 */
@@ -90,8 +90,8 @@
   width: 100%;
   background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red));
   color: #fff;
-  border-radius: 40rpx;
-  font-size: 32rpx;
+  border-radius: var(--radius-full);
+  font-size: var(--font-base);
   font-weight: 600;
   padding: 24rpx 0;
   border: none;
@@ -103,7 +103,7 @@
 
 /* 数字键盘 */
 .mof-keyboard {
-  background: #E0E0E0;
+  background: var(--color-bg-page);
   padding: 8rpx;
   margin-top: auto;
 }
@@ -114,16 +114,16 @@
 }
 .mof-key {
   flex: 1;
-  background: #fff;
-  border-radius: 8rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
   text-align: center;
   padding: 28rpx 0;
-  font-size: 36rpx;
+  font-size: var(--font-lg);
   font-weight: 500;
-  color: #1A1A1A;
+  color: var(--color-text-1);
 }
 .mof-key:active {
-  background: #E0E0E0;
+  background: var(--color-bg-page);
 }
 .mof-key-func {
   background: #D0D0D0;
@@ -131,13 +131,13 @@
 .mof-key-clear {
   background: var(--color-brand-gold);
   color: #fff;
-  font-size: 30rpx;
+  font-size: var(--font-base);
 }
 .mof-key-submit {
   flex: 2;
   background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red));
   color: #fff;
-  font-size: 32rpx;
+  font-size: var(--font-base);
   font-weight: 600;
   box-shadow: 0 4rpx 12rpx var(--color-brand-soy-red-shadow);
 }
@@ -149,19 +149,19 @@
 }
 .mof-check {
   font-size: 104rpx;
-  color: #FF5722;
+  color: var(--color-primary);
   display: block;
 }
 .mof-result-title {
   font-size: 44rpx;
   font-weight: 700;
-  color: #1A1A1A;
+  color: var(--color-text-1);
   display: block;
   margin: 24rpx 0 40rpx;
 }
 .mof-result-card {
-  background: #fff;
-  border-radius: 16rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
   padding: 32rpx;
   text-align: left;
   margin-bottom: 40rpx;
@@ -170,26 +170,26 @@
   display: flex;
   justify-content: space-between;
   padding: 16rpx 0;
-  border-bottom: 1rpx solid #F5F5F5;
+  border-bottom: 1rpx solid var(--color-border);
 }
 .mof-result-l {
-  color: #999;
-  font-size: 30rpx;
+  color: var(--color-text-3);
+  font-size: var(--font-base);
 }
 .mof-result-v {
-  color: #1A1A1A;
-  font-size: 30rpx;
+  color: var(--color-text-1);
+  font-size: var(--font-base);
   font-weight: 500;
 }
 .mof-result-num {
   font-size: 44rpx;
   font-weight: 800;
-  color: #FF5722;
+  color: var(--color-primary);
 }
 .mof-result-price {
-  font-size: 36rpx;
+  font-size: var(--font-lg);
   font-weight: 700;
-  color: #FF4B26;
+  color: var(--color-primary);
 }
 .mof-result-btns {
   display: flex;
@@ -199,8 +199,8 @@
   flex: 1;
   background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red));
   color: #fff;
-  border-radius: 40rpx;
-  font-size: 32rpx;
+  border-radius: var(--radius-full);
+  font-size: var(--font-base);
   padding: 24rpx 0;
   border: none;
   box-shadow: 0 4rpx 12rpx var(--color-brand-soy-red-shadow);

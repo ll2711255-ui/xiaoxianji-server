@@ -24,13 +24,13 @@
   box-shadow: 0 -2rpx 8rpx rgba(0,0,0,0.06);
 }
 .ctb-theme-customer .ctb-line {
-  background: #EEEEEE;
+  background: var(--color-border);
 }
 .ctb-theme-customer .ctb-label {
-  color: #999999;
+  color: var(--color-text-3);
 }
 .ctb-theme-customer .ctb-active .ctb-label {
-  color: #1DB96A;
+  color: var(--color-primary);
 }
 
 /* ========== 商家端主题 ========== */

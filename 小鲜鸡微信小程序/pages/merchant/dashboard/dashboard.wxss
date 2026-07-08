@@ -1,7 +1,7 @@
 /* 商家首页 */
 .md-root {
   min-height: 100vh;
-  background: #F5F5F5;
+  background: var(--color-bg-page);
 }
 
 .md-header {
@@ -17,7 +17,7 @@
 }
 
 .md-sub {
-  font-size: 30rpx;
+  font-size: var(--font-base);
   color: rgba(255,255,255,0.6);
   margin-top: 8rpx;
   display: block;
@@ -33,8 +33,8 @@
 
 .md-stat-card {
   flex: 1;
-  background: #fff;
-  border-radius: 16rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
   padding: 32rpx;
   text-align: center;
   box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
@@ -43,25 +43,25 @@
 .md-stat-num {
   font-size: 60rpx;
   font-weight: 800;
-  color: #FF5722;
+  color: var(--color-primary);
   display: block;
 }
 
 .md-stat-active .md-stat-num {
-  color: #FF5722;
+  color: var(--color-primary);
 }
 
 .md-stat-label {
-  font-size: 28rpx;
-  color: #999;
+  font-size: var(--font-md);
+  color: var(--color-text-3);
   margin-top: 8rpx;
   display: block;
 }
 
 /* 菜单 */
 .md-menu {
-  background: #fff;
-  border-radius: 16rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
   margin: 0 24rpx;
   overflow: hidden;
   box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
@@ -75,11 +75,11 @@
 }
 
 .md-item + .md-item {
-  border-top: 1rpx solid #F5F5F5;
+  border-top: 1rpx solid var(--color-border);
 }
 
 .md-item:active {
-  background: #FAFAFA;
+  background: var(--color-bg-page);
 }
 
 .md-item-left {
@@ -89,17 +89,17 @@
 }
 
 .md-item-icon {
-  font-size: 40rpx;
+  font-size: var(--font-xl);
 }
 
 .md-item-text {
-  font-size: 34rpx;
-  color: #1A1A1A;
+  font-size: var(--font-lg);
+  color: var(--color-text-1);
 }
 
 .md-arrow {
-  font-size: 40rpx;
-  color: #C7C7CC;
+  font-size: var(--font-xl);
+  color: var(--color-text-3);
 }
 
 /* 退出 */
@@ -109,10 +109,10 @@
 
 .md-logout {
   width: 100%;
-  background: #fff;
-  color: #FF3B30;
-  border: 1rpx solid #FF3B30;
-  border-radius: 40rpx;
-  font-size: 32rpx;
+  background: var(--color-bg-card);
+  color: var(--color-danger);
+  border: 1rpx solid var(--color-danger);
+  border-radius: var(--radius-full);
+  font-size: var(--font-base);
   padding: 20rpx 0;
 }

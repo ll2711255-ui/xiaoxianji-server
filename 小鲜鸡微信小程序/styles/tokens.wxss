@@ -1,0 +1,57 @@
+/* ─── 主题色 ─── */
+page {
+  --color-primary:       #E8712A;
+  --color-primary-light: #F5C49A;
+  --color-primary-pale:  #FDF2EA;
+  --color-primary-dark:  #C45A18;
+  --color-primary-deep:  #8B3D0A;
+
+  /* ─── 中性色 ─── */
+  --color-bg-page:   #FAF9F7;
+  --color-bg-card:   #FFFFFF;
+  --color-bg-input:  #F2EFE9;
+  --color-border:    #E0DDD6;
+  --color-text-1:    #1F1E1B;
+  --color-text-2:    #6B6760;
+  --color-text-3:    #A8A49C;
+
+  /* ─── 语义色 ─── */
+  --color-success:      #3B7D3A;
+  --color-success-bg:   #EAF4E9;
+  --color-danger:       #C23B2E;
+  --color-danger-bg:    #FDECEA;
+  --color-warning:      #B07D10;
+  --color-warning-bg:   #FEF6E4;
+
+  /* ─── 圆角 ─── */
+  --radius-sm:   8rpx;
+  --radius-md:   16rpx;
+  --radius-lg:   24rpx;
+  --radius-xl:   32rpx;
+  --radius-full: 9999rpx;
+
+  /* ─── 间距 ─── */
+  --space-xs:  8rpx;
+  --space-sm:  16rpx;
+  --space-md:  24rpx;
+  --space-lg:  32rpx;
+  --space-xl:  48rpx;
+
+  /* ─── 字号 ─── */
+  --font-xs:   20rpx;
+  --font-sm:   24rpx;
+  --font-md:   28rpx;
+  --font-base: 32rpx;
+  --font-lg:   34rpx;
+  --font-xl:   40rpx;
+  --font-2xl:  48rpx;
+
+  /* ─── 字重 ─── */
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-bold:   600;
+
+  /* ─── 阴影（轻量） ─── */
+  --shadow-card: 0 2rpx 12rpx rgba(31,30,27,0.06);
+  --shadow-float: 0 4rpx 24rpx rgba(31,30,27,0.10);
+}

@@ -1,27 +1,27 @@
 /* ========== 确认订单页面 ========== */
 .page-checkout {
   min-height: 100vh;
-  background: #F5F5F5;
+  background: var(--color-bg-page);
   padding-bottom: 160rpx;
 }
 
 /* ========== Tab 切换 ========== */
 .tab-bar {
   display: flex;
-  background: #fff;
+  background: var(--color-bg-card);
 }
 
 .tab-item {
   flex: 1;
   text-align: center;
   padding: 28rpx 0;
-  font-size: 34rpx;
-  color: #999;
+  font-size: var(--font-lg);
+  color: var(--color-text-3);
   position: relative;
 }
 
 .tab-active {
-  color: #1DB96A;
+  color: var(--color-primary);
   font-weight: 700;
 }
 
@@ -33,17 +33,17 @@
   transform: translateX(-50%);
   width: 48rpx;
   height: 4rpx;
-  background: #1DB96A;
-  border-radius: 2rpx;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
 }
 
 /* ========== 地址卡片 ========== */
 .addr-card {
   display: flex;
   align-items: center;
-  background: #fff;
+  background: var(--color-bg-card);
   margin: 16rpx 24rpx;
-  border-radius: 16rpx;
+  border-radius: var(--radius-lg);
   padding: 28rpx 24rpx;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
 }
@@ -51,12 +51,12 @@
 .addr-icon {
   width: 72rpx;
   height: 72rpx;
-  border-radius: 50%;
-  background: #f0faf5;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-pale);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 36rpx;
+  font-size: var(--font-lg);
   flex-shrink: 0;
 }
 
@@ -73,19 +73,19 @@
 }
 
 .addr-name {
-  font-size: 34rpx;
+  font-size: var(--font-lg);
   font-weight: 700;
-  color: #1A1A1A;
+  color: var(--color-text-1);
 }
 
 .addr-phone {
-  font-size: 30rpx;
-  color: #999;
+  font-size: var(--font-base);
+  color: var(--color-text-3);
 }
 
 .addr-full {
-  font-size: 30rpx;
-  color: #999;
+  font-size: var(--font-base);
+  color: var(--color-text-3);
   margin-top: 6rpx;
   display: block;
   overflow: hidden;
@@ -94,13 +94,13 @@
 }
 
 .addr-empty {
-  font-size: 32rpx;
-  color: #1DB96A;
+  font-size: var(--font-base);
+  color: var(--color-primary);
 }
 
 .addr-arrow {
-  font-size: 40rpx;
-  color: #C7C7CC;
+  font-size: var(--font-xl);
+  color: var(--color-text-3);
   margin-left: 12rpx;
   flex-shrink: 0;
 }
@@ -109,9 +109,9 @@
 .pickup-card {
   display: flex;
   align-items: center;
-  background: #fff;
+  background: var(--color-bg-card);
   margin: 16rpx 24rpx;
-  border-radius: 16rpx;
+  border-radius: var(--radius-lg);
   padding: 28rpx 24rpx;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
 }
@@ -119,12 +119,12 @@
 .pickup-icon {
   width: 72rpx;
   height: 72rpx;
-  border-radius: 50%;
-  background: #f0faf5;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-pale);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 36rpx;
+  font-size: var(--font-lg);
   flex-shrink: 0;
 }
 
@@ -135,14 +135,14 @@
 }
 
 .pickup-label {
-  font-size: 28rpx;
-  color: #999;
+  font-size: var(--font-md);
+  color: var(--color-text-3);
   display: block;
 }
 
 .pickup-addr {
-  font-size: 32rpx;
-  color: #1A1A1A;
+  font-size: var(--font-base);
+  color: var(--color-text-1);
   font-weight: 500;
   margin-top: 4rpx;
   display: block;
@@ -152,7 +152,7 @@
 }
 
 .pickup-map-icon {
-  font-size: 40rpx;
+  font-size: var(--font-xl);
   margin-left: 12rpx;
   flex-shrink: 0;
 }
@@ -162,7 +162,7 @@
   position: relative;
   margin: 0 24rpx 16rpx;
   height: 280rpx;
-  border-radius: 16rpx;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
 }
@@ -176,9 +176,9 @@
   right: 12rpx;
   background: rgba(0, 0, 0, 0.6);
   color: #fff;
-  font-size: 26rpx;
+  font-size: var(--font-sm);
   padding: 8rpx 16rpx;
-  border-radius: 20rpx;
+  border-radius: var(--radius-lg);
   pointer-events: none;
 }
 
@@ -187,16 +187,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
+  background: var(--color-bg-card);
   margin: 0 24rpx 16rpx;
-  border-radius: 16rpx;
+  border-radius: var(--radius-lg);
   padding: 24rpx;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
 }
 
 .time-label {
-  font-size: 32rpx;
-  color: #1A1A1A;
+  font-size: var(--font-base);
+  color: var(--color-text-1);
   font-weight: 500;
 }
 
@@ -207,31 +207,31 @@
 
 .time-capsule {
   padding: 12rpx 28rpx;
-  border-radius: 24rpx;
-  font-size: 28rpx;
-  background: #F5F5F5;
-  color: #999;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-md);
+  background: var(--color-bg-page);
+  color: var(--color-text-3);
 }
 
 .capsule-active {
-  background: #f0faf5;
-  color: #1DB96A;
-  border: 1rpx solid #1DB96A;
+  background: var(--color-primary-pale);
+  color: var(--color-primary);
+  border: 1rpx solid var(--color-primary);
 }
 
 /* ========== 预约时间选择器 ========== */
 .schedule-card {
-  background: #fff;
+  background: var(--color-bg-card);
   margin: 0 24rpx 16rpx;
-  border-radius: 16rpx;
+  border-radius: var(--radius-lg);
   padding: 24rpx;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
 }
 
 .schedule-label {
-  font-size: 30rpx;
+  font-size: var(--font-base);
   font-weight: 600;
-  color: #1A1A1A;
+  color: var(--color-text-1);
   display: block;
   margin-bottom: 16rpx;
 }
@@ -255,16 +255,16 @@
   align-items: center;
   justify-content: center;
   padding: 14rpx 24rpx;
-  border-radius: 24rpx;
-  font-size: 28rpx;
-  background: #F5F5F5;
-  color: #666;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-md);
+  background: var(--color-bg-page);
+  color: var(--color-text-2);
   flex-shrink: 0;
   white-space: nowrap;
 }
 
 .date-capsule-active {
-  background: #1DB96A;
+  background: var(--color-primary);
   color: #fff;
 }
 
@@ -281,32 +281,32 @@
   align-items: center;
   justify-content: center;
   padding: 20rpx 0;
-  border-radius: 12rpx;
-  font-size: 30rpx;
-  background: #F5F5F5;
-  color: #666;
+  border-radius: var(--radius-md);
+  font-size: var(--font-base);
+  background: var(--color-bg-page);
+  color: var(--color-text-2);
   box-sizing: border-box;
 }
 
 .time-slot-active {
-  background: #f0faf5;
-  color: #1DB96A;
-  border: 1rpx solid #1DB96A;
+  background: var(--color-primary-pale);
+  color: var(--color-primary);
+  border: 1rpx solid var(--color-primary);
 }
 
 /* ========== 商品明细卡片 ========== */
 .product-card {
-  background: #fff;
+  background: var(--color-bg-card);
   margin: 0 24rpx 16rpx;
-  border-radius: 16rpx;
+  border-radius: var(--radius-lg);
   padding: 24rpx;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
 }
 
 .card-title {
-  font-size: 32rpx;
+  font-size: var(--font-base);
   font-weight: 700;
-  color: #1A1A1A;
+  color: var(--color-text-1);
   display: block;
   margin-bottom: 16rpx;
 }
@@ -318,14 +318,14 @@
 }
 
 .product-item + .product-item {
-  border-top: 1rpx solid #F5F5F5;
+  border-top: 1rpx solid var(--color-border);
 }
 
 .product-thumb {
   width: 96rpx;
   height: 96rpx;
-  border-radius: 8rpx;
-  background: #F5F5F5;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-page);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -340,9 +340,9 @@
 }
 
 .product-name {
-  font-size: 32rpx;
+  font-size: var(--font-base);
   font-weight: 500;
-  color: #1A1A1A;
+  color: var(--color-text-1);
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -367,21 +367,21 @@
 }
 
 .product-qty-price {
-  font-size: 28rpx;
-  color: #999;
+  font-size: var(--font-md);
+  color: var(--color-text-3);
   display: block;
 }
 
 .product-subtotal {
-  font-size: 32rpx;
+  font-size: var(--font-base);
   font-weight: 700;
-  color: #FF4B26;
+  color: var(--color-primary);
   display: block;
 }
 
 .card-divider {
   height: 1rpx;
-  background: #EEEEEE;
+  background: var(--color-bg-page);
   margin: 16rpx 0;
 }
 
@@ -392,33 +392,33 @@
 }
 
 .total-label {
-  font-size: 32rpx;
-  color: #1A1A1A;
+  font-size: var(--font-base);
+  color: var(--color-text-1);
 }
 
 .total-amount {
-  font-size: 32rpx;
+  font-size: var(--font-base);
   font-weight: 700;
-  color: #FF4B26;
+  color: var(--color-primary);
 }
 
 .range-note {
-  font-size: 26rpx;
-  color: #999;
+  font-size: var(--font-sm);
+  color: var(--color-text-3);
   display: block;
   margin-top: 12rpx;
   line-height: 1.5;
 }
 
 .range-note-warn {
-  color: #FF9500;
+  color: var(--color-warning);
 }
 
 /* ========== 支付金额卡片 ========== */
 .payment-card {
-  background: #fff;
+  background: var(--color-bg-card);
   margin: 0 24rpx 16rpx;
-  border-radius: 16rpx;
+  border-radius: var(--radius-lg);
   padding: 24rpx;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
 }
@@ -431,13 +431,13 @@
 }
 
 .payment-label {
-  font-size: 32rpx;
-  color: #999;
+  font-size: var(--font-base);
+  color: var(--color-text-3);
 }
 
 .payment-val {
-  font-size: 32rpx;
-  color: #333;
+  font-size: var(--font-base);
+  color: var(--color-text-1);
 }
 
 .payment-total-row {
@@ -445,15 +445,15 @@
 }
 
 .payment-total-row .payment-label {
-  font-size: 34rpx;
+  font-size: var(--font-lg);
   font-weight: 600;
-  color: #1A1A1A;
+  color: var(--color-text-1);
 }
 
 .payment-total {
   font-size: 44rpx;
   font-weight: 700;
-  color: #FF4B26;
+  color: var(--color-primary);
   line-height: 1;
 }
 
@@ -465,7 +465,7 @@
   right: 0;
   padding: 16rpx 24rpx;
   padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
-  background: #fff;
+  background: var(--color-bg-card);
   box-shadow: 0 -2rpx 16rpx rgba(0, 0, 0, 0.06);
   z-index: 100;
 }
@@ -477,9 +477,9 @@
   gap: 16rpx;
   background: linear-gradient(to right, var(--color-brand-main-red), var(--color-brand-chili-red));
   color: #fff;
-  border-radius: 40rpx;
+  border-radius: var(--radius-full);
   padding: 24rpx;
-  font-size: 36rpx;
+  font-size: var(--font-lg);
   font-weight: 600;
   box-shadow: 0 4rpx 12rpx var(--color-brand-soy-red-shadow);
 }
@@ -489,7 +489,7 @@
 }
 
 .submit-price {
-  font-size: 34rpx;
+  font-size: var(--font-lg);
   color: rgba(255, 255, 255, 0.9);
   font-weight: 600;
 }
@@ -520,8 +520,8 @@
   position: relative;
   z-index: 1;
   width: 560rpx;
-  background: #FFFFFF;
-  border-radius: 24rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
   padding: 48rpx 40rpx 40rpx;
   display: flex;
   flex-direction: column;
@@ -530,15 +530,15 @@
 }
 
 .phone-auth-title {
-  font-size: 40rpx;
+  font-size: var(--font-xl);
   font-weight: 700;
-  color: #1A1A1A;
+  color: var(--color-text-1);
   margin-bottom: 12rpx;
 }
 
 .phone-auth-desc {
-  font-size: 30rpx;
-  color: #999;
+  font-size: var(--font-base);
+  color: var(--color-text-3);
   margin-bottom: 36rpx;
   line-height: 1.5;
 }
@@ -546,10 +546,10 @@
 .phone-auth-btn {
   width: 100%;
   height: 96rpx;
-  background: #1DB96A;
+  background: var(--color-primary);
   color: #FFFFFF;
-  border-radius: 48rpx;
-  font-size: 36rpx;
+  border-radius: var(--radius-full);
+  font-size: var(--font-lg);
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -571,8 +571,8 @@
 }
 
 .phone-auth-cancel text {
-  font-size: 30rpx;
-  color: #C7C7CC;
+  font-size: var(--font-base);
+  color: var(--color-text-3);
 }
 
 /* ========== 配送范围超限弹窗 ========== */
@@ -598,8 +598,8 @@
 .range-card {
   position: relative;
   width: 600rpx;
-  background: #fff;
-  border-radius: 24rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
   padding: 48rpx 40rpx 36rpx;
   display: flex;
   flex-direction: column;
@@ -611,25 +611,25 @@
   margin-bottom: 20rpx;
 }
 .range-title {
-  font-size: 38rpx;
+  font-size: var(--font-lg);
   font-weight: 700;
-  color: #FF3B30;
+  color: var(--color-danger);
   margin-bottom: 16rpx;
 }
 .range-msg {
-  font-size: 32rpx;
-  color: #333;
+  font-size: var(--font-base);
+  color: var(--color-text-1);
   line-height: 1.5;
   margin-bottom: 8rpx;
 }
 .range-detail {
-  font-size: 28rpx;
-  color: #999;
+  font-size: var(--font-md);
+  color: var(--color-text-3);
   margin-bottom: 16rpx;
 }
 .range-suggest {
-  font-size: 32rpx;
-  color: #1DB96A;
+  font-size: var(--font-base);
+  color: var(--color-primary);
   font-weight: 600;
   margin-bottom: 32rpx;
 }
@@ -643,8 +643,8 @@
   height: 88rpx;
   line-height: 88rpx;
   text-align: center;
-  border-radius: 44rpx;
-  font-size: 32rpx;
+  border-radius: var(--radius-full);
+  font-size: var(--font-base);
   font-weight: 600;
   border: none;
   padding: 0;
@@ -653,10 +653,10 @@
   display: none;
 }
 .range-btn-cancel {
-  background: #F5F5F5;
-  color: #666;
+  background: var(--color-bg-page);
+  color: var(--color-text-2);
 }
 .range-btn-pickup {
-  background: #1DB96A;
+  background: var(--color-primary);
   color: #fff;
 }

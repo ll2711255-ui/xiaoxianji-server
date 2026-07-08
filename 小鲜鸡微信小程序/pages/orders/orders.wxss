@@ -1,13 +1,13 @@
 /* ========== 订单列表页 ========== */
 .orders-page {
   min-height: 100vh;
-  background: #F5F5F5;
+  background: var(--color-bg-page);
 }
 
 /* Tab 行 */
 .tab-row {
   display: flex;
-  background: #fff;
+  background: var(--color-bg-card);
   padding: 0 24rpx;
   position: sticky;
   top: 0;
@@ -18,13 +18,13 @@
   flex: 1;
   text-align: center;
   padding: 24rpx 0;
-  font-size: 32rpx;
-  color: #999;
+  font-size: var(--font-base);
+  color: var(--color-text-3);
   position: relative;
 }
 
 .tab.on {
-  color: #1DB96A;
+  color: var(--color-primary);
   font-weight: 700;
 }
 
@@ -36,8 +36,8 @@
   transform: translateX(-50%);
   width: 48rpx;
   height: 4rpx;
-  background: #1DB96A;
-  border-radius: 2rpx;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
 }
 
 /* ========== 卡片列表 ========== */
@@ -46,8 +46,8 @@
 }
 
 .order-card {
-  background: #fff;
-  border-radius: 16rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
   padding: 24rpx;
   margin-bottom: 16rpx;
   box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
@@ -68,53 +68,53 @@
 }
 
 .oc-no {
-  font-size: 30rpx;
-  color: #999;
+  font-size: var(--font-base);
+  color: var(--color-text-3);
 }
 
 .oc-time {
-  font-size: 26rpx;
-  color: #C7C7CC;
+  font-size: var(--font-sm);
+  color: var(--color-text-3);
 }
 
 .oc-status {
-  font-size: 28rpx;
+  font-size: var(--font-md);
   font-weight: 600;
 }
 
 .oc-status.tag-green {
-  background: #E8F8F0;
-  color: #1DB96A;
+  background: var(--color-success-bg);
+  color: var(--color-primary);
   padding: 4rpx 16rpx;
-  border-radius: 4rpx;
+  border-radius: var(--radius-sm);
 }
 
 .oc-status.tag-orange {
-  background: #FFF5F0;
-  color: #FF9500;
+  background: var(--color-primary-pale);
+  color: var(--color-warning);
   padding: 4rpx 16rpx;
-  border-radius: 4rpx;
+  border-radius: var(--radius-sm);
 }
 
 .oc-status.tag-gray {
-  background: #F5F5F5;
-  color: #999;
+  background: var(--color-bg-page);
+  color: var(--color-text-3);
   padding: 4rpx 16rpx;
-  border-radius: 4rpx;
+  border-radius: var(--radius-sm);
 }
 
 .oc-status.tag-red {
-  background: #FFEBEE;
-  color: #FF3B30;
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
   padding: 4rpx 16rpx;
-  border-radius: 4rpx;
+  border-radius: var(--radius-sm);
 }
 
 /* 商品行 */
 .oc-items {
   padding: 16rpx 0;
-  border-top: 1rpx solid #F5F5F5;
-  border-bottom: 1rpx solid #F5F5F5;
+  border-top: 1rpx solid var(--color-border);
+  border-bottom: 1rpx solid var(--color-border);
 }
 
 .oc-item {
@@ -125,20 +125,20 @@
 }
 
 .oc-pname {
-  font-size: 32rpx;
+  font-size: var(--font-base);
   font-weight: 500;
-  color: #1A1A1A;
+  color: var(--color-text-1);
 }
 
 .oc-pspec {
-  font-size: 28rpx;
-  color: #999;
+  font-size: var(--font-md);
+  color: var(--color-text-3);
 }
 
 .oc-pqty {
   margin-left: auto;
-  font-size: 28rpx;
-  color: #999;
+  font-size: var(--font-md);
+  color: var(--color-text-3);
   flex-shrink: 0;
 }
 
@@ -148,27 +148,27 @@
   align-items: center;
   gap: 20rpx;
   padding: 18rpx 0;
-  border-top: 1rpx solid #F5F5F5;
+  border-top: 1rpx solid var(--color-border);
 }
 
 .oc-card-num {
   display: flex;
   align-items: center;
   gap: 10rpx;
-  background: #E8F8F0;
+  background: var(--color-success-bg);
   padding: 10rpx 18rpx;
-  border-radius: 8rpx;
+  border-radius: var(--radius-md);
 }
 
 .oc-card-num-label {
-  font-size: 26rpx;
-  color: #1DB96A;
+  font-size: var(--font-sm);
+  color: var(--color-primary);
 }
 
 .oc-card-num-value {
-  font-size: 40rpx;
+  font-size: var(--font-xl);
   font-weight: 800;
-  color: #1DB96A;
+  color: var(--color-primary);
   line-height: 1;
 }
 
@@ -181,13 +181,13 @@
 .oc-weigh-thumb-img {
   width: 72rpx;
   height: 72rpx;
-  border-radius: 8rpx;
-  background: #F5F5F5;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-page);
 }
 
 .oc-weigh-thumb-text {
-  font-size: 26rpx;
-  color: #999;
+  font-size: var(--font-sm);
+  color: var(--color-text-3);
 }
 
 .oc-weigh-mini {
@@ -197,13 +197,13 @@
 }
 
 .oc-weigh-mini-icon {
-  font-size: 32rpx;
+  font-size: var(--font-base);
   opacity: 0.6;
 }
 
 .oc-weigh-mini-label {
-  font-size: 26rpx;
-  color: #999;
+  font-size: var(--font-sm);
+  color: var(--color-text-3);
 }
 
 /* 底部 */
@@ -215,8 +215,8 @@
 }
 
 .oc-alabel {
-  font-size: 28rpx;
-  color: #999;
+  font-size: var(--font-md);
+  color: var(--color-text-3);
 }
 
 .oc-actions {
@@ -225,11 +225,11 @@
 }
 
 .oc-action {
-  font-size: 28rpx;
-  color: #999;
+  font-size: var(--font-md);
+  color: var(--color-text-3);
   padding: 8rpx 24rpx;
-  border-radius: 40rpx;
-  border: 1px solid #ddd;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
 }
 
 .oc-action-primary {
@@ -241,6 +241,6 @@
 
 .oc-action-pay {
   color: #fff;
-  border-color: #D4420A;
-  background: linear-gradient(135deg, #D4420A, #E85520);
+  border-color: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary));
 }

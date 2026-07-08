@@ -1,7 +1,7 @@
 /* ========== 取货状态页 ========== */
 .pu-page {
   min-height: 100vh;
-  background: #F5F5F5;
+  background: var(--color-bg-page);
 }
 
 .pu-center {
@@ -17,9 +17,9 @@
 .pu-spinner {
   width: 72rpx;
   height: 72rpx;
-  border: 4rpx solid #E0E0E0;
-  border-top-color: #1DB96A;
-  border-radius: 50%;
+  border: 4rpx solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: var(--radius-full);
   animation: pu-spin 1s linear infinite;
 }
 
@@ -29,16 +29,16 @@
 
 .pu-text {
   margin-top: 24rpx;
-  font-size: 32rpx;
-  color: #999;
+  font-size: var(--font-base);
+  color: var(--color-text-3);
 }
 
 /* ========== 无效 ========== */
 .pu-invalid-circle {
   width: 144rpx;
   height: 144rpx;
-  border: 4rpx solid #FF3B30;
-  border-radius: 50%;
+  border: 4rpx solid var(--color-danger);
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -46,13 +46,13 @@
 
 .pu-invalid-x {
   font-size: 80rpx;
-  color: #FF3B30;
+  color: var(--color-danger);
 }
 
 .pu-invalid-title {
-  font-size: 38rpx;
+  font-size: var(--font-lg);
   font-weight: 700;
-  color: #FF3B30;
+  color: var(--color-danger);
   margin-top: 24rpx;
 }
 
@@ -63,7 +63,7 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: #1DB96A;
+  background: var(--color-primary);
   padding: 48rpx;
 }
 
@@ -72,7 +72,7 @@
   height: 160rpx;
   background: rgba(255,255,255,0.2);
   border: 6rpx solid #fff;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -93,13 +93,13 @@
 }
 
 .pu-detail-light {
-  font-size: 30rpx;
+  font-size: var(--font-base);
   color: rgba(255,255,255,0.8);
   margin-top: 20rpx;
 }
 
 .pu-hint-light {
-  font-size: 28rpx;
+  font-size: var(--font-md);
   color: rgba(255,255,255,0.6);
   margin-top: 28rpx;
 }
@@ -115,8 +115,8 @@
 
 /* ========== 处理中 - 白色卡片 ========== */
 .pu-processing-card {
-  background: #fff;
-  border-radius: 24rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
   padding: 64rpx 48rpx;
   box-shadow: 0 4rpx 24rpx rgba(0,0,0,0.08);
   display: flex;
@@ -127,36 +127,36 @@
 }
 
 .pu-processing-text {
-  font-size: 36rpx;
+  font-size: var(--font-lg);
   font-weight: 700;
-  color: #1A1A1A;
+  color: var(--color-text-1);
   margin-top: 32rpx;
 }
 
 .pu-cardnum-dark {
   font-size: 64rpx;
   font-weight: 800;
-  color: #1DB96A;
+  color: var(--color-primary);
   line-height: 1;
   margin-top: 16rpx;
 }
 
 /* ========== 通用 ========== */
 .pu-detail {
-  font-size: 30rpx;
-  color: #999;
+  font-size: var(--font-base);
+  color: var(--color-text-3);
   margin-top: 16rpx;
 }
 
 .pu-cardlabel {
-  font-size: 28rpx;
-  color: #C7C7CC;
+  font-size: var(--font-md);
+  color: var(--color-text-3);
   margin-top: 6rpx;
 }
 
 .pu-hint {
-  font-size: 28rpx;
-  color: #C7C7CC;
+  font-size: var(--font-md);
+  color: var(--color-text-3);
 }
 
 /* ========== 离线 / 刷新 ========== */
@@ -165,15 +165,15 @@
   top: 0;
   left: 0;
   right: 0;
-  background: #FFF5F0;
+  background: var(--color-primary-pale);
   text-align: center;
   padding: 12rpx;
   z-index: 10;
 }
 
 .pu-offline-text {
-  font-size: 28rpx;
-  color: #FF9500;
+  font-size: var(--font-md);
+  color: var(--color-warning);
 }
 
 .pu-refresh {
