@@ -5,6 +5,7 @@ const router = require('express').Router();
 const auth = require('../middleware/auth');
 const productService = require('../services/product.service');
 const logger = require('../utils/logger');
+const { validateKeyword, validatePageSize } = require('../utils/validate');
 
 // ========== 公开接口（无需登录） ==========
 
@@ -12,7 +13,14 @@ const logger = require('../utils/logger');
 router.get('/', async (req, res) => {
   try {
     const { categoryId, keyword, pageSize, status } = req.query;
-    const products = await productService.getProducts({ categoryId, keyword, pageSize, status });
+
+    // 输入校验
+    const kwCheck = validateKeyword(keyword);
+    if (!kwCheck.valid) return res.status(400).json({ success: false, code: 400, message: kwCheck.error });
+    const psCheck = validatePageSize(pageSize);
+    if (!psCheck.valid) return res.status(400).json({ success: false, code: 400, message: psCheck.error });
+
+    const products = await productService.getProducts({ categoryId, keyword, pageSize: psCheck.value, status });
     res.json({ success: true, code: 200, data: { products } });
   } catch (err) {
     logger.error('[products] 列表查询失败:', err.message);

@@ -6,6 +6,18 @@ const db = require('../config/db');
 const weighService = require('../services/weigh.service');
 const wxpay = require('../utils/wxpay');
 const logger = require('../utils/logger');
+const { validateOrderNo } = require('../utils/validate');
+
+// ========== 订单状态流转规则 ==========
+// 每个 action 的前置条件：订单必须在对应状态才能执行
+const STATE_RULES = {
+  accept:   { require: ['paid'],       nextLabel: 'accepted' },
+  process:  { require: ['weighed'],    nextLabel: 'processing' },
+  ready:    { require: ['processing'], nextLabel: 'ready' },
+  deliver:  { require: ['ready'],      nextLabel: 'delivering', requireType: 'delivery' },
+  complete: { require: ['delivering', 'ready'], nextLabel: 'completed', nextStatus: 3 },
+  markPaid: { require: ['ready'],      nextLabel: 'paid',      nextStatus: 1 },
+};
 
 /**
  * GET /api/merchant/orders — 商家订单列表
@@ -82,38 +94,70 @@ router.post('/offline-orders', async (req, res) => {
 /**
  * POST /api/merchant/orders/:orderNo/:action — 商家操作
  * action: accept | process | ready | deliver | complete | markPaid
+ *
+ * 每次操作都会校验：
+ *   1. 订单是否存在
+ *   2. 当前状态 → 目标状态是否合法（防跳过流程）
+ *   3. 配送操作需匹配订单类型
  */
 router.post('/orders/:orderNo/:action', async (req, res) => {
   try {
     const { orderNo, action } = req.params;
+    const rule = STATE_RULES[action];
 
-    const actionMap = {
-      accept: { status_label: 'accepted', timeField: 'accept_time' },
-      process: { status_label: 'processing', timeField: 'process_time' },
-      ready: { status_label: 'ready', timeField: 'ready_time' },
-      deliver: { status_label: 'delivering', timeField: 'deliver_time' },
-      complete: { status_label: 'completed', timeField: 'complete_time', order_status: 3 },
-      markPaid: { order_status: 1, status_label: 'paid', timeField: 'pay_time' },
-    };
-
-    const mapping = actionMap[action];
-    if (!mapping) {
+    if (!rule) {
       return res.status(400).json({ success: false, code: 400, message: '未知操作' });
     }
 
+    const v = validateOrderNo(orderNo);
+    if (!v.valid) return res.status(400).json({ success: false, code: 400, message: v.error });
+
+    // 查订单当前状态
+    const order = await db.queryOne(
+      'SELECT order_no, status_label, type FROM order_info WHERE order_no = ?',
+      [orderNo]
+    );
+    if (!order) {
+      return res.status(404).json({ success: false, code: 404, message: '订单不存在' });
+    }
+
+    // 状态校验：当前状态必须在允许列表中
+    if (!rule.require.includes(order.status_label)) {
+      return res.status(400).json({
+        success: false, code: 400,
+        message: `订单状态「${order.status_label}」不允许执行此操作，请先完成上一步`,
+      });
+    }
+
+    // 订单类型校验
+    if (rule.requireType && order.type !== rule.requireType) {
+      return res.status(400).json({
+        success: false, code: 400,
+        message: `此操作仅适用于「${rule.requireType === 'delivery' ? '配送' : '自取'}」订单`,
+      });
+    }
+
+    // 通过校验 → 执行状态更新
     const updates = [];
     const params = [];
 
-    if (mapping.status_label) {
-      updates.push("status_label = ?");
-      params.push(mapping.status_label);
+    if (rule.nextLabel) {
+      updates.push('status_label = ?');
+      params.push(rule.nextLabel);
     }
-    if (mapping.order_status !== undefined) {
-      updates.push("order_status = ?");
-      params.push(mapping.order_status);
+    if (rule.nextStatus !== undefined) {
+      updates.push('order_status = ?');
+      params.push(rule.nextStatus);
     }
-    if (mapping.timeField) {
-      updates.push(`${mapping.timeField} = NOW()`);
+
+    // 时间戳字段（标记操作时间）
+    const timeFieldMap = {
+      accept: 'accept_time', process: 'process_time', ready: 'ready_time',
+      deliver: 'deliver_time', complete: 'complete_time', markPaid: 'pay_time',
+    };
+    const timeField = timeFieldMap[action];
+    if (timeField) {
+      updates.push(`${timeField} = NOW()`);
     }
 
     params.push(orderNo);
@@ -121,6 +165,8 @@ router.post('/orders/:orderNo/:action', async (req, res) => {
       `UPDATE order_info SET ${updates.join(', ')} WHERE order_no = ?`,
       params
     );
+
+    logger.info(`[merchant] ${action} → ${orderNo} (${order.status_label} → ${rule.nextLabel})`);
 
     res.json({ success: true, code: 200, message: '操作成功' });
   } catch (err) {

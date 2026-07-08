@@ -2,10 +2,12 @@
  * 鉴权服务
  * - 微信静默登录（wx.login → openid → JWT）
  * - 手机号授权
- * - 商家密码登录
+ * - 商家密码登录（bcrypt 哈希验证）
  * - Token 刷新
+ * - 密码强度校验
  */
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const db = require('../config/db');
 const { code2session, getPhoneNumber } = require('../utils/wechat');
 const { signTokens, verifyRefreshToken } = require('../utils/jwt');
@@ -94,6 +96,51 @@ async function phoneAuth(openid, phone) {
 }
 
 /**
+ * 验证密码强度
+ * 规则来自 config.passwordRules：最少 8 位、必须含数字、小写字母、大写字母
+ * @param {string} password
+ * @returns {{ valid: boolean, errors: string[] }}
+ */
+function validatePasswordStrength(password) {
+  const rules = config.passwordRules;
+  const errors = [];
+
+  if (!password || password.length < rules.minLength) {
+    errors.push(`密码至少 ${rules.minLength} 位`);
+  }
+  if (rules.requireDigit && !/[0-9]/.test(password)) {
+    errors.push('密码必须包含数字');
+  }
+  if (rules.requireLowercase && !/[a-z]/.test(password)) {
+    errors.push('密码必须包含小写字母');
+  }
+  if (rules.requireUppercase && !/[A-Z]/.test(password)) {
+    errors.push('密码必须包含大写字母');
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+/**
+ * 用 bcrypt 哈希密码
+ * @param {string} password - 明文密码
+ * @returns {Promise<string>} bcrypt 哈希值
+ */
+async function hashPassword(password) {
+  return bcrypt.hash(password, config.bcryptRounds);
+}
+
+/**
+ * 验证密码
+ * @param {string} password - 用户输入的明文
+ * @param {string} hash - 数据库中存储的 bcrypt 哈希
+ * @returns {Promise<boolean>}
+ */
+async function verifyPassword(password, hash) {
+  return bcrypt.compare(password, hash);
+}
+
+/**
  * 商家登录（手机号 + 密码）
  * @param {string} phone
  * @param {string} password
@@ -108,13 +155,9 @@ async function merchantLogin(phone, password) {
     throw new Error('账号不存在或非商家账号');
   }
 
-  // 密码验证（SHA256 + salt）
-  const hash = crypto
-    .createHash('sha256')
-    .update(password + config.passwordSalt)
-    .digest('hex');
-
-  if (user.password !== hash) {
+  // bcrypt 密码验证（抗彩虹表 + 抗暴力破解）
+  const match = await bcrypt.compare(password, user.password);
+  if (!match) {
     throw new Error('密码错误');
   }
 
@@ -216,4 +259,4 @@ async function handlePhoneAuth(openid, { phoneCode, phone }) {
   return phoneAuth(openid, phoneNumber);
 }
 
-module.exports = { wxLogin, phoneAuth, merchantLogin, refreshToken, handlePhoneAuth };
+module.exports = { wxLogin, phoneAuth, merchantLogin, refreshToken, handlePhoneAuth, validatePasswordStrength, hashPassword, verifyPassword };

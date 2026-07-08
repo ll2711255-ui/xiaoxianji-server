@@ -6,6 +6,7 @@ const orderService = require('../services/order.service');
 const wxpay = require('../utils/wxpay');
 const config = require('../config');
 const logger = require('../utils/logger');
+const { validateOrderNo } = require('../utils/validate');
 
 /**
  * POST /api/orders — 创建订单
@@ -67,12 +68,21 @@ router.get('/', async (req, res) => {
 
 /**
  * GET /api/orders/pay/status?orderNo=xxx — 查询支付状态
+ * 仅允许订单所属用户或商家查询
  */
 router.get('/pay/status', async (req, res) => {
   try {
     const { orderNo } = req.query;
     if (!orderNo) {
       return res.status(400).json({ success: false, code: 400, message: '缺少订单号' });
+    }
+    // 权限校验：先查订单归属
+    const order = await orderService.getOrderByNo(orderNo);
+    if (!order) {
+      return res.status(404).json({ success: false, code: 404, message: '订单不存在' });
+    }
+    if (order.user_id !== req.user.openid && req.user.role !== 'merchant') {
+      return res.status(403).json({ success: false, code: 403, message: '无权查看此订单' });
     }
     const status = await orderService.getPayStatus(orderNo);
     res.json({ success: true, code: 200, data: status });
@@ -87,6 +97,9 @@ router.get('/pay/status', async (req, res) => {
  */
 router.get('/:orderNo', async (req, res) => {
   try {
+    const v = validateOrderNo(req.params.orderNo);
+    if (!v.valid) return res.status(400).json({ success: false, code: 400, message: v.error });
+
     const order = await orderService.getOrderByNo(req.params.orderNo);
     if (!order) {
       return res.status(404).json({ success: false, code: 404, message: '订单不存在' });
@@ -108,6 +121,10 @@ router.get('/:orderNo', async (req, res) => {
 router.post('/:orderNo/pay', async (req, res) => {
   try {
     const { orderNo } = req.params;
+
+    const v = validateOrderNo(orderNo);
+    if (!v.valid) return res.status(400).json({ success: false, code: 400, message: v.error });
+
     const { mockPay, mockPaySuccess } = req.body;
 
     // ========== 模拟支付（开发环境） ==========
@@ -196,6 +213,9 @@ router.post('/:orderNo/pay', async (req, res) => {
  */
 router.post('/:orderNo/cancel', async (req, res) => {
   try {
+    const v = validateOrderNo(req.params.orderNo);
+    if (!v.valid) return res.status(400).json({ success: false, code: 400, message: v.error });
+
     const result = await orderService.cancelOrder(req.params.orderNo, req.user.openid);
     res.json({ success: true, code: 200, data: result });
   } catch (err) {
