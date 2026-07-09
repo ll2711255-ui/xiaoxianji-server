@@ -188,9 +188,8 @@ async function loadOrder(silent = false) {
   if (!orderNo.value) return
   try {
     const res = await get('/orders/' + orderNo.value)
-    const d = (res && res.data) || res || {}
-    const o = d.order
-    if (!o) return
+    const o = (res && res.data) || res || {}
+    if (!o || !o.orderNo) return
 
     pollFailCount = 0
 

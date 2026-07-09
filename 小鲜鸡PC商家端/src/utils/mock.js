@@ -398,14 +398,34 @@ export function getMockResponse(method, path, data = {}) {
     return success({ product: p })
   }
 
-  // ========== Banners ==========
-  if (method === 'GET' && path === '/banners') {
+  // ========== Store Banners ==========
+  if (method === 'GET' && (path === '/store/banners' || path === '/banners')) {
     return success({ banners: [...MOCK_BANNERS] })
   }
-  if (method === 'PUT' && path === '/banners') {
+  if (method === 'PUT' && (path === '/store/banners' || path === '/banners')) {
     MOCK_BANNERS.splice(0, MOCK_BANNERS.length, ...(data.banners || []))
     return success({ banners: [...MOCK_BANNERS] })
   }
+
+  // ========== Accounts (占位 — 后端尚未部署) ==========
+  if (method === 'GET' && path === '/accounts') {
+    return success({ accounts: [] })
+  }
+  if (method === 'POST' && path === '/accounts') { return fail('账号管理功能暂未开放') }
+  const acctMatch = matchRoute('/accounts/:id', path)
+  if (method === 'PUT' && acctMatch) { return fail('账号管理功能暂未开放') }
+  if (method === 'DELETE' && acctMatch) { return fail('账号管理功能暂未开放') }
+
+  // ========== Payment Methods (占位 — 后端尚未部署) ==========
+  if (method === 'GET' && path === '/payment-methods') {
+    return success({ paymentMethods: [] })
+  }
+  if (method === 'POST' && path === '/payment-methods') { return fail('支付设置功能暂未开放') }
+  const pmMatch = matchRoute('/payment-methods/:id', path)
+  const pmFullMatch = matchRoute('/payment-methods/:id/full', path)
+  if (method === 'GET' && pmFullMatch) { return fail('支付设置功能暂未开放') }
+  if (method === 'PUT' && pmMatch) { return fail('支付设置功能暂未开放') }
+  if (method === 'DELETE' && pmMatch) { return fail('支付设置功能暂未开放') }
 
   // ========== Orders (Customer) ==========
   if (method === 'GET' && path === '/orders') {
