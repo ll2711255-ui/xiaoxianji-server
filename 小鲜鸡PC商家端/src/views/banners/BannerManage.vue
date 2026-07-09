@@ -62,7 +62,7 @@ const saving = ref(false)
 
 async function loadBanners() {
   try {
-    const res = await api.get('/banners')
+    const res = await api.get('/store/banners')
     const list = (res && res.data && res.data.banners) || []
     banners.value = list.map(b => ({ ...b, statusOn: b.status === 'on' }))
   } catch (err) { console.error('加载广告失败:', err) }
@@ -119,13 +119,13 @@ async function onSave() {
     ...b, status: b.statusOn ? 'on' : 'off'
   }))
   try {
-    const res = await api.put('/banners', { banners: payload })
+    const res = await api.put('/store/banners', { banners: payload })
     if (res && res.success) {
       ElMessage.success('广告已保存'); loadBanners()
     } else {
       ElMessage.error((res && res.message) || '保存失败')
     }
-  } catch (err) { ElMessage.error('保存失败') }
+  } catch (err) { ElMessage.error(err.response?.data?.message || err.message || '保存失败') }
   saving.value = false
 }
 

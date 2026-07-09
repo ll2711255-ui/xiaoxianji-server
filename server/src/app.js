@@ -83,6 +83,9 @@ app.use('/api/auth', require('./routes/auth.routes'));
 // 支付回调路由（微信调用，无需鉴权，需验签）
 app.use('/api/pay-callback', require('./routes/pay-callback.routes'));
 
+// 支付下单路由（多平台：支付宝/抖音/微信统一下单）
+app.use('/api/payment', require('./routes/payment.routes'));
+
 // 公开路由（无需登录）
 app.use('/api/store', require('./routes/store.routes'));
 app.use('/api/products', require('./routes/product.routes'));

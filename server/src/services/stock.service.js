@@ -344,7 +344,7 @@ async function warmupStock() {
 
     for (const p of products) {
       const key = `stock:available:${p.id}`;
-      stockChecks.push({ id: p.id, name: p.name, key, outOfStock: p.out_of_stock });
+      stockChecks.push({ id: p.id, name: p.name, key, outOfStock: p.outOfStock });
       pipeline.exists(key);
     }
 

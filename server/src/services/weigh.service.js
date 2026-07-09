@@ -28,15 +28,15 @@ async function handleWeigh({ orderNo, actualWeight, weighPhoto, cardNumber, staf
   }
 
   // 2. 自动检测是否为退款重试
-  const detectedRetry = order.status_label === 'weighed' &&
+  const detectedRetry = order.status === 'weighed' &&
     (order.refund_status === 'failed' ||
      (order.refund_info && order.refund_info.status === 'failed'));
   const effectiveRetry = isRetry || detectedRetry;
 
   // 3. 状态校验
   if (!effectiveRetry) {
-    if (order.status_label !== 'accepted') {
-      return { success: false, error: `当前状态 [${order.status_label}] 不可称重` };
+    if (order.status !== 'accepted') {
+      return { success: false, error: `当前状态 [${order.status}] 不可称重` };
     }
   }
 
@@ -74,14 +74,14 @@ async function handleWeigh({ orderNo, actualWeight, weighPhoto, cardNumber, staf
           const matchedSpec = productSpecs.find(s => s.type === (spec.type || ''));
           if (matchedSpec && matchedSpec.price_per_jin) {
             pricePerJin = matchedSpec.price_per_jin;
-            processingFee = processingFee || matchedSpec.processing_fee || product.processing_fee || 0;
+            processingFee = processingFee || matchedSpec.processing_fee || product.processingFee || 0;
           }
         }
       }
       // 兜底：用 products.price_per_jin
-      if (!pricePerJin && product.price_per_jin) {
-        pricePerJin = product.price_per_jin;
-        processingFee = processingFee || product.processing_fee || 0;
+      if (!pricePerJin && product.pricePerJin) {
+        pricePerJin = product.pricePerJin;
+        processingFee = processingFee || product.processingFee || 0;
       }
       if (pricePerJin) {
         logger.info(`[weigh] 回源定价成功: goods=${item.productId} pricePerJin=${pricePerJin}`);
@@ -95,14 +95,14 @@ async function handleWeigh({ orderNo, actualWeight, weighPhoto, cardNumber, staf
     return { success: false, error: '商品定价信息缺失，无法称重计价，请联系管理员' };
   }
 
-  const prepayAmount = order.pay_amount || 0;
+  const prepayAmount = order.payAmount || 0;
 
   // 5. 计算金额
   let actualAmount, refundAmount;
 
   if (effectiveRetry) {
-    actualAmount = order.actual_amount || 0;
-    refundAmount = order.refund_amount || 0;
+    actualAmount = order.actualAmount || 0;
+    refundAmount = order.refundAmount || 0;
     if (!refundAmount && pricingType === 'range_weight') {
       actualAmount = Math.floor((actualWeight / 500) * pricePerJin + processingFee);
       refundAmount = Math.max(0, prepayAmount - actualAmount);
@@ -208,7 +208,7 @@ async function handleWeigh({ orderNo, actualWeight, weighPhoto, cardNumber, staf
         actualAmount,
         refundAmount,
         refundStatus,
-        cardNumber: cardNumber || order.card_number || '',
+        cardNumber: cardNumber || order.cardNumber || '',
       };
     }
 
@@ -309,7 +309,7 @@ async function handleWeigh({ orderNo, actualWeight, weighPhoto, cardNumber, staf
     actualAmount,
     refundAmount,
     refundStatus,
-    cardNumber: cardNumber || order.card_number || '',
+    cardNumber: cardNumber || order.cardNumber || '',
   };
 }
 

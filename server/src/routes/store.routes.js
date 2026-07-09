@@ -8,30 +8,31 @@ const logger = require('../utils/logger');
 
 // ========== 店铺配置（公开） ==========
 
-// 蛇形 → 驼峰字段映射
-function toCamelCase(row) {
+// 字段筛选（db.query 已自动转为驼峰，此处仅做字段白名单过滤）
+function filterConfigFields(row) {
   if (!row) return {};
   return {
     name: row.name,
     address: row.address,
     latitude: row.latitude,
     longitude: row.longitude,
-    deliveryRadius: row.delivery_radius,
-    contactName: row.contact_name,
-    contactPhone: row.contact_phone,
-    openTime: row.open_time,
-    closeTime: row.close_time,
+    deliveryRadius: row.deliveryRadius,
+    contactName: row.contactName,
+    contactPhone: row.contactPhone,
+    openTime: row.openTime,
+    closeTime: row.closeTime,
   };
 }
 
-/** GET /api/store */
+/** GET /api/store — 公开接口，返回店铺配置（当前单店铺模式，config_key='store_config'） */
+// TODO: 多店铺时按 merchant_id 隔离，或按 req.query.merchantId 筛选
 router.get('/', async (req, res) => {
   try {
     const config = await db.queryOne("SELECT * FROM store_config WHERE config_key = 'store_config'");
     if (!config) {
       return res.json({ success: true, code: 200, data: { config: {} } });
     }
-    res.json({ success: true, code: 200, data: { config: toCamelCase(config) } });
+    res.json({ success: true, code: 200, data: { config: filterConfigFields(config) } });
   } catch (err) {
     logger.error('[store] 查询失败:', err.message);
     res.status(500).json({ success: false, code: 500, message: err.message });

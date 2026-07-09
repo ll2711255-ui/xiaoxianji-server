@@ -20,7 +20,7 @@ router.get('/status/:orderNo', async (req, res) => {
       return res.status(404).json({ success: false, code: 404, message: '订单不存在' });
     }
     // 仅允许订单所属用户或商家查看
-    if (order.user_id !== req.user.openid && req.user.role !== 'merchant') {
+    if (order.userId !== req.user.openid && req.user.role !== 'merchant') {
       return res.status(403).json({ success: false, code: 403, message: '无权查看此订单' });
     }
     res.json({ success: true, code: 200, data: order });

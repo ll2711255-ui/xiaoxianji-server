@@ -24,10 +24,10 @@
       </div>
 
       <el-form ref="formRef" :model="form" :rules="rules" @submit.prevent="onLogin">
-        <el-form-item prop="username">
+        <el-form-item prop="phone">
           <el-input
-            v-model="form.username"
-            :placeholder="loginType === 'manager' ? '请输入店长/管理员账号' : '请输入员工账号'"
+            v-model="form.phone"
+            placeholder="请输入手机号"
             size="large"
             :prefix-icon="User"
           />
@@ -68,9 +68,9 @@ const formRef = ref(null)
 const loading = ref(false)
 const loginType = ref('manager') // 'manager' | 'employee'
 
-const form = reactive({ username: 'admin', password: '123456' })
+const form = reactive({ phone: '', password: '' })
 const rules = {
-  username: [{ required: true, message: '请输入账号', trigger: 'blur' }],
+  phone: [{ required: true, message: '请输入手机号', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
 }
 
@@ -81,7 +81,7 @@ async function onLogin() {
   loading.value = true
   try {
     const res = await api.post('/auth/merchant-login', {
-      username: form.username,
+      phone: form.phone,
       password: form.password
     }, true)
 

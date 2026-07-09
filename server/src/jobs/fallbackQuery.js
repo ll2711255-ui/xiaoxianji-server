@@ -34,10 +34,10 @@ async function fallbackQuery() {
 
     for (const order of orders) {
       try {
-        const result = await wxpay.queryOrder(order.order_no);
+        const result = await wxpay.queryOrder(order.orderNo);
 
         if (!result.success) {
-          logger.warn(`[fallbackQuery] 查单失败: ${order.order_no}`, result.error);
+          logger.warn(`[fallbackQuery] 查单失败: ${order.orderNo}`, result.error);
           continue;
         }
 
@@ -46,13 +46,13 @@ async function fallbackQuery() {
           await db.execute(
             `UPDATE order_info SET order_status = 1, status_label = 'paid',
              pay_time = ?, transaction_id = ? WHERE order_no = ?`,
-            [result.success_time || new Date(), result.transaction_id, order.order_no]
+            [result.success_time || new Date(), result.transaction_id, order.orderNo]
           );
 
           await db.execute(
             `UPDATE payment_record SET pay_status = 1, transaction_id = ?
              WHERE order_no = ?`,
-            [result.transaction_id, order.order_no]
+            [result.transaction_id, order.orderNo]
           );
 
           // 确认库存
@@ -63,12 +63,12 @@ async function fallbackQuery() {
 
           await db.execute(
             "UPDATE stock_lock_record SET lock_status = 2 WHERE order_no = ?",
-            [order.order_no]
+            [order.orderNo]
           );
 
-          await redis.zrem('order:timeout:queue', order.order_no);
+          await redis.zrem('order:timeout:queue', order.orderNo);
 
-          logger.info(`[fallbackQuery] ✅ 兜底查单-支付成功: ${order.order_no}`);
+          logger.info(`[fallbackQuery] ✅ 兜底查单-支付成功: ${order.orderNo}`);
         } else if (['CLOSED', 'REVOKED', 'PAYERROR'].includes(result.trade_state)) {
           // ========== 微信侧已关闭，执行关单 ==========
           const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
@@ -79,27 +79,27 @@ async function fallbackQuery() {
           await db.execute(
             `UPDATE order_info SET order_status = 2, status_label = 'cancelled',
              cancel_time = NOW(), cancel_reason = '兜底查单-微信侧已关闭' WHERE order_no = ?`,
-            [order.order_no]
+            [order.orderNo]
           );
 
           await db.execute(
             "UPDATE stock_lock_record SET lock_status = 3 WHERE order_no = ?",
-            [order.order_no]
+            [order.orderNo]
           );
 
-          await redis.zrem('order:timeout:queue', order.order_no);
+          await redis.zrem('order:timeout:queue', order.orderNo);
 
-          if (order.card_number) {
+          if (order.cardNumber) {
             await db.execute(
               "UPDATE pai_numbers SET status = 'idle', order_id = '' WHERE number = ?",
-              [order.card_number]
+              [order.cardNumber]
             );
           }
 
-          logger.info(`[fallbackQuery] ✅ 兜底查单-关单: ${order.order_no}`);
+          logger.info(`[fallbackQuery] ✅ 兜底查单-关单: ${order.orderNo}`);
         }
       } catch (err) {
-        logger.error(`[fallbackQuery] 异常 ${order.order_no}:`, err.message);
+        logger.error(`[fallbackQuery] 异常 ${order.orderNo}:`, err.message);
       }
     }
   } catch (err) {

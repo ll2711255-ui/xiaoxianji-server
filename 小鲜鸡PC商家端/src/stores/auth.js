@@ -6,7 +6,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 const STORAGE_KEYS = {
-  ACCESS_TOKEN: 'admin_access_token',
+  ACCESS_TOKEN: 'admin_access_token',    // 约定：snake_case，admin_ 前缀区分商家端
   REFRESH_TOKEN: 'admin_refresh_token',
   MERCHANT_ID: 'admin_merchant_id',
   ROLE: 'admin_role',

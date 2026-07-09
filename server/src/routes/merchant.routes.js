@@ -24,7 +24,7 @@ const STATE_RULES = {
  */
 router.get('/orders', async (req, res) => {
   try {
-    const { status, type, dateFrom, dateTo, pageSize = 50 } = req.query;
+    const { status, type, dateFrom, dateTo, page = 1, pageSize = 50 } = req.query;
     let sql = 'SELECT * FROM order_info WHERE is_deleted = 0';
     const params = [];
 
@@ -46,8 +46,9 @@ router.get('/orders', async (req, res) => {
       params.push(dateTo + ' 23:59:59');
     }
 
-    sql += ' ORDER BY create_time DESC LIMIT ?';
-    params.push(parseInt(pageSize, 10));
+    const offset = (parseInt(page, 10) - 1) * parseInt(pageSize, 10);
+    sql += ' ORDER BY create_time DESC LIMIT ? OFFSET ?';
+    params.push(parseInt(pageSize, 10), Math.max(0, offset));
 
     const orders = await db.query(sql, params);
     res.json({ success: true, code: 200, data: { orders } });
@@ -122,10 +123,10 @@ router.post('/orders/:orderNo/:action', async (req, res) => {
     }
 
     // 状态校验：当前状态必须在允许列表中
-    if (!rule.require.includes(order.status_label)) {
+    if (!rule.require.includes(order.status)) {
       return res.status(400).json({
         success: false, code: 400,
-        message: `订单状态「${order.status_label}」不允许执行此操作，请先完成上一步`,
+        message: `订单状态「${order.status}」不允许执行此操作，请先完成上一步`,
       });
     }
 
@@ -176,7 +177,7 @@ router.post('/orders/:orderNo/:action', async (req, res) => {
       });
     }
 
-    logger.info(`[merchant] ${action} → ${orderNo} (${order.status_label} → ${rule.nextLabel})`);
+    logger.info(`[merchant] ${action} → ${orderNo} (${order.status} → ${rule.nextLabel})`);
 
     res.json({ success: true, code: 200, message: '操作成功' });
   } catch (err) {
@@ -289,6 +290,33 @@ router.patch('/refund-alerts/:id', async (req, res) => {
     res.json({ success: true, code: 200, message: '已更新' });
   } catch (err) {
     logger.error('[merchant] 退款告警更新失败:', err.message);
+    res.status(500).json({ success: false, code: 500, message: err.message });
+  }
+});
+
+/**
+ * GET /api/merchant/products — 商家端商品列表（支持关键词搜索）
+ * 挂载在 /api/merchant 下，自带 auth('merchant') 鉴权
+ */
+router.get('/products', async (req, res) => {
+  try {
+    const { keyword, page = 1, pageSize = 50 } = req.query;
+    let sql = 'SELECT * FROM products WHERE 1=1';
+    const params = [];
+
+    if (keyword) {
+      sql += ' AND (name LIKE ? OR selling_point LIKE ?)';
+      params.push(`%${keyword}%`, `%${keyword}%`);
+    }
+
+    const offset = (parseInt(page, 10) - 1) * parseInt(pageSize, 10);
+    sql += ' ORDER BY sales DESC LIMIT ? OFFSET ?';
+    params.push(parseInt(pageSize, 10), Math.max(0, offset));
+
+    const products = await db.query(sql, params);
+    res.json({ success: true, code: 200, data: { products } });
+  } catch (err) {
+    logger.error('[merchant] 商品列表失败:', err.message);
     res.status(500).json({ success: false, code: 500, message: err.message });
   }
 });

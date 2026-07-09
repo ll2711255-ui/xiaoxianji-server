@@ -520,8 +520,8 @@ function onPrintWeighReceipt() {
   ticketData.value = {
     orderNo: d.orderNo,
     cardNumber: weighSelectedCard.value || weighOrderCardNumber.value || '',
-    paymentLabel: weighOrder.value?.deliveryType === 'delivery' ? '配送上门' : '到店自取',
-    typeLabel: weighOrder.value?.deliveryType === 'delivery' ? '配送上门' : weighOrder.value?.deliveryType === 'pickup' ? '到店自取' : '',
+    paymentLabel: weighOrder.value?.type === 'delivery' ? '配送上门' : '到店自取',
+    typeLabel: weighOrder.value?.type === 'delivery' ? '配送上门' : weighOrder.value?.type === 'pickup' ? '到店自取' : '',
     productName: weighProductName.value,
     specSummary: weighSpecTags.value.map(t => t.text).join('/'),
     actualWeightGrams: d.actualWeight || 0,
@@ -690,7 +690,7 @@ async function onLoadWeighOrder() {
 
     const pricePerJin = spec.type_price_per_jin || item.unitPrice || 0
     const processingFee = spec.processing_fee || 0
-    const prepayAmount = order.prepayAmount || 0
+    const payAmount = order.payAmount || 0
 
     // 构建重量约束
     const pricingType = item.pricingType || ''
@@ -714,7 +714,7 @@ async function onLoadWeighOrder() {
     weighSpecTags.value = specTags
     weighPricePerJin.value = pricePerJin
     weighProcessingFee.value = processingFee
-    weighPrepayAmount.value = prepayAmount
+    weighPrepayAmount.value = payAmount
     weighConstraint.value = weightConstraint
     weighWarning.value = ''
     weighWeightInput.value = ''

@@ -12,10 +12,10 @@
               <OrderStatusTag :status="order.status" :type="order.type" />
             </el-descriptions-item>
             <el-descriptions-item label="类型">
-              {{ order.type === 'offline' ? '线下订单' : order.deliveryType === 'pickup' ? '到店自取' : '外卖配送' }}
+              {{ order.type === 'offline' ? '线下订单' : order.type === 'pickup' ? '到店自取' : '外卖配送' }}
             </el-descriptions-item>
             <el-descriptions-item label="号码牌">{{ order.cardNumber || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="预付金额">¥{{ formatMoney(order.prepayAmount || 0) }}</el-descriptions-item>
+            <el-descriptions-item label="预付金额">¥{{ formatMoney(order.payAmount || 0) }}</el-descriptions-item>
             <el-descriptions-item label="实付金额">¥{{ formatMoney(order.actualAmount || 0) }}</el-descriptions-item>
             <el-descriptions-item label="退款金额">
               <span :class="{ 'text-danger': order.refundAmount > 0 }">¥{{ formatMoney(order.refundAmount || 0) }}</span>
@@ -61,14 +61,14 @@
             <el-form-item label="实际重量(克)">
               <el-input-number v-model="weighForm.grams" :min="100" :max="10000" :step="100" style="width:100%" />
             </el-form-item>
-            <el-form-item label="单价(分/斤)">
-              <el-input-number v-model="weighForm.pricePerJin" :min="100" :max="10000" :step="100" style="width:100%" />
+            <el-form-item label="号码牌">
+              <el-input v-model="weighForm.cardNumber" placeholder="输入号码牌编号" style="width:100%" />
             </el-form-item>
-            <el-form-item label="加工费(分)">
-              <el-input-number v-model="weighForm.processingFee" :min="0" :max="5000" :step="100" style="width:100%" />
+            <el-form-item label="称重照片(URL)">
+              <el-input v-model="weighForm.weighPhoto" placeholder="可选，称重照片链接" style="width:100%" />
             </el-form-item>
-            <el-form-item label="应付金额">
-              <span class="calc-amount">¥{{ calcAmount }}</span>
+            <el-form-item label="参考单价">
+              <span class="calc-amount">¥{{ (weighForm.pricePerJin / 100).toFixed(2) }}/斤</span>
             </el-form-item>
             <el-form-item>
               <el-button type="primary" @click="onWeigh" :loading="submitting">确认称重</el-button>
@@ -84,7 +84,7 @@
             <el-step title="已接单" />
             <el-step title="已称重" />
             <el-step title="处理中" />
-            <el-step :title="order.deliveryType === 'delivery' ? '配送中' : '待取货'" />
+            <el-step :title="order.type === 'delivery' ? '配送中' : '待取货'" />
             <el-step title="已完成" />
           </el-steps>
         </el-card>
@@ -107,7 +107,7 @@ const order = ref({})
 const backPath = computed(() => route.meta?.backPath || '/orders')
 const loading = ref(false)
 const submitting = ref(false)
-const weighForm = reactive({ grams: 1000, pricePerJin: 1700, processingFee: 0 })
+const weighForm = reactive({ grams: 1000, pricePerJin: 1700, processingFee: 0, cardNumber: '', weighPhoto: '' })
 
 const calcAmount = computed(() => {
   return ((weighForm.grams / 500) * weighForm.pricePerJin + weighForm.processingFee) / 100
@@ -127,7 +127,7 @@ const statusStep = computed(() => {
 const actions = computed(() => {
   const s = order.value.status
   const t = order.value.type
-  const d = order.value.deliveryType
+  const d = order.value.type  // 订单类型：delivery/pickup/offline
   const list = []
   if (t === 'online') {
     if (s === 'paid') list.push({ action: 'accept', label: '📋 接单', type: 'primary' })
@@ -158,12 +158,18 @@ async function loadOrder() {
   loading.value = true
   try {
     const res = await api.get('/orders/' + route.params.orderNo)
-    order.value = (res && res.data && res.data.order) || (res && res.data) || {}
-    if (order.value.prepayAmount) {
-      const typicalGrams = Math.round((order.value.prepayAmount / 1700) * 500 / 100) * 100
+    order.value = (res && res.data) || {}
+    // 从订单 items 读取参考单价
+    const firstItem = (order.value.items && order.value.items[0]) || {}
+    const spec = firstItem.spec || {}
+    weighForm.pricePerJin = spec.type_price_per_jin || spec.price_per_jin || 1700
+    weighForm.processingFee = spec.processing_fee || firstItem.processingFee || 0
+    weighForm.cardNumber = order.value.cardNumber || ''
+    if (order.value.payAmount) {
+      const typicalGrams = Math.round((order.value.payAmount / weighForm.pricePerJin) * 500 / 100) * 100
       weighForm.grams = typicalGrams > 0 ? typicalGrams : 1000
     }
-  } catch (err) { console.error('加载订单失败:', err); ElMessage.error('加载订单失败') }
+  } catch (err) { console.error('加载订单失败:', err); ElMessage.error(err.response?.data?.message || err.message || '加载订单失败') }
   loading.value = false
 }
 
@@ -177,7 +183,7 @@ async function onAction(action) {
     const res = await api.post('/merchant/orders/' + order.value.orderNo + '/' + action)
     if (res && res.success) { ElMessage.success('操作成功'); loadOrder() }
     else { ElMessage.error((res && res.message) || '操作失败') }
-  } catch (err) { ElMessage.error('操作失败') }
+  } catch (err) { ElMessage.error(err.response?.data?.message || err.message || '操作失败') }
 }
 
 async function onWeigh() {
@@ -185,21 +191,23 @@ async function onWeigh() {
   try {
     const actualWeight = weighForm.grams
     const res = await api.post('/merchant/orders/' + order.value.orderNo + '/weigh', {
-      actualWeight, pricePerJin: weighForm.pricePerJin, processingFee: weighForm.processingFee
+      actualWeight, weighPhoto: weighForm.weighPhoto, cardNumber: weighForm.cardNumber
     })
     if (res && res.success) { ElMessage.success('称重完成'); loadOrder() }
     else { ElMessage.error((res && res.message) || '称重失败') }
-  } catch (err) { ElMessage.error('称重失败') }
+  } catch (err) { ElMessage.error(err.response?.data?.message || err.message || '称重失败') }
   submitting.value = false
 }
 
 async function onRefund() {
   submitting.value = true
   try {
-    const res = await api.post('/merchant/orders/' + order.value.orderNo + '/refund', {})
+    const res = await api.post('/merchant/orders/' + order.value.orderNo + '/refund', {
+      actualWeight: order.value.actualWeight || weighForm.grams
+    })
     if (res && res.success) { ElMessage.success('退款已计算'); loadOrder() }
     else { ElMessage.error((res && res.message) || '退款失败') }
-  } catch (err) { ElMessage.error('退款失败') }
+  } catch (err) { ElMessage.error(err.response?.data?.message || err.message || '退款失败') }
   submitting.value = false
 }
 

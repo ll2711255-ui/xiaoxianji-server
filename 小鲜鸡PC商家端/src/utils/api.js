@@ -144,21 +144,50 @@ const api = {
   },
 
   /**
-   * 上传文件
+   * 上传文件（支持 401 自动刷新重试）
    */
   async upload(path, file) {
     if (USE_MOCK) {
       return { success: true, data: { url: URL.createObjectURL(file) } }
     }
-    const formData = new FormData()
-    formData.append('file', file)
-    const authStore = useAuthStore()
-    const headers = { 'Content-Type': 'multipart/form-data' }
-    if (authStore.accessToken) {
-      headers.Authorization = 'Bearer ' + authStore.accessToken
+
+    const doUpload = async (token) => {
+      const headers = { 'Content-Type': 'multipart/form-data' }
+      if (token) {
+        headers.Authorization = 'Bearer ' + token
+      }
+      const formData = new FormData()
+      formData.append('file', file)
+      return axios.post(API_BASE_URL + '/api' + path, formData, { headers, timeout: 30000 })
     }
-    const res = await axios.post(API_BASE_URL + '/api' + path, formData, { headers, timeout: 30000 })
-    return res.data
+
+    const authStore = useAuthStore()
+    const token = authStore.accessToken
+
+    try {
+      const res = await doUpload(token)
+      if (res.status === 401 && authStore.refreshToken) {
+        // Token 过期 → 刷新后重试一次
+        const refreshRes = await axios.post(API_BASE_URL + '/api/auth/refresh-token', {
+          refreshToken: authStore.refreshToken
+        })
+        if (refreshRes.data && refreshRes.data.success) {
+          const { accessToken, refreshToken } = refreshRes.data.data
+          authStore.saveTokens(accessToken, refreshToken || authStore.refreshToken)
+          const retryRes = await doUpload(accessToken)
+          return retryRes.data
+        }
+        throw new Error('登录已过期')
+      }
+      return res.data
+    } catch (err) {
+      if (err.response && err.response.status === 401) {
+        authStore.clearAuth()
+        if (window.__router) window.__router.push('/login')
+        throw new Error('登录已过期，请重新登录')
+      }
+      throw err
+    }
   }
 }
 

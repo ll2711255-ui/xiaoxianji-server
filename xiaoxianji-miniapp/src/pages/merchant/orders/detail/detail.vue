@@ -1,0 +1,1 @@
+<template><view class="page"><view class="empty-state"><text>订单详情 — 待迁移</text></view></view></template>

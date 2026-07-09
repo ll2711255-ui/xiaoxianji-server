@@ -24,7 +24,10 @@
             class="cat-item"
             :class="{ active: activeCat === cat._id }"
             @click="onCatSelect(cat._id)"
-          >{{ cat.name }}</div>
+          >
+            <span class="cat-name">{{ cat.name }}</span>
+            <el-icon class="cat-del" :size="14" @click.stop="onDeleteCat(cat)"><Close /></el-icon>
+          </div>
         </div>
         <div class="cat-actions">
           <button class="cat-btn" @click="showAddCat = true">
@@ -251,6 +254,24 @@ async function addCategory() {
   } catch { ElMessage.error('添加失败') }
 }
 
+async function onDeleteCat(cat) {
+  try {
+    await ElMessageBox.confirm(`确定删除分类「${cat.name}」吗？该分类下的商品不会被删除。`, '删除分类', { type: 'warning' })
+  } catch { return }
+  try {
+    const res = await api.del('/categories/' + cat._id)
+    if (res && res.success) {
+      ElMessage.success('分类已删除')
+      if (activeCat.value === cat._id) activeCat.value = ''
+      loadCategories()
+    } else {
+      ElMessage.error((res && res.message) || '删除失败')
+    }
+  } catch (err) {
+    ElMessage.error(err.response?.data?.message || err.message || '删除失败')
+  }
+}
+
 onMounted(() => { loadCategories(); loadProducts() })
 </script>
 
@@ -315,7 +336,12 @@ onMounted(() => { loadCategories(); loadProducts() })
   color: #555;
   font-size: 14px;
   transition: background 0.15s, color 0.15s;
+  display: flex; align-items: center; justify-content: space-between;
 }
+.cat-item .cat-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cat-item .cat-del { flex-shrink: 0; opacity: 0; transition: opacity 0.15s; color: #999; }
+.cat-item:hover .cat-del { opacity: 1; }
+.cat-item .cat-del:hover { color: #f5222d; }
 .cat-item:hover {
   background: #fff1f0;
   color: #f5222d;

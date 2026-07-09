@@ -30,10 +30,10 @@
       >
         <div class="order-card-top">
           <n-tag :type="order.type === 'offline' ? 'warning' : 'info'" size="small">
-            {{ order.type === 'offline' ? '线下' : order.deliveryType === 'delivery' ? '配送' : '自取' }}
+            {{ order.type === 'offline' ? '线下' : order.type === 'pickup' ? '自取' : '配送' }}
           </n-tag>
           <span class="order-card-no">{{ order.orderNo }}</span>
-          <span class="order-card-price">¥{{ formatMoney(order.actualAmount || order.prepayAmount) }}</span>
+          <span class="order-card-price">¥{{ formatMoney(order.actualAmount || order.payAmount) }}</span>
         </div>
         <div class="order-card-mid">
           <span v-if="order.items && order.items[0]">{{ order.items[0].productName }}</span>

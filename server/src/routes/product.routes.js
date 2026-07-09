@@ -12,7 +12,7 @@ const { validateKeyword, validatePageSize } = require('../utils/validate');
 /** GET /api/products — 商品列表 */
 router.get('/', async (req, res) => {
   try {
-    const { categoryId, keyword, pageSize, status } = req.query;
+    const { categoryId, keyword, page = 1, pageSize, status } = req.query;
 
     // 输入校验
     const kwCheck = validateKeyword(keyword);
@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
     const psCheck = validatePageSize(pageSize);
     if (!psCheck.valid) return res.status(400).json({ success: false, code: 400, message: psCheck.error });
 
-    const products = await productService.getProducts({ categoryId, keyword, pageSize: psCheck.value, status });
+    const products = await productService.getProducts({ categoryId, keyword, page, pageSize: psCheck.value, status });
     res.json({ success: true, code: 200, data: { products } });
   } catch (err) {
     logger.error('[products] 列表查询失败:', err.message);

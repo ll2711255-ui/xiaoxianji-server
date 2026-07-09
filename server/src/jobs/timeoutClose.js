@@ -81,10 +81,10 @@ async function timeoutClose() {
         );
 
         // 6. 释放号码牌
-        if (order.card_number) {
+        if (order.cardNumber) {
           await db.execute(
             "UPDATE pai_numbers SET status = 'idle', order_id = '' WHERE number = ?",
-            [order.card_number]
+            [order.cardNumber]
           );
         }
 

@@ -1,5 +1,13 @@
 <template>
   <div>
+    <el-alert
+      title="功能开发中"
+      type="warning"
+      description="账号管理后端接口尚未部署，当前页面仅展示 UI 原型。API 调用将返回提示信息。"
+      show-icon
+      :closable="false"
+      style="margin-bottom: 16px"
+    />
     <div class="page-header">
       <h2 class="page-title">账号管理</h2>
       <el-button type="primary" @click="openCreate">
@@ -161,7 +169,7 @@ async function loadAccounts() {
     const res = await api.get('/accounts')
     accounts.value = (res && res.data && res.data.accounts) || []
   } catch (err) {
-    ElMessage.error('加载账号列表失败')
+    ElMessage.error(err.response?.data?.message || err.message || '账号管理功能暂未开放')
   } finally {
     loading.value = false
   }
@@ -215,7 +223,7 @@ async function onSave() {
     dialogVisible.value = false
     loadAccounts()
   } catch (err) {
-    ElMessage.error(err.message || '保存失败')
+    ElMessage.error(err.response?.data?.message || err.message || '账号管理功能暂未开放')
   } finally {
     saving.value = false
   }
@@ -232,7 +240,7 @@ async function removeAccount(row) {
     ElMessage.success('账号已删除')
     loadAccounts()
   } catch (err) {
-    ElMessage.error(err.message || '删除失败')
+    ElMessage.error(err.response?.data?.message || err.message || '账号管理功能暂未开放')
   }
 }
 
@@ -255,7 +263,7 @@ async function onResetPassword() {
     ElMessage.success('密码已重置')
     passwordDialogVisible.value = false
   } catch (err) {
-    ElMessage.error(err.message || '重置失败')
+    ElMessage.error(err.response?.data?.message || err.message || '账号管理功能暂未开放')
   } finally {
     resetting.value = false
   }

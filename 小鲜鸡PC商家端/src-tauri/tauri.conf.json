@@ -22,8 +22,9 @@
   },
   "plugins": {
     "os": {},
-    "notification": {
-      "all": true
+    "notification": null,
+    "barcode-scanner": {
+      "cameras": true
     }
   }
 }

@@ -1,0 +1,1 @@
+<template><view class="page"><view class="empty-state"><text>个人设置 — 待迁移</text></view></view></template>

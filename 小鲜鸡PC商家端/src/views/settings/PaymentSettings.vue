@@ -1,5 +1,13 @@
 <template>
   <div>
+    <el-alert
+      title="功能开发中"
+      type="warning"
+      description="支付设置后端接口尚未部署，当前页面仅展示 UI 原型。API 调用将返回提示信息。"
+      show-icon
+      :closable="false"
+      style="margin-bottom: 16px"
+    />
     <div class="page-header">
       <h2 class="page-title">支付设置</h2>
       <el-button type="primary" @click="openCreate">
@@ -339,7 +347,7 @@ async function removeMethod(index) {
     await api.del('/payment-methods/' + item._id)
     ElMessage.success('已删除')
     loadMethods()
-  } catch { ElMessage.error('删除失败') }
+  } catch { ElMessage.error('支付设置功能暂未开放') }
 }
 
 async function loadMethods() {
@@ -368,7 +376,7 @@ async function onSave() {
     dialogVisible.value = false
     loadMethods()
   } catch (err) {
-    ElMessage.error('保存失败：' + (err.message || '未知错误'))
+    ElMessage.error(err.response?.data?.message || err.message || '支付设置功能暂未开放')
   } finally {
     saving.value = false
   }

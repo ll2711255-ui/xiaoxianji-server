@@ -239,13 +239,13 @@ function seedOrders() {
     const type = types[i]
     const cardNum = String(i + 1).padStart(2, '0')
     const item = PRODUCTS[i % PRODUCTS.length]
-    const prepayAmount = item.pricing_type === 'per_piece' ? item.unit_price : (item.pricing_type === 'exact_weight' ? item.price_per_jin * 2 : 1700 * 2)
+    const payAmount = item.pricing_type === 'per_piece' ? item.unit_price : (item.pricing_type === 'exact_weight' ? item.price_per_jin * 2 : 1700 * 2)
     MOCK_ORDERS.push({
-      _id: 'ord_' + orderNo, orderNo, type: 'online',
-      items: [{ productId: item._id, productName: item.name, quantity: 1, unitPrice: prepayAmount, categoryName: CATEGORIES.find(c => c._id === item.categoryId)?.name || '' }],
+      _id: 'ord_' + orderNo, orderNo, type,
+      items: [{ productId: item._id, productName: item.name, quantity: 1, unitPrice: payAmount, categoryName: CATEGORIES.find(c => c._id === item.categoryId)?.name || '' }],
       status: statuses[i], createTime: new Date(Date.now() - (10 - i) * 3600000).toISOString(),
-      prepayAmount, actualAmount: statuses[i] === 'completed' ? prepayAmount - 200 : null,
-      cardNumber: cardNum, deliveryType: type,
+      payAmount, actualAmount: statuses[i] === 'completed' ? payAmount - 200 : null,
+      cardNumber: cardNum,
       deliveryAddress: { name: '张三', phone: '13800138000', province: '广东省', city: '广州市', district: '天河区', detail: '体育西路' + (i + 1) + '号' },
       weighPhoto: statuses[i] === 'weighed' ? 'https://via.placeholder.com/200' : '',
       refundAmount: statuses[i] === 'completed' && i === 3 ? 200 : 0
@@ -258,8 +258,8 @@ function seedOrders() {
       _id: 'off_' + orderNo, orderNo, type: 'offline',
       items: [], status: ['processing', 'processing', 'ready', 'completed', 'completed'][i],
       createTime: new Date(Date.now() - (5 - i) * 7200000).toISOString(),
-      prepayAmount: (15 + i * 5) * 100, actualAmount: (15 + i * 5) * 100,
-      cardNumber: String(21 + i).padStart(2, '0'), deliveryType: 'pickup',
+      payAmount: (15 + i * 5) * 100, actualAmount: (15 + i * 5) * 100,
+      cardNumber: String(21 + i).padStart(2, '0'),
       deliveryAddress: {}
     })
   }
@@ -433,9 +433,9 @@ export function getMockResponse(method, path, data = {}) {
     })
     const totalAmount = items.reduce((s, i) => s + (i.unitPrice || 0) * (i.quantity || 1), 0)
     const order = {
-      _id: 'ord_' + orderNo, orderNo, type: 'online', items, status: 'pending',
-      createTime: now(), prepayAmount: totalAmount, actualAmount: null,
-      cardNumber: '', deliveryType: data.type || 'delivery', deliveryAddress: data.deliveryAddress || {},
+      _id: 'ord_' + orderNo, orderNo, type: data.type || 'delivery', items, status: 'pending',
+      createTime: now(), payAmount: totalAmount, actualAmount: null,
+      cardNumber: '', deliveryAddress: data.deliveryAddress || {},
       weighPhoto: '', refundAmount: 0
     }
     MOCK_ORDERS.unshift(order)
@@ -472,8 +472,8 @@ export function getMockResponse(method, path, data = {}) {
     const orderNo = 'OFF' + new Date().getFullYear() + String(new Date().getMonth() + 1).padStart(2, '0') + String(new Date().getDate()).padStart(2, '0') + String(++mockOfflineSeq).padStart(3, '0')
     const order = {
       _id: 'off_' + orderNo, orderNo, type: 'offline', items: [], status: 'pending',
-      createTime: now(), prepayAmount: data.amount, actualAmount: data.amount,
-      cardNumber: data.cardNumber || '', deliveryType: 'pickup', deliveryAddress: {},
+      createTime: now(), payAmount: data.amount, actualAmount: data.amount,
+      cardNumber: data.cardNumber || '', deliveryAddress: {},
       weighPhoto: '', refundAmount: 0
     }
     MOCK_ORDERS.unshift(order)
@@ -495,14 +495,14 @@ export function getMockResponse(method, path, data = {}) {
     else if (action === 'process') order.status = 'processing'
     else if (action === 'ready') order.status = 'ready'
     else if (action === 'deliver') order.status = 'delivering'
-    else if (action === 'complete') { order.status = 'completed'; if (!order.actualAmount) order.actualAmount = order.prepayAmount }
+    else if (action === 'complete') { order.status = 'completed'; if (!order.actualAmount) order.actualAmount = order.payAmount }
     else if (action === 'mark-paid') order.status = 'paid'
     else if (action === 'weigh') {
       order.status = 'weighed'
-      order.actualAmount = data.actualWeight ? Math.floor((data.actualWeight / 500) * (data.pricePerJin || 1700)) + (data.processingFee || 0) : order.prepayAmount
+      order.actualAmount = data.actualWeight ? Math.floor((data.actualWeight / 500) * (data.pricePerJin || 1700)) + (data.processingFee || 0) : order.payAmount
       order.weighPhoto = data.weighPhoto || ''
     } else if (action === 'refund') {
-      order.refundAmount = (order.prepayAmount || 0) - (order.actualAmount || 0)
+      order.refundAmount = (order.payAmount || 0) - (order.actualAmount || 0)
       if (order.refundAmount < 0) order.refundAmount = 0
     } else { return fail('未知操作: ' + action) }
     return success({ order })
@@ -551,7 +551,7 @@ export function getMockResponse(method, path, data = {}) {
     const active = MOCK_ORDERS.filter(o => ['accepted', 'weighed', 'processing'].includes(o.status) && o.type === 'online').length
     const today = new Date().toISOString().slice(0, 10)
     const todayOrders = MOCK_ORDERS.filter(o => o.createTime.startsWith(today))
-    const todayRevenue = todayOrders.reduce((s, o) => s + (o.actualAmount || o.prepayAmount || 0), 0)
+    const todayRevenue = todayOrders.reduce((s, o) => s + (o.actualAmount || o.payAmount || 0), 0)
     return success({ pendingCount: paid, activeCount: active, todayOrders: todayOrders.length, todayRevenue: formatMoney(todayRevenue) })
   }
 

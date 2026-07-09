@@ -241,8 +241,8 @@ async function loadOrder() {
     const pf = spec.processing_fee || 0
     processingFee.value = pf
     processingFeeDisplay.value = formatMoney(pf)
-    prepayAmount.value = ord.prepayAmount || 0
-    prepayDisplay.value = formatMoney(ord.prepayAmount || 0)
+    prepayAmount.value = ord.payAmount || 0
+    prepayDisplay.value = formatMoney(ord.payAmount || 0)
 
     // 重量约束（四道防线第①道）
     const pricingType = item.pricingType || ''

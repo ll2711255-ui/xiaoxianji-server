@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, createWebHashHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { detectMobile } from '@/utils/platform'
 
 const routes = [
   {
@@ -8,7 +9,57 @@ const routes = [
     component: () => import('@/views/Login.vue'),
     meta: { noAuth: true }
   },
-  // 统一布局（所有角色共用侧边栏）
+  // ===== 移动端布局（底部 TabBar） =====
+  {
+    path: '/mobile',
+    component: () => import('@/layouts/MobileLayout.vue'),
+    redirect: '/mobile/orders',
+    children: [
+      {
+        path: 'orders',
+        name: 'MobileOrders',
+        component: () => import('@/views/mobile/MobileOrderList.vue'),
+        meta: { title: '订单' }
+      },
+      {
+        path: 'orders/:orderNo',
+        name: 'MobileOrderDetail',
+        component: () => import('@/views/orders/OrderDetail.vue'),
+        meta: { title: '订单详情' }
+      },
+      {
+        path: 'weigh',
+        name: 'MobileWeigh',
+        component: () => import('@/views/mobile/MobileWeigh.vue'),
+        meta: { title: '称重' }
+      },
+      {
+        path: 'weigh/:orderNo',
+        name: 'MobileWeighOrder',
+        component: () => import('@/views/Weigh.vue'),
+        meta: { title: '称重' }
+      },
+      {
+        path: 'stock',
+        name: 'MobileStock',
+        component: () => import('@/views/mobile/MobileStock.vue'),
+        meta: { title: '库存' }
+      },
+      {
+        path: 'mine',
+        name: 'MobileMine',
+        component: () => import('@/views/mobile/MobileMine.vue'),
+        meta: { title: '我的' }
+      },
+      {
+        path: 'scan',
+        name: 'MobileScan',
+        component: () => import('@/views/mobile/MobileScan.vue'),
+        meta: { title: '扫码接单' }
+      }
+    ]
+  },
+  // ===== 桌面端布局（侧边栏） =====
   {
     path: '/',
     component: () => import('@/layouts/MainLayout.vue'),
@@ -132,17 +183,23 @@ const adminPaths = [
 // 登录守卫
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
+  const isMobile = detectMobile()
 
   if (to.meta.noAuth) {
     if (authStore.isLoggedIn && to.path === '/login') {
-      next(authStore.isEmployee ? '/cashier' : '/dashboard')
+      // 移动端登录后进订单页，桌面端进仪表盘/收银
+      if (isMobile) {
+        next('/mobile/orders')
+      } else {
+        next(authStore.isEmployee ? '/cashier' : '/dashboard')
+      }
     } else {
       next()
     }
     return
   }
 
-  // Mock 模式仅在开发环境生效（防止误部署到生产）
+  // Mock 模式仅在开发环境生效
   if (import.meta.env.DEV && import.meta.env.VITE_USE_MOCK === 'true') {
     if (!authStore.isLoggedIn) {
       authStore.saveTokens('mock_access_token', 'mock_refresh_token')
@@ -157,8 +214,14 @@ router.beforeEach((to, from, next) => {
     return
   }
 
-  // 员工不能访问管理后台页面
-  if (authStore.isEmployee) {
+  // 移动端：所有路径重定向到移动端路由
+  if (isMobile && !to.path.startsWith('/mobile') && !to.path.startsWith('/login')) {
+    next('/mobile/orders')
+    return
+  }
+
+  // 员工在桌面端不能访问管理后台页面
+  if (authStore.isEmployee && !isMobile) {
     const isAdminPath = adminPaths.some(p => to.path === p || to.path.startsWith(p + '/'))
     if (isAdminPath) {
       next('/cashier')

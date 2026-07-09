@@ -47,6 +47,19 @@ const config = {
     appSecret: process.env.WX_APPSECRET || '',
   },
 
+  // 支付宝小程序
+  alipay: {
+    appId: process.env.ALIPAY_APPID || '',
+    privateKey: (process.env.ALIPAY_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+    alipayPublicKey: (process.env.ALIPAY_PUBLIC_KEY || '').replace(/\\n/g, '\n'),
+  },
+
+  // 抖音小程序
+  toutiao: {
+    appId: process.env.TOUTIAO_APPID || '',
+    appSecret: process.env.TOUTIAO_APPSECRET || '',
+  },
+
   // 微信支付 V3
   wxpay: {
     mchId: process.env.WXPAY_MCHID || '',
@@ -59,6 +72,8 @@ const config = {
   notify: {
     pay: process.env.PAY_NOTIFY_URL || 'https://www.xuaioxianji.top/api/pay-callback',
     refund: process.env.REFUND_NOTIFY_URL || 'https://www.xuaioxianji.top/api/pay-callback/refund',
+    alipay: process.env.ALIPAY_NOTIFY_URL || 'https://www.xuaioxianji.top/api/pay-callback/alipay',
+    tt: process.env.TOUTIAO_NOTIFY_URL || 'https://www.xuaioxianji.top/api/pay-callback/tt',
   },
 
   // 店铺默认配置

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 后台模式：background fetch（定期唤醒） -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+	</array>
+
+	<!-- 摄像头权限（扫码） -->
+	<key>NSCameraUsageDescription</key>
+	<string>小鲜鸡需要使用摄像头扫描订单条形码</string>
+
+	<!-- 通知权限 -->
+	<key>NSUserNotificationUsageDescription</key>
+	<string>小鲜鸡需要发送新订单通知</string>
+
+	<!-- 禁止自动休眠（保持前台活跃） -->
+	<key>UIRequiresFullScreen</key>
+	<true/>
+
+	<!-- 状态栏样式 -->
+	<key>UIStatusBarStyle</key>
+	<string>UIStatusBarStyleLightContent</string>
+
+	<!-- 支持所有方向 -->
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+
+	<!-- 启动图 -->
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+</dict>
+</plist>

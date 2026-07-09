@@ -1,0 +1,133 @@
+/**
+ * 支付工具 — uni-app 版（支持微信/支付宝/抖音三端）
+ *
+ * 迁移自原微信小程序的 utils/pay.js
+ * 主要变更：
+ *   - wx.requestPayment → uni.requestPayment（自动适配多平台）
+ *   - 开发模式判断改用 uni.getSystemInfoSync
+ *   - provider 统一从 platform.js 的 currentProvider 获取
+ *   - 平台特有支付参数仍通过条件编译填充
+ *
+ * 使用方式：
+ *   import { callPay } from '@/utils/pay'
+ *   callPay({
+ *     orderNo: 'A00001',
+ *     payment: { timeStamp, nonceStr, package, signType, paySign },
+ *     amountDisplay: '128.00',
+ *     onSuccess: () => { ... },
+ *     onCancel: () => { ... }
+ *   })
+ */
+
+import { post } from './request'
+import { currentProvider } from './platform'
+
+/**
+ * 发起支付（自动适配平台）
+ * provider 统一从 platform.js 的 currentProvider 获取，
+ * 平台特有的支付参数仍通过条件编译填充
+ */
+export function callPay({ orderNo, payment, amountDisplay, onSuccess, onCancel, clearItems }) {
+  const systemInfo = uni.getSystemInfoSync()
+  const isSimulator = systemInfo.platform === 'devtools'
+
+  // ========== 模拟器：弹窗确认 ==========
+  if (isSimulator) {
+    uni.showModal({
+      title: '开发模式',
+      content: '模拟器不支持真实支付\n是否模拟支付成功？',
+      confirmText: '模拟成功',
+      cancelText: '模拟取消',
+      success: async modalRes => {
+        if (modalRes.confirm) {
+          uni.showLoading({ title: '处理中...' })
+          try {
+            await post('/orders/' + orderNo + '/pay', { mockPay: true, mockPaySuccess: true })
+            uni.hideLoading()
+            if (clearItems) clearItems()
+            uni.showToast({ title: '支付成功', icon: 'success' })
+            if (onSuccess) setTimeout(onSuccess, 1200)
+          } catch (err) {
+            uni.hideLoading()
+            console.error('模拟支付失败:', err)
+            if (clearItems) clearItems()
+            uni.showToast({ title: '支付成功', icon: 'success' })
+            if (onSuccess) setTimeout(onSuccess, 1200)
+          }
+        } else {
+          uni.showToast({ title: '模拟支付取消', icon: 'none' })
+          if (onCancel) onCancel()
+        }
+      }
+    })
+    return
+  }
+
+  // ========== 真机：统一支付 ==========
+  if (!payment) {
+    uni.showToast({ title: '支付参数无效', icon: 'none' })
+    return
+  }
+
+  uni.showModal({
+    title: '确认支付',
+    content: `确认支付 ¥${amountDisplay || '0.00'}`,
+    confirmText: '开始支付',
+    cancelText: '暂不支付',
+    success: async modalRes => {
+      if (!modalRes.confirm) {
+        uni.showToast({ title: '订单已保留', icon: 'none' })
+        if (onCancel) setTimeout(onCancel, 1000)
+        return
+      }
+
+      // provider 统一来自 platform.js，平台特有字段通过条件编译注入
+      const payParams = {
+        provider: currentProvider,
+        // #ifdef MP-WEIXIN
+        timeStamp: String(payment.timeStamp || ''),
+        nonceStr: payment.nonceStr || '',
+        package: payment.package || '',
+        signType: payment.signType || 'RSA',
+        paySign: payment.paySign || '',
+        // #endif
+        // #ifdef MP-ALIPAY
+        tradeNO: payment.tradeNo || payment.trade_no || '',
+        // #endif
+        // #ifdef MP-TOUTIAO
+        orderId: payment.orderId || '',
+        orderToken: payment.orderToken || '',
+        // #endif
+      }
+
+      try {
+        await new Promise((resolve, reject) => {
+          uni.requestPayment({
+            ...payParams,
+            success: resolve,
+            fail: reject
+          })
+        })
+
+        if (clearItems) clearItems()
+        uni.showToast({ title: '支付成功', icon: 'success' })
+        if (onSuccess) setTimeout(onSuccess, 1500)
+      } catch (err) {
+        const errMsg = err.errMsg || err.message || '未知错误'
+        console.error('[pay] 支付失败:', errMsg)
+
+        if (errMsg.indexOf('cancel') !== -1) {
+          uni.showToast({ title: '支付已取消', icon: 'none', duration: 2500 })
+        } else {
+          uni.showModal({
+            title: '支付失败',
+            content: errMsg,
+            showCancel: false,
+            confirmText: '查看订单',
+            success: () => { if (onCancel) onCancel() }
+          })
+        }
+      }
+    }
+  })
+}

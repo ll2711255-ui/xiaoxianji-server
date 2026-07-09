@@ -1,0 +1,1 @@
+<template><view class="page"><view class="empty-state"><text>取货码 — 待迁移</text></view></view></template>

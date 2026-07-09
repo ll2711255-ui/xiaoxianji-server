@@ -10,6 +10,8 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const db = require('../config/db');
 const { code2session, getPhoneNumber } = require('../utils/wechat');
+const { authCode2UserId } = require('../utils/alipay');
+const toutiaoUtil = require('../utils/toutiao');
 const { signTokens, verifyRefreshToken } = require('../utils/jwt');
 const config = require('../config');
 const logger = require('../utils/logger');
@@ -76,8 +78,8 @@ async function wxLogin(code, profile = {}) {
   return {
     openid: user.openid,
     phone: user.phone || '',
-    nickName: user.nick_name || '',
-    avatarUrl: user.avatar_url || '',
+    nickName: user.nickName || '',
+    avatarUrl: user.avatarUrl || '',
     role: user.role,
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
@@ -213,7 +215,7 @@ async function merchantLogin(phone, password) {
   return {
     openid: user.openid,
     phone: user.phone,
-    nickName: user.nick_name || '',
+    nickName: user.nickName || '',
     role: user.role,
     merchantId: String(user.id),
     accessToken: tokens.accessToken,
@@ -273,11 +275,28 @@ async function refreshToken(refreshToken) {
  * @param {object} params — { phoneCode, phone }
  * @returns {Promise<{phone: string}>}
  */
+/**
+ * 统一手机号授权入口（当前对接微信，预留支付宝/抖音扩展）
+ *
+ * 多平台策略：
+ *   - 微信：phoneCode → getPhoneNumber(code) → 解密手机号
+ *   - 支付宝：phoneCode → getAlipayPhone(code) → TODO: 实现 my.getPhoneNumber 解密
+ *   - 抖音：phoneCode → getToutiaoPhone(code) → TODO: 实现 tt.getPhoneNumber 解密
+ *   - 三端通用 fallback：直接传 phone（开发环境/降级模式）
+ *
+ * 后续支付宝/抖音上线时，只需添加平台特定的解密函数，本函数无需修改。
+ *
+ * @param {string} openid
+ * @param {object} params
+ * @param {string} params.phoneCode - 平台返回的加密 code
+ * @param {string} params.phone - 已解密手机号（fallback）
+ */
 async function handlePhoneAuth(openid, { phoneCode, phone }) {
   let phoneNumber = phone;
 
-  // 真机模式：通过 phoneCode 调用微信 API 解密
+  // 真机模式：通过 phoneCode 调用平台 API 解密
   if (phoneCode && !phoneNumber) {
+    // 当前仅微信实现了解密，支付宝/抖音走 phone 直传 fallback
     const result = await getPhoneNumber(phoneCode);
     phoneNumber = result.phone;
   }
@@ -294,4 +313,158 @@ async function handlePhoneAuth(openid, { phoneCode, phone }) {
   return phoneAuth(openid, phoneNumber);
 }
 
-module.exports = { wxLogin, phoneAuth, merchantLogin, refreshToken, handlePhoneAuth, validatePasswordStrength, hashPassword, verifyPassword: verifyPasswordCompat };
+// ========== 支付宝登录 ==========
+
+/**
+ * 支付宝小程序登录（authCode → userId → JWT）
+ *
+ * 流程：
+ *   前端 my.getAuthCode({ scopes: 'auth_user' }) → authCode
+ *   服务端 authCode → alipay.system.oauth.token → userId
+ *   以 userId 作为 openid 查找/创建用户 → 签发 JWT
+ *
+ * @param {string} authCode - 前端获取的 authCode
+ * @param {object} profile - 用户资料 { nickName, avatarUrl }
+ */
+async function alipayLogin(authCode, profile = {}) {
+  // 1. authCode → userId
+  const { userId } = await authCode2UserId(authCode);
+
+  // 2. 查找或创建用户（支付宝 userId 作为 openid）
+  let user = await db.queryOne('SELECT * FROM users WHERE openid = ?', [userId]);
+
+  if (user) {
+    const updates = { last_login: new Date() };
+    const params = [];
+    if (profile.nickName) {
+      updates.nick_name = '?';
+      params.push(profile.nickName);
+    }
+    if (profile.avatarUrl) {
+      updates.avatar_url = '?';
+      params.push(profile.avatarUrl);
+    }
+
+    const setClauses = [];
+    const updateParams = [];
+    for (const [key, val] of Object.entries(updates)) {
+      if (val === '?') {
+        setClauses.push(`${key} = ?`);
+        updateParams.push(params.shift());
+      } else {
+        setClauses.push(`${key} = ?`);
+        updateParams.push(val);
+      }
+    }
+    updateParams.push(userId);
+    await db.execute(`UPDATE users SET ${setClauses.join(', ')} WHERE openid = ?`, updateParams);
+  } else {
+    const insertResult = await db.insert(
+      `INSERT INTO users (openid, nick_name, avatar_url, last_login)
+       VALUES (?, ?, ?, NOW())`,
+      [userId, profile.nickName || '', profile.avatarUrl || '']
+    );
+    user = { id: insertResult, openid: userId, role: 'customer', phone: '' };
+  }
+
+  // 3. 签发 JWT
+  const tokens = signTokens(user);
+
+  // 4. 存储 refresh token
+  await db.insert(
+    `INSERT INTO refresh_tokens (user_id, token, expires_at)
+     VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY))`,
+    [user.id, tokens.refreshToken]
+  );
+
+  logger.info(`[auth] 支付宝用户登录: ${userId}, role: ${user.role}`);
+
+  return {
+    openid: user.openid,
+    phone: user.phone || '',
+    nickName: user.nickName || '',
+    avatarUrl: user.avatarUrl || '',
+    role: user.role,
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+  };
+}
+
+// ========== 抖音登录 ==========
+
+/**
+ * 抖音小程序登录（code → openid → JWT）
+ *
+ * 流程与微信类似：
+ *   前端 tt.login → code
+ *   服务端 code → code2session → openid
+ *   以 openid 查找/创建用户 → 签发 JWT
+ *
+ * @param {string} code - tt.login 返回的 code
+ * @param {object} profile - 用户资料 { nickName, avatarUrl }
+ */
+async function ttLogin(code, profile = {}) {
+  // 1. code2session → openid
+  const { openid } = await toutiaoUtil.code2session(code);
+
+  // 2. 查找或创建用户
+  let user = await db.queryOne('SELECT * FROM users WHERE openid = ?', [openid]);
+
+  if (user) {
+    const updates = { last_login: new Date() };
+    const params = [];
+    if (profile.nickName) {
+      updates.nick_name = '?';
+      params.push(profile.nickName);
+    }
+    if (profile.avatarUrl) {
+      updates.avatar_url = '?';
+      params.push(profile.avatarUrl);
+    }
+
+    const setClauses = [];
+    const updateParams = [];
+    for (const [key, val] of Object.entries(updates)) {
+      if (val === '?') {
+        setClauses.push(`${key} = ?`);
+        updateParams.push(params.shift());
+      } else {
+        setClauses.push(`${key} = ?`);
+        updateParams.push(val);
+      }
+    }
+    updateParams.push(openid);
+    await db.execute(`UPDATE users SET ${setClauses.join(', ')} WHERE openid = ?`, updateParams);
+  } else {
+    const insertResult = await db.insert(
+      `INSERT INTO users (openid, nick_name, avatar_url, last_login)
+       VALUES (?, ?, ?, NOW())`,
+      [openid, profile.nickName || '', profile.avatarUrl || '']
+    );
+    user = { id: insertResult, openid, role: 'customer', phone: '' };
+  }
+
+  // 3. 签发 JWT
+  const tokens = signTokens(user);
+
+  // 4. 存储 refresh token
+  await db.insert(
+    `INSERT INTO refresh_tokens (user_id, token, expires_at)
+     VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY))`,
+    [user.id, tokens.refreshToken]
+  );
+
+  logger.info(`[auth] 抖音用户登录: ${openid}, role: ${user.role}`);
+
+  return {
+    openid: user.openid,
+    phone: user.phone || '',
+    nickName: user.nickName || '',
+    avatarUrl: user.avatarUrl || '',
+    role: user.role,
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+  };
+}
+
+module.exports = { wxLogin, alipayLogin, ttLogin, phoneAuth, merchantLogin, refreshToken, handlePhoneAuth, validatePasswordStrength, hashPassword, verifyPassword: verifyPasswordCompat };

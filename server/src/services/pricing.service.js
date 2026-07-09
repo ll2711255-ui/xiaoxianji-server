@@ -31,7 +31,7 @@ async function calculatePrice(items) {
     if (product.status !== 'on') {
       throw new Error(`商品 "${product.name}" 已下架`);
     }
-    if (product.out_of_stock) {
+    if (product.outOfStock) {
       throw new Error(`商品 "${product.name}" 已售罄`);
     }
 
@@ -50,31 +50,31 @@ async function calculatePrice(items) {
       }
       const pricePerJin = matched.price_per_jin || 0;
       const weightMax = matched.weight_max || 500;
-      const processingFee = (spec.processing === '切块') ? (matched.processing_fee || product.processing_fee || 0) : 0;
+      const processingFee = (spec.processing === '切块') ? (matched.processing_fee || product.processingFee || 0) : 0;
       unitPrice = Math.round((pricePerJin * weightMax) / 500) + processingFee;
 
       // 锁定定价信息到 spec（用于称重退款计算）
-      spec.type_price_per_jin = matched.price_per_jin || product.price_per_jin || 0;
-      spec.processing_fee = (spec.processing === '切块') ? (matched.processing_fee || product.processing_fee || 0) : 0;
+      spec.type_price_per_jin = matched.price_per_jin || product.pricePerJin || 0;
+      spec.processing_fee = (spec.processing === '切块') ? (matched.processing_fee || product.processingFee || 0) : 0;
       spec.weight_max = matched.weight_max || 500;
     } else if (item.pricingType === 'exact_weight') {
       // 按重称重
-      const pricePerJin = product.price_per_jin || 0;
+      const pricePerJin = product.pricePerJin || 0;
       const grams = spec.weightGrams || 500;
-      const processingFee = (spec.processing === '切块') ? (product.processing_fee || 0) : 0;
+      const processingFee = (spec.processing === '切块') ? (product.processingFee || 0) : 0;
       unitPrice = Math.round((pricePerJin * grams) / 500) + processingFee;
 
-      spec.price_per_jin = product.price_per_jin || 0;
-      spec.processing_fee = (spec.processing === '切块') ? (product.processing_fee || 0) : 0;
+      spec.price_per_jin = product.pricePerJin || 0;
+      spec.processing_fee = (spec.processing === '切块') ? (product.processingFee || 0) : 0;
       spec.weightGrams = grams;
     } else if (item.pricingType === 'per_piece') {
       // 按只计价
-      const pricePerPiece = product.unit_price || 0;
-      const processingFee = (spec.processing === '切块') ? (product.processing_fee || 0) : 0;
+      const pricePerPiece = product.unitPrice || 0;
+      const processingFee = (spec.processing === '切块') ? (product.processingFee || 0) : 0;
       unitPrice = pricePerPiece + processingFee;
 
-      spec.unit_price = product.unit_price || 0;
-      spec.processing_fee = (spec.processing === '切块') ? (product.processing_fee || 0) : 0;
+      spec.unit_price = product.unitPrice || 0;
+      spec.processing_fee = (spec.processing === '切块') ? (product.processingFee || 0) : 0;
     } else {
       throw new Error(`商品 "${product.name}" 未知计价类型 ${item.pricingType}`);
     }

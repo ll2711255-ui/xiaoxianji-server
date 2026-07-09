@@ -30,7 +30,7 @@
       <el-table-column label="类型" width="70">
         <template #default="{ row }">
           <el-tag size="small" :type="row.type === 'offline' ? 'warning' : 'info'">
-            {{ row.type === 'offline' ? '线下' : row.deliveryType === 'pickup' ? '自取' : '配送' }}
+            {{ row.type === 'offline' ? '线下' : row.type === 'pickup' ? '自取' : '配送' }}
           </el-tag>
         </template>
       </el-table-column>
@@ -49,7 +49,7 @@
         </template>
       </el-table-column>
       <el-table-column label="金额" width="100">
-        <template #default="{ row }">¥{{ formatMoney(row.actualAmount || row.prepayAmount || 0) }}</template>
+        <template #default="{ row }">¥{{ formatMoney(row.actualAmount || row.payAmount || 0) }}</template>
       </el-table-column>
       <el-table-column label="时间" width="160">
         <template #default="{ row }">{{ formatTime(row.createTime) }}</template>
@@ -128,7 +128,7 @@ function getActions(order) {
     if (s === 'paid') actions.push({ action: 'accept', label: '接单', type: 'primary' })
     if (s === 'accepted') actions.push({ action: 'process', label: '开始处理', type: 'warning' })
     if (s === 'weighed' || s === 'processing') {
-      if (order.deliveryType === 'delivery') actions.push({ action: 'deliver', label: '开始配送', type: 'success' })
+      if (order.type === 'delivery') actions.push({ action: 'deliver', label: '开始配送', type: 'success' })
       else actions.push({ action: 'ready', label: '待取货', type: 'success' })
     }
     if (s === 'ready') actions.push({ action: 'complete', label: '完成', type: 'success' })

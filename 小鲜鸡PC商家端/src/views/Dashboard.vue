@@ -62,7 +62,7 @@
               </template>
             </el-table-column>
             <el-table-column label="金额" width="100">
-              <template #default="{ row }">¥{{ formatMoney(row.actualAmount || row.prepayAmount || 0) }}</template>
+              <template #default="{ row }">¥{{ formatMoney(row.actualAmount || row.payAmount || 0) }}</template>
             </el-table-column>
             <el-table-column prop="createTime" label="时间" min-width="140">
               <template #default="{ row }">{{ formatTime(row.createTime) }}</template>
@@ -77,6 +77,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import api from '@/utils/api'
 import { useNotification } from '@/composables/useNotification'
 import StatCard from '@/components/StatCard.vue'
@@ -117,8 +118,8 @@ function onRowClick(row) {
 async function loadDashboard() {
   try {
     const [paidRes, activeRes, refundAlertRes] = await Promise.all([
-      api.get('/merchant/orders', { status: 'paid', pageSize: 200, type: 'online' }),
-      api.get('/merchant/orders', { status: 'accepted,weighed,processing,delivering,ready', pageSize: 200, type: 'online' }),
+      api.get('/merchant/orders', { status: 'paid', pageSize: 200 }),
+      api.get('/merchant/orders', { status: 'accepted,weighed,processing,delivering,ready', pageSize: 200 }),
       api.get('/merchant/refund-alerts', { type: 'count' })
     ])
     const newPendingCount = ((paidRes && paidRes.data && paidRes.data.orders) || []).length
@@ -142,13 +143,17 @@ async function loadDashboard() {
     stats.refundAlertCount = newRefundCount
   } catch (err) {
     console.error('加载仪表盘失败:', err)
+    ElMessage.error('加载仪表盘数据失败，请刷新页面重试')
   }
 
   try {
     const res = await api.get('/merchant/orders', { pageSize: 5 })
     const orders = (res && res.data && res.data.orders) || []
     recentOrders.value = orders.map(o => ({ ...o, statusText: getStatusText(o.status, o.type) }))
-  } catch (err) { console.error('加载最近订单失败:', err) }
+  } catch (err) {
+    console.error('加载最近订单失败:', err)
+    ElMessage.error('加载最近订单失败')
+  }
 }
 
 onMounted(async () => {

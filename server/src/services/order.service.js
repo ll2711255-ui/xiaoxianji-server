@@ -119,7 +119,6 @@ async function createOrder({ openid, items, type, deliveryAddress, isScheduled, 
     logger.info(`[order] 订单创建成功: ${orderNo}, 金额: ${totalFen}分`);
 
     return {
-      orderId: orderNo,
       orderNo,
       payment,
     };
@@ -143,7 +142,7 @@ async function createOrder({ openid, items, type, deliveryAddress, isScheduled, 
 /**
  * 用户订单列表
  */
-async function getUserOrders(openid, { status, pageSize = 20 } = {}) {
+async function getUserOrders(openid, { status, page = 1, pageSize = 20 } = {}) {
   let sql = 'SELECT * FROM order_info WHERE user_id = ? AND is_deleted = 0';
   const params = [openid];
 
@@ -153,8 +152,9 @@ async function getUserOrders(openid, { status, pageSize = 20 } = {}) {
     params.push(...statuses);
   }
 
-  sql += ' ORDER BY create_time DESC LIMIT ?';
-  params.push(parseInt(pageSize, 10));
+  const offset = (parseInt(page, 10) - 1) * parseInt(pageSize, 10);
+  sql += ' ORDER BY create_time DESC LIMIT ? OFFSET ?';
+  params.push(parseInt(pageSize, 10), Math.max(0, offset));
 
   return db.query(sql, params);
 }
@@ -195,16 +195,16 @@ async function getPayStatus(orderNo) {
 async function cancelOrder(orderNo, openid) {
   const order = await db.queryOne('SELECT * FROM order_info WHERE order_no = ?', [orderNo]);
   if (!order) throw new Error('订单不存在');
-  if (order.user_id !== openid) throw new Error('无权操作此订单');
+  if (order.userId !== openid) throw new Error('无权操作此订单');
 
   // 状态校验
   const cancelable = ['pending'];
-  if (!cancelable.includes(order.status_label)) {
+  if (!cancelable.includes(order.status)) {
     throw new Error('当前订单状态不可取消');
   }
 
   // 未支付：直接取消 + 释放库存
-  if (order.order_status === 0 && order.prepay_id) {
+  if (order.orderStatus === 0 && order.prepayId) {
     // 尝试关闭微信预支付单（best effort）
     await wxpay.closeOrder(orderNo);
   }

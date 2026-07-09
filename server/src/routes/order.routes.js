@@ -57,8 +57,8 @@ router.post('/', async (req, res) => {
  */
 router.get('/', async (req, res) => {
   try {
-    const { status, pageSize } = req.query;
-    const orders = await orderService.getUserOrders(req.user.openid, { status, pageSize });
+    const { status, page = 1, pageSize = 20 } = req.query;
+    const orders = await orderService.getUserOrders(req.user.openid, { status, page, pageSize });
     res.json({ success: true, code: 200, data: { orders } });
   } catch (err) {
     logger.error('[orders] 列表查询失败:', err.message);
@@ -81,7 +81,7 @@ router.get('/pay/status', async (req, res) => {
     if (!order) {
       return res.status(404).json({ success: false, code: 404, message: '订单不存在' });
     }
-    if (order.user_id !== req.user.openid && req.user.role !== 'merchant') {
+    if (order.userId !== req.user.openid && req.user.role !== 'merchant') {
       return res.status(403).json({ success: false, code: 403, message: '无权查看此订单' });
     }
     const status = await orderService.getPayStatus(orderNo);
@@ -105,7 +105,7 @@ router.get('/:orderNo', async (req, res) => {
       return res.status(404).json({ success: false, code: 404, message: '订单不存在' });
     }
     // 仅允许查看自己的订单（除非是商家）
-    if (order.user_id !== req.user.openid && req.user.role !== 'merchant') {
+    if (order.userId !== req.user.openid && req.user.role !== 'merchant') {
       return res.status(403).json({ success: false, code: 403, message: '无权查看此订单' });
     }
     res.json({ success: true, code: 200, data: order });
@@ -133,8 +133,8 @@ router.post('/:orderNo/pay', async (req, res) => {
       if (!order) {
         return res.status(404).json({ success: false, code: 404, message: '订单不存在' });
       }
-      if (order.status_label !== 'pending') {
-        return res.status(400).json({ success: false, code: 400, message: `订单状态「${order.status_label}」不可模拟支付` });
+      if (order.status !== 'pending') {
+        return res.status(400).json({ success: false, code: 400, message: `订单状态「${order.status}」不可模拟支付` });
       }
 
       // 模拟支付成功处理
@@ -168,20 +168,20 @@ router.post('/:orderNo/pay', async (req, res) => {
     if (!order) {
       return res.status(404).json({ success: false, code: 404, message: '订单不存在' });
     }
-    if (order.order_status !== 0) {
+    if (order.orderStatus !== 0) {
       return res.status(400).json({ success: false, code: 400, message: '订单已处理，不可重试支付' });
     }
 
     // 关闭旧的 prepay（如有）
-    if (order.prepay_id) {
+    if (order.prepayId) {
       await wxpay.closeOrder(orderNo).catch(() => {});
     }
 
     const result = await wxpay.jsapiPrepay({
       appid: config.wx.appId,
       out_trade_no: orderNo,
-      total: order.pay_amount,
-      openid: order.user_id,
+      total: order.payAmount,
+      openid: order.userId,
       description: '小鲜鸡-新鲜生鲜',
       notify_url: config.notify.pay,
     });

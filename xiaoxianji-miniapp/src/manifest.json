@@ -1,0 +1,31 @@
+{
+  "name": "小鲜鸡",
+  "appid": "__UNI__XIAOXIANJI",
+  "description": "小鲜鸡 · 新鲜鸡肉每日直达",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "mp-weixin": {
+    "appid": "",
+    "setting": {
+      "urlCheck": true,
+      "es6": true,
+      "postcss": true,
+      "minified": true,
+      "newFeature": true
+    },
+    "usingComponents": true,
+    "permission": {
+      "scope.userLocation": {
+        "desc": "您的位置信息将用于计算配送距离和地图选点"
+      }
+    },
+    "requiredPrivateInfos": ["getLocation", "chooseLocation"]
+  },
+  "mp-alipay": {
+    "usingComponents": true
+  },
+  "mp-toutiao": {
+    "usingComponents": true
+  }
+}

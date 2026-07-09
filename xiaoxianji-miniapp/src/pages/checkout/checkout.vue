@@ -1,0 +1,621 @@
+<template>
+  <view class="page">
+    <!-- ========== 配送/自取 Tab ========== -->
+    <view class="tab-bar">
+      <view
+        v-for="tab in tabs" :key="tab.value"
+        class="tab-item" :class="{ 'tab-active': currentTab === tab.value }"
+        @click="onTabTap(tab.value)"
+      ><text>{{ tab.label }}</text></view>
+    </view>
+
+    <!-- ========== 商品清单 ========== -->
+    <view class="section">
+      <view v-for="item in items" :key="item.cartKey" class="item-row">
+        <text class="item-emoji">{{ item.emoji || '🐔' }}</text>
+        <view class="item-info">
+          <text class="item-name">{{ item.productName }}</text>
+          <text class="item-spec">{{ formatSpec(item.spec) }}</text>
+        </view>
+        <view class="item-right">
+          <text class="item-price">¥{{ item.priceDisplay }}</text>
+          <text class="item-qty">×{{ item.quantity }}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- ========== 收货地址（配送） ========== -->
+    <view v-if="currentTab === 'delivery'" class="section" @click="onSelectAddress">
+      <view v-if="address" class="address-card">
+        <view class="address-top">
+          <text class="address-icon">📍</text>
+          <view class="address-info">
+            <view class="address-contact">
+              <text class="address-name">{{ address.name }}</text>
+              <text class="address-phone">{{ address.phone }}</text>
+            </view>
+            <text class="address-text">{{ address.province }}{{ address.city }}{{ address.district }} {{ address.detail }}</text>
+          </view>
+        </view>
+      </view>
+      <view v-else class="address-empty">
+        <text class="address-empty-icon">📍</text>
+        <text>请添加收货地址</text>
+        <text class="address-arrow">›</text>
+      </view>
+    </view>
+
+    <!-- ========== 门店地址（自取） ========== -->
+    <view v-if="currentTab === 'pickup'" class="section" @click="onNavigateToStore">
+      <view class="address-card">
+        <view class="address-top">
+          <text class="address-icon">🏪</text>
+          <view class="address-info">
+            <text class="address-name">小鲜鸡线下体验店</text>
+            <text class="address-text">{{ storeAddress }}</text>
+          </view>
+          <text class="address-arrow">›</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- ========== 预约时间 ========== -->
+    <view class="section">
+      <text class="section-title">送达时间</text>
+      <view class="time-capsules">
+        <view class="time-capsule" :class="{ 'capsule-active': !isScheduled }" @click="onTimeCapsuleTap('now')">
+          <text>尽快送达</text>
+        </view>
+        <view class="time-capsule" :class="{ 'capsule-active': isScheduled }" @click="onTimeCapsuleTap('scheduled')">
+          <text>预约时间</text>
+        </view>
+      </view>
+
+      <!-- 日期选择 -->
+      <view v-if="isScheduled && dateOptions.length > 0" class="spec-options" style="margin-top:16rpx;">
+        <view
+          v-for="d in dateOptions" :key="d.value"
+          class="spec-tag" :class="{ 'spec-tag-active': scheduleDate === d.value }"
+          @click="scheduleDate = d.value"
+        ><text>{{ d.label }}</text></view>
+      </view>
+
+      <!-- 时段选择 -->
+      <view v-if="isScheduled && scheduleDate && timeOptions.length > 0" class="spec-options" style="margin-top:12rpx;">
+        <view
+          v-for="t in timeOptions" :key="t.value"
+          class="spec-tag" :class="{ 'spec-tag-active': scheduleTime === t.value }"
+          @click="scheduleTime = t.value"
+        ><text>{{ t.label }}</text></view>
+      </view>
+    </view>
+
+    <!-- ========== 费用明细 ========== -->
+    <view class="section">
+      <view class="fee-row">
+        <text class="fee-label">商品小计</text>
+        <text class="fee-value">¥{{ totalDisplay }}</text>
+      </view>
+      <view class="fee-row">
+        <text class="fee-label">配送费</text>
+        <text class="fee-value fee-free">免配送费</text>
+      </view>
+      <view v-if="hasRangeWeight" class="fee-hint">
+        <text>💡 含称重计价商品，最终金额以实际称重为准，多退少补。</text>
+      </view>
+    </view>
+
+    <!-- ========== 底部提交 ========== -->
+    <view class="bottom-bar">
+      <view class="bottom-total">
+        <text class="bottom-total-label">合计：</text>
+        <text class="bottom-total-value">¥{{ totalDisplay }}</text>
+      </view>
+      <view class="bottom-submit-btn" @click="onSubmit">
+        <text>提交订单</text>
+      </view>
+    </view>
+
+    <!-- ========== 配送范围超限弹窗 ========== -->
+    <view v-if="showRangeModal" class="modal-mask" @click="onCloseRangeModal">
+      <view class="modal-card" @click.stop>
+        <text class="modal-title">超出配送范围</text>
+        <text class="modal-body">{{ rangeModalMsg }}</text>
+        <text class="modal-detail">当前距离：{{ rangeModalDistance }}km（配送范围 {{ rangeModalRadius }}km）</text>
+        <view class="modal-actions">
+          <view v-if="showPickupTab" class="modal-btn modal-btn-outline" @click="onSwitchToPickup"><text>切换到店自取</text></view>
+          <view class="modal-btn modal-btn-primary" @click="onCloseRangeModal"><text>我知道了</text></view>
+        </view>
+      </view>
+    </view>
+
+    <!-- ========== 手机号授权弹窗 ========== -->
+    <view v-if="showPhoneAuth" class="modal-mask" @click="onCancelPhoneAuth">
+      <view class="modal-card" @click.stop>
+        <text class="modal-title">绑定手机号</text>
+        <text class="modal-body">下单需要绑定手机号，我们将通过手机号与您联系。</text>
+        <!-- #ifdef MP-WEIXIN -->
+        <button class="phone-auth-btn" open-type="getPhoneNumber" @getphonenumber="onGetPhoneForOrder">微信手机号一键授权</button>
+        <!-- #endif -->
+        <view class="modal-cancel" @click="onCancelPhoneAuth"><text>暂不绑定</text></view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script setup>
+import { ref, computed } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { get, post } from '@/utils/request'
+import { formatMoney, calcDistance } from '@/utils/util'
+import { callPay } from '@/utils/pay'
+
+const WEEKDAY_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+const DELIVERY_TIME_SLOTS = ['08:00-10:00', '10:00-12:00', '12:00-14:00', '14:00-16:00', '16:00-18:00', '18:00-20:00']
+const PICKUP_TIME_SLOTS = ['09:00-11:00', '11:00-13:00', '13:00-15:00', '15:00-17:00', '17:00-19:00']
+
+// ========== State ==========
+const items = ref([])
+const totalDisplay = ref('0.00')
+const totalFen = ref(0)
+const currentTab = ref('delivery')
+const showDeliveryTab = ref(true)
+const showPickupTab = ref(false)
+const address = ref(null)
+const storeAddress = ref('加载中...')
+const storeLat = ref(23.1291)
+const storeLng = ref(113.2644)
+const isScheduled = ref(false)
+const scheduleDate = ref('')
+const scheduleTime = ref('')
+const dateOptions = ref([])
+const timeOptions = ref([])
+const hasRangeWeight = ref(false)
+const showPhoneAuth = ref(false)
+const showRangeModal = ref(false)
+const rangeModalMsg = ref('')
+const rangeModalDistance = ref('')
+const rangeModalRadius = ref('')
+
+const tabs = computed(() => {
+  const list = []
+  if (showDeliveryTab.value) list.push({ label: '外卖配送', value: 'delivery' })
+  if (showPickupTab.value) list.push({ label: '到店自取', value: 'pickup' })
+  return list
+})
+
+// ========== Lifecycle ==========
+onLoad((options) => {
+  const from = options.from || 'cart'
+  let rawItems = []
+
+  if (from === 'buyNow') {
+    rawItems = uni.getStorageSync('buyNow') || []
+    uni.removeStorageSync('buyNow')
+  } else {
+    rawItems = uni.getStorageSync('checkoutItems') || []
+    if (rawItems.length === 0) {
+      const cart = uni.getStorageSync('cart') || []
+      rawItems = cart.filter(i => i.checked !== false)
+    }
+  }
+
+  if (rawItems.length === 0) {
+    uni.showToast({ title: '商品不存在', icon: 'none' })
+    setTimeout(() => uni.navigateBack(), 1000)
+    return
+  }
+
+  const modes = new Set()
+  rawItems.forEach(i => {
+    const d = (i.spec && i.spec.delivery) || 'pickup'
+    if (d === 'delivery' || d === 'scheduled') modes.add('delivery')
+    if (d === 'pickup') modes.add('pickup')
+  })
+  showDeliveryTab.value = modes.has('delivery')
+  showPickupTab.value = modes.has('pickup')
+  currentTab.value = showDeliveryTab.value ? 'delivery' : 'pickup'
+  hasRangeWeight.value = rawItems.some(i => i.pricingType === 'range_weight')
+
+  const total = rawItems.reduce((s, i) => s + i.price * i.quantity, 0)
+  totalFen.value = total
+  totalDisplay.value = formatMoney(total)
+
+  items.value = rawItems.map(i => ({
+    ...i,
+    priceDisplay: formatMoney(i.price),
+    subtotalDisplay: formatMoney(i.price * i.quantity),
+    emoji: i.emoji || '🐔'
+  }))
+
+  buildDateOptions()
+  loadStoreInfo()
+  if (currentTab.value === 'delivery') loadDefaultAddress()
+})
+
+// ========== 门店信息 ==========
+async function loadStoreInfo() {
+  try {
+    const res = await get('/store')
+    const config = (res && res.data && res.data.config) || res
+    if (!config) return
+    const lat = config.latitude || 23.1291
+    const lng = config.longitude || 113.2644
+    storeLat.value = lat
+    storeLng.value = lng
+    storeAddress.value = config.address || config.name || '小鲜鸡线下体验店'
+  } catch (_) {
+    storeAddress.value = '小鲜鸡线下体验店'
+  }
+}
+
+// ========== 日期选项 ==========
+function buildDateOptions() {
+  const today = new Date()
+  const options = []
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today)
+    d.setDate(today.getDate() + i)
+    const month = d.getMonth() + 1
+    const day = d.getDate()
+    const weekday = WEEKDAY_NAMES[d.getDay()]
+    let label
+    if (i === 0) label = '今天 ' + month + '/' + day
+    else if (i === 1) label = '明天 ' + month + '/' + day
+    else label = weekday + ' ' + month + '/' + day
+    options.push({ label, value: [d.getFullYear(), String(month).padStart(2, '0'), String(day).padStart(2, '0')].join('-') })
+  }
+  dateOptions.value = options
+}
+
+function buildTimeOptions(tab) {
+  const slots = tab === 'pickup' ? PICKUP_TIME_SLOTS : DELIVERY_TIME_SLOTS
+  timeOptions.value = slots.map(s => ({ label: s, value: s }))
+}
+
+// ========== Tab ==========
+function onTabTap(tab) {
+  if (tab === currentTab.value) return
+  currentTab.value = tab
+  isScheduled.value = false
+  scheduleDate.value = ''
+  scheduleTime.value = ''
+  if (tab === 'delivery' && !address.value) loadDefaultAddress()
+}
+
+function onTimeCapsuleTap(type) {
+  if (type === 'now') {
+    isScheduled.value = false
+    scheduleDate.value = ''
+    scheduleTime.value = ''
+  } else {
+    buildTimeOptions(currentTab.value)
+    isScheduled.value = true
+  }
+}
+
+// ========== 地址 ==========
+function onSelectAddress() {
+  // #ifdef MP-WEIXIN
+  uni.chooseAddress({
+    success: (res) => {
+      const addr = {
+        name: res.userName,
+        phone: res.telNumber,
+        province: res.provinceName,
+        city: res.cityName,
+        district: res.countyName,
+        detail: res.detailInfo,
+        isDefault: false
+      }
+      address.value = addr
+      post('/addresses', addr).catch(() => {})
+      fetchAddressCoordinates(addr)
+    },
+    fail: () => {
+      uni.navigateTo({ url: '/pages/mine/address/address?select=true' })
+    }
+  })
+  // #endif
+  // #ifndef MP-WEIXIN
+  uni.navigateTo({ url: '/pages/mine/address/address?select=true' })
+  // #endif
+}
+
+function fetchAddressCoordinates(addr) {
+  // #ifdef MP-WEIXIN
+  uni.getLocation({
+    type: 'gcj02',
+    success: (locRes) => {
+      address.value = { ...addr, latitude: locRes.latitude, longitude: locRes.longitude }
+    },
+    fail: () => {
+      console.warn('[checkout] 获取位置失败')
+    }
+  })
+  // #endif
+}
+
+async function loadDefaultAddress() {
+  try {
+    const res = await get('/addresses')
+    const addresses = (res && res.data && res.data.addresses) || []
+    const def = addresses.find(a => a.isDefault) || (addresses.length > 0 ? addresses[0] : null)
+    if (def) address.value = def
+  } catch (err) {
+    console.error('加载地址失败:', err)
+  }
+}
+
+function onNavigateToStore() {
+  uni.openLocation({
+    latitude: storeLat.value,
+    longitude: storeLng.value,
+    name: '小鲜鸡',
+    address: storeAddress.value,
+    scale: 16
+  })
+}
+
+// ========== 配送范围校验 ==========
+async function checkDeliveryRange() {
+  if (!address.value) return true
+  try {
+    const configRes = await get('/store')
+    const config = (configRes && configRes.data && configRes.data.config) || configRes || {}
+    const deliveryRadius = config.deliveryRadius || 5
+    const sLat = config.latitude || 23.1291
+    const sLng = config.longitude || 113.2644
+
+    let uLat, uLng
+    if (address.value.latitude !== undefined && address.value.longitude !== undefined) {
+      uLat = address.value.latitude
+      uLng = address.value.longitude
+    } else {
+      // #ifdef MP-WEIXIN
+      try {
+        const locRes = await new Promise((resolve, reject) => {
+          uni.getLocation({ type: 'gcj02', success: resolve, fail: reject })
+        })
+        uLat = locRes.latitude
+        uLng = locRes.longitude
+      } catch (_) { uLat = sLat + 0.001; uLng = sLng + 0.001 }
+      // #endif
+      // #ifndef MP-WEIXIN
+      uLat = sLat + 0.001; uLng = sLng + 0.001
+      // #endif
+    }
+
+    const distance = calcDistance(uLat, uLng, sLat, sLng)
+    if (distance > deliveryRadius) {
+      rangeModalMsg.value = `当前地址超出配送范围（${deliveryRadius}公里）`
+      rangeModalDistance.value = distance.toFixed(1)
+      rangeModalRadius.value = String(deliveryRadius)
+      showRangeModal.value = true
+      return false
+    }
+    return true
+  } catch (err) {
+    console.error('配送范围校验失败:', err)
+    return true
+  }
+}
+
+function onSwitchToPickup() {
+  showRangeModal.value = false
+  if (showPickupTab.value) onTabTap('pickup')
+}
+
+function onCloseRangeModal() {
+  showRangeModal.value = false
+}
+
+// ========== 提交订单 ==========
+function onSubmit() {
+  const phone = uni.getStorageSync('phone') || ''
+  if (!phone) {
+    showPhoneAuth.value = true
+    return
+  }
+  doSubmit()
+}
+
+async function doSubmit() {
+  if (currentTab.value === 'delivery' && !address.value) {
+    uni.showToast({ title: '请添加收货地址', icon: 'none' })
+    return
+  }
+
+  if (currentTab.value === 'delivery') {
+    const rangeOk = await checkDeliveryRange()
+    if (!rangeOk) return
+  }
+
+  if (isScheduled.value && !scheduleDate.value) {
+    uni.showToast({ title: '请选择预约日期', icon: 'none' })
+    return
+  }
+  if (isScheduled.value && !scheduleTime.value) {
+    uni.showToast({ title: '请选择预约时段', icon: 'none' })
+    return
+  }
+
+  uni.showLoading({ title: '提交中...' })
+
+  try {
+    const orderItems = items.value.map(item => ({
+      productId: item.productId,
+      productName: item.productName,
+      pricingType: item.pricingType,
+      spec: item.spec,
+      quantity: item.quantity
+    }))
+
+    const res = await post('/orders', {
+      items: orderItems,
+      type: currentTab.value,
+      deliveryAddress: currentTab.value === 'delivery' ? address.value : null,
+      isScheduled: isScheduled.value,
+      scheduledDate: isScheduled.value ? scheduleDate.value : '',
+      scheduledTime: isScheduled.value ? scheduleTime.value : ''
+    })
+
+    uni.hideLoading()
+
+    const d = (res && res.data) || res || {}
+    if (d.orderNo && d.payment) {
+      callWxPay([{ orderNo: d.orderNo, payment: d.payment }])
+    } else if (d.orderNo && !d.payment) {
+      const errorMsg = d.payError || '支付暂不可用，请在订单列表重试'
+      uni.showModal({
+        title: '支付失败',
+        content: errorMsg,
+        showCancel: false,
+        confirmText: '查看订单',
+        success: () => uni.switchTab({ url: '/pages/orders/orders' })
+      })
+    } else {
+      uni.showToast({ title: '创建订单失败', icon: 'none' })
+    }
+  } catch (err) {
+    uni.hideLoading()
+    console.error('创建订单失败:', err)
+    uni.showToast({ title: err.message || '创建订单失败', icon: 'none' })
+  }
+}
+
+function callWxPay(orders) {
+  const order = orders[0]
+  const purchasedKeys = new Set(items.value.map(i => i.cartKey))
+
+  function clearCartAndGoOrders() {
+    const cart = uni.getStorageSync('cart') || []
+    const remaining = cart.filter(c => !purchasedKeys.has(c.cartKey))
+    uni.setStorageSync('cart', remaining)
+    uni.removeStorageSync('checkoutItems')
+  }
+
+  callPay({
+    orderNo: order.orderNo,
+    payment: order.payment,
+    amountDisplay: totalDisplay.value,
+    clearItems: clearCartAndGoOrders,
+    onSuccess: () => { uni.switchTab({ url: '/pages/orders/orders' }) },
+    onCancel: () => { uni.switchTab({ url: '/pages/orders/orders' }) }
+  })
+}
+
+// ========== 手机号授权 ==========
+function onGetPhoneForOrder(e) {
+  if (e.detail.errMsg === 'getPhoneNumber:ok') {
+    uni.showLoading({ title: '授权中...' })
+    post('/auth/wx-phone', { phoneCode: e.detail.code }, { skipAuth: true }).then(res => {
+      uni.hideLoading()
+      const d = (res && res.data) || res
+      if (d.phone) {
+        uni.setStorageSync('phone', d.phone)
+        showPhoneAuth.value = false
+        uni.showToast({ title: '已绑定', icon: 'success', duration: 1000 })
+        setTimeout(() => doSubmit(), 1100)
+      } else {
+        uni.showToast({ title: (res && res.message) || '授权失败', icon: 'none' })
+      }
+    }).catch(err => {
+      uni.hideLoading()
+      console.error('手机号授权失败:', err)
+      uni.showToast({ title: '授权失败，请重试', icon: 'none' })
+    })
+  }
+}
+
+function onCancelPhoneAuth() {
+  showPhoneAuth.value = false
+}
+
+// ========== 辅助 ==========
+function formatSpec(spec) {
+  if (!spec) return ''
+  const parts = []
+  if (spec.type) parts.push(spec.type)
+  if (spec.weight) parts.push(spec.weight)
+  if (spec.processing) parts.push(spec.processing)
+  if (spec.delivery) {
+    const dMap = { delivery: '外卖配送', pickup: '到店自取', scheduled: '预约配送' }
+    parts.push(dMap[spec.delivery] || spec.delivery)
+  }
+  return parts.join(' · ')
+}
+</script>
+
+<style scoped lang="scss">
+.page { display:flex; flex-direction:column; min-height:100vh; background:var(--color-bg-page); padding-bottom:140rpx; }
+
+/* Tab */
+.tab-bar { display:flex; background:var(--color-bg-card); margin:16rpx 24rpx; border-radius:var(--radius-lg); overflow:hidden; }
+.tab-item { flex:1; text-align:center; padding:20rpx 0; font-size:var(--font-base); color:var(--color-text-2); border-bottom:3rpx solid transparent; }
+.tab-active { color:var(--color-primary); border-bottom-color:var(--color-primary); font-weight:600; }
+
+/* 区块 */
+.section { background:var(--color-bg-card); padding:24rpx; margin:0 24rpx 16rpx; border-radius:var(--radius-lg); }
+.section-title { font-size:var(--font-base); font-weight:600; color:var(--color-text-1); margin-bottom:16rpx; display:block; }
+
+/* 商品清单 */
+.item-row { display:flex; align-items:center; padding:12rpx 0; border-bottom:1rpx solid var(--color-border); gap:12rpx; }
+.item-row:last-child { border-bottom:none; }
+.item-emoji { font-size:36rpx; flex-shrink:0; }
+.item-info { flex:1; overflow:hidden; }
+.item-name { font-size:var(--font-base); font-weight:600; color:var(--color-text-1); display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.item-spec { font-size:var(--font-sm); color:var(--color-text-3); display:block; margin-top:4rpx; }
+.item-right { display:flex; flex-direction:column; align-items:flex-end; flex-shrink:0; }
+.item-price { font-size:var(--font-base); color:var(--color-primary); font-weight:700; }
+.item-qty { font-size:var(--font-sm); color:var(--color-text-3); margin-top:4rpx; }
+
+/* 地址 */
+.address-card { display:flex; flex-direction:column; }
+.address-top { display:flex; align-items:center; gap:12rpx; }
+.address-icon { font-size:var(--font-lg); flex-shrink:0; }
+.address-info { flex:1; overflow:hidden; }
+.address-contact { display:flex; gap:16rpx; margin-bottom:8rpx; }
+.address-name { font-size:var(--font-base); font-weight:600; color:var(--color-text-1); }
+.address-phone { font-size:var(--font-base); color:var(--color-text-2); }
+.address-text { font-size:var(--font-md); color:var(--color-text-3); display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.address-arrow { font-size:var(--font-xl); color:var(--color-text-4); flex-shrink:0; }
+.address-empty { display:flex; align-items:center; gap:12rpx; font-size:var(--font-base); color:var(--color-text-3); }
+
+/* 时间胶囊 */
+.time-capsules { display:flex; gap:16rpx; }
+.time-capsule { flex:1; padding:16rpx 0; text-align:center; border-radius:var(--radius-md); border:2rpx solid var(--color-border); font-size:var(--font-base); color:var(--color-text-2); }
+.capsule-active { border-color:var(--color-primary); color:var(--color-primary); background:var(--color-primary-pale); }
+
+/* 规格标签复用 */
+.spec-options { display:flex; flex-wrap:wrap; gap:12rpx; }
+.spec-tag { padding:10rpx 24rpx; border-radius:var(--radius-md); border:2rpx solid var(--color-border); font-size:var(--font-sm); color:var(--color-text-2); }
+.spec-tag-active { border-color:var(--color-primary); color:var(--color-primary); background:var(--color-primary-pale); }
+
+/* 费用 */
+.fee-row { display:flex; justify-content:space-between; padding:8rpx 0; }
+.fee-label { font-size:var(--font-base); color:var(--color-text-2); }
+.fee-value { font-size:var(--font-base); color:var(--color-text-1); font-weight:600; }
+.fee-free { color:var(--color-success); }
+.fee-hint { font-size:var(--font-sm); color:var(--color-warning); margin-top:12rpx; padding:12rpx; background:var(--color-warning-bg); border-radius:var(--radius-md); }
+
+/* 底部 */
+.bottom-bar { position:fixed; bottom:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between; background:var(--color-bg-card); padding:16rpx 24rpx; padding-bottom:calc(16rpx + env(safe-area-inset-bottom)); box-shadow:0 -4rpx 20rpx rgba(0,0,0,0.06); z-index:50; }
+.bottom-total { display:flex; align-items:baseline; }
+.bottom-total-label { font-size:var(--font-md); color:var(--color-text-2); }
+.bottom-total-value { font-size:var(--font-xl); color:var(--color-primary); font-weight:700; }
+.bottom-submit-btn { background:var(--color-primary); color:#fff; padding:16rpx 48rpx; border-radius:var(--radius-xl); font-size:var(--font-base); font-weight:600; }
+
+/* 弹窗 */
+.modal-mask { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:200; }
+.modal-card { background:#fff; border-radius:var(--radius-xl); padding:40rpx 32rpx; margin:0 48rpx; width:100%; max-width:560rpx; display:flex; flex-direction:column; align-items:center; }
+.modal-title { font-size:var(--font-lg); font-weight:700; color:var(--color-text-1); margin-bottom:16rpx; }
+.modal-body { font-size:var(--font-base); color:var(--color-text-2); text-align:center; margin-bottom:12rpx; line-height:1.6; }
+.modal-detail { font-size:var(--font-sm); color:var(--color-text-3); margin-bottom:24rpx; }
+.modal-actions { display:flex; flex-direction:column; gap:16rpx; width:100%; }
+.modal-btn { text-align:center; padding:18rpx 0; border-radius:var(--radius-xl); font-size:var(--font-base); font-weight:600; }
+.modal-btn-primary { background:var(--color-primary); color:#fff; }
+.modal-btn-outline { border:2rpx solid var(--color-primary); color:var(--color-primary); }
+.modal-cancel { margin-top:20rpx; font-size:var(--font-md); color:var(--color-text-3); }
+.phone-auth-btn { width:100%; background:var(--color-primary); color:#fff; border-radius:var(--radius-xl); font-size:var(--font-base); font-weight:600; padding:18rpx 0; text-align:center; border:none; margin-top:8rpx; }
+</style>

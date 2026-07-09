@@ -1,6 +1,8 @@
 /**
  * 开发工具路由 /api/dev/*
- * 仅开发环境可用
+ *
+ * 【设计意图】仅开发/测试环境使用，生产环境自动禁用（config.env === 'production' 拦截）。
+ * 非僵尸接口 — 用于清测试数据和模拟订单，提升开发效率。
  */
 const router = require('express').Router();
 const db = require('../config/db');

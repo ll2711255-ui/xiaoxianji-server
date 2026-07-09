@@ -54,7 +54,7 @@
           <template #default="{ row }"><OrderStatusTag :status="row.status" :type="row.type" size="small" /></template>
         </el-table-column>
         <el-table-column label="金额" width="100">
-          <template #default="{ row }">¥{{ formatMoney(row.actualAmount || row.prepayAmount || 0) }}</template>
+          <template #default="{ row }">¥{{ formatMoney(row.actualAmount || row.payAmount || 0) }}</template>
         </el-table-column>
         <el-table-column label="时间" min-width="150">
           <template #default="{ row }">{{ row.createTime }}</template>
@@ -123,7 +123,7 @@ async function loadData() {
     const offlineOrders = (offlineRes && offlineRes.data && offlineRes.data.orders) || []
     const allOrders = [...onlineOrders, ...offlineOrders]
 
-    const totalFen = allOrders.reduce((s, o) => s + (o.actualAmount || o.prepayAmount || 0), 0)
+    const totalFen = allOrders.reduce((s, o) => s + (o.actualAmount || o.payAmount || 0), 0)
     overview.revenue = formatMoney(totalFen)
     overview.orderCount = allOrders.length
     overview.onlineCount = onlineOrders.length

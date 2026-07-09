@@ -1,0 +1,1 @@
+<template><view class="page"><view class="empty-state"><text>号码牌 — 待迁移</text></view></view></template>

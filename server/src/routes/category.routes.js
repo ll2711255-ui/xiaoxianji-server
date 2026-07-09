@@ -40,7 +40,9 @@ router.delete('/:categoryId', auth('merchant'), async (req, res) => {
   }
 });
 
-/** PUT /api/categories/sort — 分类排序（商家） */
+/** PUT /api/categories/sort — 分类排序（商家）
+ * TODO: PC 端分类管理页尚未实现拖拽排序 UI，接口已就绪，待前端接入
+ */
 router.put('/sort', auth('merchant'), async (req, res) => {
   try {
     await productService.updateCategorySort(req.body.sorts || []);
