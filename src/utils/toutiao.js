@@ -157,7 +157,7 @@ async function createOrder({ out_order_no, total_amount, subject, openid, notify
   const signParams = {
     _http_method: 'POST',
     'content-type': 'application/json',
-    ';'.concat(JSON.stringify(body)),
+    _body: ';' + JSON.stringify(body),
   };
 
   try {
@@ -269,7 +269,7 @@ async function queryOrder(out_order_no) {
   const signParams = {
     _http_method: 'POST',
     'content-type': 'application/json',
-    ';'.concat(JSON.stringify(body)),
+    _body: ';' + JSON.stringify(body),
   };
 
   try {
@@ -324,7 +324,7 @@ async function createRefund({ out_order_no, out_refund_no, refund_amount, reason
   const signParams = {
     _http_method: 'POST',
     'content-type': 'application/json',
-    ';'.concat(JSON.stringify(body)),
+    _body: ';' + JSON.stringify(body),
   };
 
   try {
