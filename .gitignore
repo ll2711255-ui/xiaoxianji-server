@@ -1,11 +1,9 @@
 node_modules/
-<<<<<<< HEAD
 dist/
+*.zip
 .env
 .env.local
 *.log
 .DS_Store
 Thumbs.db
-=======
 logs/
->>>>>>> d41e773f1ba165896fe24ab12495a0ca9a9acc21
