@@ -1,57 +1,74 @@
 /**
  * 认证 Pinia Store
+ *
  * JWT Token 管理 + 登录/登出 + 角色信息
+ * 登录成功后持久化到 localStorage，刷新页面后从 localStorage 恢复。
  */
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 const STORAGE_KEYS = {
-  ACCESS_TOKEN: 'admin_access_token',    // 约定：snake_case，admin_ 前缀区分商家端
-  REFRESH_TOKEN: 'admin_refresh_token',
-  MERCHANT_ID: 'admin_merchant_id',
-  ROLE: 'admin_role',
-  USER_NAME: 'admin_user_name'
+  TOKEN: 'merchant_token',
+  REFRESH_TOKEN: 'merchant_refresh_token',
+  USER_INFO: 'merchant_user_info',
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  const accessToken = ref(localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || '')
+  const token = ref(localStorage.getItem(STORAGE_KEYS.TOKEN) || '')
   const refreshToken = ref(localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN) || '')
-  const merchantId = ref(localStorage.getItem(STORAGE_KEYS.MERCHANT_ID) || '')
-  const role = ref(localStorage.getItem(STORAGE_KEYS.ROLE) || '')
-  const userName = ref(localStorage.getItem(STORAGE_KEYS.USER_NAME) || '')
 
-  const isLoggedIn = computed(() => !!accessToken.value)
-  const isAdmin = computed(() => role.value === 'admin' || role.value === 'manager')
-  const isEmployee = computed(() => role.value === 'employee')
+  // userInfo: { id, username, role, displayName }
+  const userInfo = ref(initUserInfo())
 
-  function saveTokens(at, rt) {
-    accessToken.value = at
-    refreshToken.value = rt
-    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, at)
-    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, rt)
+  function initUserInfo() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.USER_INFO)
+      return raw ? JSON.parse(raw) : null
+    } catch {
+      return null
+    }
   }
 
-  function setUser(id, r, name) {
-    merchantId.value = id
-    role.value = r
-    userName.value = name || ''
-    localStorage.setItem(STORAGE_KEYS.MERCHANT_ID, id)
-    localStorage.setItem(STORAGE_KEYS.ROLE, r)
-    localStorage.setItem(STORAGE_KEYS.USER_NAME, name || '')
+  // ========== Getters ==========
+  const isLoggedIn = computed(() => !!token.value)
+  const isAdmin = computed(() => userInfo.value?.role === 'admin')
+  const isManager = computed(() => userInfo.value?.role === 'manager')
+  const isStaff = computed(() => userInfo.value?.role === 'staff')
+  const canManageAccounts = computed(() => ['admin', 'manager'].includes(userInfo.value?.role))
+
+  // ========== Actions ==========
+
+  function setAuth(t, rt, info) {
+    token.value = t
+    refreshToken.value = rt
+    userInfo.value = info
+    localStorage.setItem(STORAGE_KEYS.TOKEN, t)
+    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, rt)
+    localStorage.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(info))
   }
 
   function clearAuth() {
-    accessToken.value = ''
+    token.value = ''
     refreshToken.value = ''
-    merchantId.value = ''
-    role.value = ''
-    userName.value = ''
+    userInfo.value = null
     Object.values(STORAGE_KEYS).forEach(k => localStorage.removeItem(k))
   }
 
+  /**
+   * 从 localStorage 恢复登录状态（app 启动时调用）
+   */
+  function initFromStorage() {
+    const t = localStorage.getItem(STORAGE_KEYS.TOKEN)
+    if (t) {
+      token.value = t
+      refreshToken.value = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN) || ''
+      userInfo.value = initUserInfo()
+    }
+  }
+
   return {
-    accessToken, refreshToken, merchantId, role, userName,
-    isLoggedIn, isAdmin, isEmployee,
-    saveTokens, setUser, clearAuth
+    token, refreshToken, userInfo,
+    isLoggedIn, isAdmin, isManager, isStaff, canManageAccounts,
+    setAuth, clearAuth, initFromStorage,
   }
 })

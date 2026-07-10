@@ -33,6 +33,10 @@ function signTokens(user) {
     openid: user.openid,
     role: user.role || 'customer',
     phone: user.phone || '',
+    // 商家端独立账号扩展字段（顾客登录时为空）
+    username: user.username || '',
+    displayName: user.displayName || '',
+    source: user.source || 'customer',
     jti: `at_${now}_${Math.random().toString(36).substring(2, 10)}`,
   };
 

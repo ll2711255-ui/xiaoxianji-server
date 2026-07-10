@@ -26,8 +26,8 @@ const http = axios.create({
 
 http.interceptors.request.use((config) => {
   const authStore = useAuthStore()
-  if (authStore.accessToken && !config.skipAuth) {
-    config.headers.Authorization = 'Bearer ' + authStore.accessToken
+  if (authStore.token && !config.skipAuth) {
+    config.headers.Authorization = 'Bearer ' + authStore.token
   }
   return config
 })
@@ -70,11 +70,12 @@ http.interceptors.response.use(
           refreshToken: authStore.refreshToken
         })
         if (res.data && res.data.success) {
-          const { accessToken, refreshToken } = res.data.data
-          authStore.saveTokens(accessToken, refreshToken || authStore.refreshToken)
-          _refreshQueue.forEach(q => q.resolve(accessToken))
+          const { accessToken, refreshToken: newRt, token } = res.data.data
+          const newAccessToken = accessToken || token
+          authStore.setAuth(newAccessToken, newRt || authStore.refreshToken, authStore.userInfo)
+          _refreshQueue.forEach(q => q.resolve(newAccessToken))
           _refreshQueue = []
-          config.headers.Authorization = 'Bearer ' + accessToken
+          config.headers.Authorization = 'Bearer ' + newAccessToken
           return http(config)
         } else {
           throw new Error('刷新失败')
@@ -162,7 +163,7 @@ const api = {
     }
 
     const authStore = useAuthStore()
-    const token = authStore.accessToken
+    const token = authStore.token
 
     try {
       const res = await doUpload(token)
@@ -172,8 +173,9 @@ const api = {
           refreshToken: authStore.refreshToken
         })
         if (refreshRes.data && refreshRes.data.success) {
-          const { accessToken, refreshToken } = refreshRes.data.data
-          authStore.saveTokens(accessToken, refreshToken || authStore.refreshToken)
+          const { accessToken, refreshToken: newRt, token } = refreshRes.data.data
+          const newAccessToken = accessToken || token
+          authStore.setAuth(newAccessToken, newRt || authStore.refreshToken, authStore.userInfo)
           const retryRes = await doUpload(accessToken)
           return retryRes.data
         }

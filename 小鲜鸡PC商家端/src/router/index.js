@@ -123,8 +123,14 @@ const routes = [
       {
         path: 'accounts',
         name: 'Accounts',
-        component: () => import('@/views/accounts/AccountManage.vue'),
-        meta: { title: '账号管理', icon: 'UserFilled' }
+        component: () => import('@/views/AccountManagement.vue'),
+        meta: { title: '账号管理', icon: 'UserFilled', requireRole: ['admin', 'manager'] }
+      },
+      {
+        path: 'accounts/logs',
+        name: 'AccountLogs',
+        component: () => import('@/views/AccountManagement.vue'),
+        meta: { title: '操作日志', requireRole: ['admin'] }
       },
       {
         path: 'settings/store',
@@ -191,7 +197,7 @@ router.beforeEach((to, from, next) => {
       if (isMobile) {
         next('/mobile/orders')
       } else {
-        next(authStore.isEmployee ? '/cashier' : '/dashboard')
+        next(authStore.isStaff ? '/cashier' : '/dashboard')
       }
     } else {
       next()
@@ -202,8 +208,9 @@ router.beforeEach((to, from, next) => {
   // Mock 模式仅在开发环境生效
   if (import.meta.env.DEV && import.meta.env.VITE_USE_MOCK === 'true') {
     if (!authStore.isLoggedIn) {
-      authStore.saveTokens('mock_access_token', 'mock_refresh_token')
-      authStore.setUser('merchant_01', 'admin', '管理员')
+      authStore.setAuth('mock_token', 'mock_rt', {
+        id: '1', username: 'admin', role: 'admin', displayName: '管理员'
+      })
     }
     next()
     return
@@ -214,6 +221,14 @@ router.beforeEach((to, from, next) => {
     return
   }
 
+  // 角色路由守卫：meta.requireRole 限定可访问角色
+  if (to.meta.requireRole) {
+    if (!to.meta.requireRole.includes(authStore.userInfo?.role)) {
+      next('/dashboard')
+      return
+    }
+  }
+
   // 移动端：所有路径重定向到移动端路由
   if (isMobile && !to.path.startsWith('/mobile') && !to.path.startsWith('/login')) {
     next('/mobile/orders')
@@ -221,7 +236,7 @@ router.beforeEach((to, from, next) => {
   }
 
   // 员工在桌面端不能访问管理后台页面
-  if (authStore.isEmployee && !isMobile) {
+  if (authStore.isStaff && !isMobile) {
     const isAdminPath = adminPaths.some(p => to.path === p || to.path.startsWith(p + '/'))
     if (isAdminPath) {
       next('/cashier')

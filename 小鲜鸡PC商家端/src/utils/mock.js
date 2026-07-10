@@ -292,11 +292,29 @@ export function getMockResponse(method, path, data = {}) {
 
   // ========== Auth ==========
   if (method === 'POST' && path === '/auth/merchant-login') {
+    // 模拟登录失败场景：密码 'wrong' 返回 401，密码 'blocked' 返回 429（限流）
+    if (data.password === 'wrong') {
+      return fail('用户名或密码错误')
+    }
+    if (data.password === 'blocked') {
+      return fail('登录失败次数过多，请15分钟后再试')
+    }
+    // 根据用户名返回不同角色
+    const mockAccounts = {
+      admin: { id: 1, role: 'admin', displayName: '管理员' },
+      manager01: { id: 2, role: 'manager', displayName: '张店长' },
+      staff01: { id: 3, role: 'staff', displayName: '李员工' },
+    }
+    const acct = mockAccounts[data.username] || mockAccounts['admin']
     return success({
-      accessToken: 'mock_admin_at_' + Date.now(),
-      refreshToken: 'mock_admin_rt_' + Date.now(),
-      merchantId: 'merchant_01',
-      role: 'admin'
+      token: `mock_${acct.role}_at_` + Date.now(),
+      refreshToken: `mock_${acct.role}_rt_` + Date.now(),
+      userInfo: {
+        id: acct.id,
+        username: data.username || 'admin',
+        role: acct.role,
+        displayName: acct.displayName
+      }
     })
   }
   if (method === 'POST' && path === '/auth/refresh-token') {
@@ -407,14 +425,36 @@ export function getMockResponse(method, path, data = {}) {
     return success({ banners: [...MOCK_BANNERS] })
   }
 
-  // ========== Accounts (占位 — 后端尚未部署) ==========
-  if (method === 'GET' && path === '/accounts') {
-    return success({ accounts: [] })
+  // ========== Accounts (merchant_accounts 表) ==========
+  // GET /api/merchant/accounts → 返回数组（或 { accounts: [...] }）
+  if (method === 'GET' && path === '/merchant/accounts') {
+    return success([
+      { id: 1, username: 'admin', displayName: '管理员', role: 'admin', isActive: 1, createdBy: null, creatorName: null, lastLoginAt: new Date().toISOString(), createdAt: '2026-01-01 00:00:00' },
+      { id: 2, username: 'manager01', displayName: '张店长', role: 'manager', isActive: 1, createdBy: 1, creatorName: '管理员', lastLoginAt: null, createdAt: '2026-03-15 10:30:00' },
+      { id: 3, username: 'staff01', displayName: '李员工', role: 'staff', isActive: 1, createdBy: 1, creatorName: '管理员', lastLoginAt: new Date().toISOString(), createdAt: '2026-06-20 14:00:00' },
+    ])
   }
-  if (method === 'POST' && path === '/accounts') { return fail('账号管理功能暂未开放') }
-  const acctMatch = matchRoute('/accounts/:id', path)
-  if (method === 'PUT' && acctMatch) { return fail('账号管理功能暂未开放') }
-  if (method === 'DELETE' && acctMatch) { return fail('账号管理功能暂未开放') }
+  // GET /api/merchant/accounts/logs → 操作日志
+  if (method === 'GET' && path === '/merchant/accounts/logs') {
+    return success({
+      list: [
+        { id: 1, operatorId: 1, operatorName: '管理员', action: 'create_account', targetId: 2, targetName: '张店长', detail: '{"username":"manager01","role":"manager"}', createdAt: '2026-03-15 10:30:00' },
+        { id: 2, operatorId: 1, operatorName: '管理员', action: 'create_account', targetId: 3, targetName: '李员工', detail: '{"username":"staff01","role":"staff"}', createdAt: '2026-06-20 14:00:00' },
+      ],
+      total: 2
+    })
+  }
+  if (method === 'POST' && path === '/merchant/accounts') {
+    return success({ id: Date.now(), username: data.username, displayName: data.displayName, role: data.role, isActive: 1 })
+  }
+  // PATCH /api/merchant/accounts/me/password → 修改自己密码
+  if (method === 'PATCH' && path === '/merchant/accounts/me/password') {
+    if (data.oldPassword === 'wrong') return fail('原密码错误')
+    return success({ message: '密码修改成功' })
+  }
+  const acctMatch = matchRoute('/merchant/accounts/:id', path)
+  if (method === 'PATCH' && acctMatch) { return success({}) }
+  if (method === 'DELETE' && acctMatch) { return success({}) }
 
   // ========== Payment Methods (占位 — 后端尚未部署) ==========
   if (method === 'GET' && path === '/payment-methods') {

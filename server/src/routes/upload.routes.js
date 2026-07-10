@@ -8,7 +8,7 @@
 const router = require('express').Router();
 const path = require('path');
 const fs = require('fs');
-const auth = require('../middleware/auth');
+const { verifyToken } = require('../middleware/auth');
 const logger = require('../utils/logger');
 
 // 上传目录（可通过环境变量覆盖）
@@ -79,7 +79,7 @@ function parseMultipart(buffer, boundary) {
  *
  * 返回：{ success: true, data: { url: '/uploads/xxx.jpg' } }
  */
-router.post('/image', auth(), (req, res) => {
+router.post('/image', verifyToken, (req, res) => {
   // 收集 raw body buffer
   const chunks = [];
 

@@ -2,20 +2,26 @@
  * 鉴权路由 /api/auth/*
  */
 const router = require('express').Router();
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const db = require('../config/db');
+const redis = require('../config/redis');
+const config = require('../config');
 const authService = require('../services/auth.service');
-const auth = require('../middleware/auth');
+const { verifyToken } = require('../middleware/auth');
+const { loginLimiter, checkLoginFailCount } = require('../middleware/loginLimiter');
 const rateLimiter = require('../middleware/rateLimiter');
 const logger = require('../utils/logger');
 
-// 登录接口限流：每分钟最多 10 次
-const loginLimiter = rateLimiter({ windowMs: 60000, max: 10 });
+// 小程序登录接口限流：每分钟最多 10 次
+const wxLoginLimiter = rateLimiter({ windowMs: 60000, max: 10 });
 
 /**
  * POST /api/auth/wx-login
  * 微信静默登录（wx.login code → JWT）
  * Body: { code, nickName?, avatarUrl? }
  */
-router.post('/wx-login', loginLimiter, async (req, res) => {
+router.post('/wx-login', wxLoginLimiter, async (req, res) => {
   try {
     const { code, nickName, avatarUrl } = req.body;
     if (!code) {
@@ -36,7 +42,7 @@ router.post('/wx-login', loginLimiter, async (req, res) => {
  * Body: { phoneCode } — wx.getPhoneNumber 返回的 code（真机）
  * 或 Body: { phone } — 已解密手机号直接存储（开发工具兼容）
  */
-router.post('/wx-phone', auth(), async (req, res) => {
+router.post('/wx-phone', verifyToken, async (req, res) => {
   try {
     const { phoneCode, phone } = req.body;
 
@@ -55,7 +61,7 @@ router.post('/wx-phone', auth(), async (req, res) => {
  * Body: { phoneCode, phone }
  * 当前复用 handlePhoneAuth 的 phone 直传 fallback
  */
-router.post('/alipay-phone', auth(), async (req, res) => {
+router.post('/alipay-phone', verifyToken, async (req, res) => {
   try {
     const { phoneCode, phone } = req.body;
     // TODO: 支付宝上线后接入 my.getPhoneNumber 解密
@@ -74,7 +80,7 @@ router.post('/alipay-phone', auth(), async (req, res) => {
  * Body: { phoneCode, phone }
  * 当前复用 handlePhoneAuth 的 phone 直传 fallback
  */
-router.post('/toutiao-phone', auth(), async (req, res) => {
+router.post('/toutiao-phone', verifyToken, async (req, res) => {
   try {
     const { phoneCode, phone } = req.body;
     // TODO: 抖音上线后接入 tt.getPhoneNumber 解密
@@ -93,7 +99,7 @@ router.post('/toutiao-phone', auth(), async (req, res) => {
  * Body: { code, nickName?, avatarUrl? }
  * 注意：支付宝的 code 即 my.getAuthCode 返回的 authCode
  */
-router.post('/alipay-login', loginLimiter, async (req, res) => {
+router.post('/alipay-login', wxLoginLimiter, async (req, res) => {
   try {
     const { code, nickName, avatarUrl } = req.body;
     if (!code) {
@@ -113,7 +119,7 @@ router.post('/alipay-login', loginLimiter, async (req, res) => {
  * 抖音小程序登录（tt.login code → openid → JWT）
  * Body: { code, nickName?, avatarUrl? }
  */
-router.post('/tt-login', loginLimiter, async (req, res) => {
+router.post('/tt-login', wxLoginLimiter, async (req, res) => {
   try {
     const { code, nickName, avatarUrl } = req.body;
     if (!code) {
@@ -130,23 +136,141 @@ router.post('/tt-login', loginLimiter, async (req, res) => {
 
 /**
  * POST /api/auth/merchant-login
- * 商家登录（手机号 + 密码）
- * Body: { phone, password }
+ * 商家登录（用户名 + 密码 → merchant_accounts 表）
+ * Body: { username, password }
+ *
+ * 两层限流保护：
+ *   层1: express-rate-limit（IP级别，60秒10次）
+ *   层2: Redis 失败计数（用户名级别，5次封15分钟）
+ *
+ * 与顾客端 users 表完全隔离，使用独立的 merchant_accounts 表。
  */
-router.post('/merchant-login', loginLimiter, async (req, res) => {
-  try {
-    const { phone, password } = req.body;
-    if (!phone || !password) {
-      return res.status(400).json({ success: false, code: 400, message: '请输入手机号和密码' });
+router.post(
+  '/merchant-login',
+  loginLimiter,
+  checkLoginFailCount,
+  async (req, res) => {
+    const { username, password } = req.body
+
+    if (!username || !password) {
+      return res.status(400).json({
+        success: false,
+        message: '用户名和密码不能为空'
+      })
     }
 
-    const result = await authService.merchantLogin(phone, password);
-    res.json({ success: true, code: 200, message: '登录成功', data: result });
-  } catch (err) {
-    logger.error('[auth] merchant-login 失败:', err.message);
-    res.status(401).json({ success: false, code: 401, message: err.message || '登录失败' });
+    const account = await db.queryOne(
+      `SELECT id, username, password_hash, role,
+              display_name, is_active
+       FROM merchant_accounts WHERE username = ?`,
+      [username]
+    )
+
+    if (!account) {
+      // 用户不存在 → 递增失败计数
+      if (req.loginFailKey) {
+        try {
+          await redis.incr(req.loginFailKey)
+          await redis.expire(req.loginFailKey, 900)
+        } catch (_) { /* Redis 不可用忽略 */ }
+      }
+      return res.status(401).json({
+        success: false,
+        message: '用户名或密码错误'
+      })
+    }
+
+    if (!account.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: '账号已被禁用，请联系管理员'
+      })
+    }
+
+    const match = await bcrypt.compare(password, account.passwordHash)
+
+    if (!match) {
+      // 密码错误 → 递增失败计数 + 告知剩余次数
+      if (req.loginFailKey) {
+        try {
+          const count = await redis.incr(req.loginFailKey)
+          await redis.expire(req.loginFailKey, 900)
+          const remaining = 5 - count
+          return res.status(401).json({
+            success: false,
+            message: remaining > 0
+              ? `用户名或密码错误，还可尝试 ${remaining} 次`
+              : '登录失败次数过多，账号已被锁定15分钟'
+          })
+        } catch (_) { /* Redis 不可用忽略 */ }
+      }
+      return res.status(401).json({
+        success: false,
+        message: '用户名或密码错误'
+      })
+    }
+
+    // 登录成功 → 清除失败计数
+    if (req.loginFailKey) {
+      try { await redis.del(req.loginFailKey) } catch (_) { }
+    }
+
+    // 更新最后登录时间
+    await db.execute(
+      'UPDATE merchant_accounts SET last_login_at = NOW() WHERE id = ?',
+      [account.id]
+    )
+
+    // 签发 JWT（source='merchant' 区分来源）
+    const token = jwt.sign(
+      {
+        id: account.id,
+        role: account.role,
+        displayName: account.displayName,
+        source: 'merchant'
+      },
+      config.jwt.accessSecret,
+      { expiresIn: '8h' }
+    )
+
+    // 生成 refresh token
+    const refreshToken = jwt.sign(
+      {
+        id: account.id,
+        role: account.role,
+        source: 'merchant',
+        type: 'refresh'
+      },
+      config.jwt.refreshSecret,
+      { expiresIn: '30d' }
+    )
+
+    // 存储 refresh token
+    try {
+      await db.insert(
+        `INSERT INTO refresh_tokens (user_id, token, expires_at)
+         VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY))`,
+        [account.id, refreshToken]
+      )
+    } catch (_) { /* 非关键 */ }
+
+    logger.info(`[auth] 商家登录: ${username} (${account.role})`)
+
+    res.json({
+      success: true,
+      data: {
+        token,
+        refreshToken,
+        userInfo: {
+          id: account.id,
+          username: account.username,
+          role: account.role,
+          displayName: account.displayName
+        }
+      }
+    })
   }
-});
+)
 
 /**
  * POST /api/auth/refresh-token

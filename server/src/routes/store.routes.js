@@ -3,7 +3,7 @@
  */
 const router = require('express').Router();
 const db = require('../config/db');
-const auth = require('../middleware/auth');
+const { verifyToken, requireMerchant } = require('../middleware/auth');
 const logger = require('../utils/logger');
 
 // ========== 店铺配置（公开） ==========
@@ -40,7 +40,7 @@ router.get('/', async (req, res) => {
 });
 
 /** PUT /api/store — 更新店铺配置（商家） */
-router.put('/', auth('merchant'), async (req, res) => {
+router.put('/', verifyToken, requireMerchant, async (req, res) => {
   try {
     const data = req.body;
     const fields = [];
@@ -85,7 +85,7 @@ router.get('/banners', async (req, res) => {
 });
 
 /** PUT /api/banners — 更新轮播图（商家） */
-router.put('/banners', auth('merchant'), async (req, res) => {
+router.put('/banners', verifyToken, requireMerchant, async (req, res) => {
   try {
     const { banners } = req.body;
     if (!banners || !Array.isArray(banners)) {

@@ -171,55 +171,34 @@ async function verifyPasswordCompat(password, hash) {
 }
 
 /**
- * 商家登录（手机号 + 密码）
- * @param {string} phone
- * @param {string} password
+ * 商家登录（用户名 + 密码 → merchant_accounts 表）
+ *
+ * 与顾客 users 表完全隔离，使用独立的 merchant_accounts 表。
+ * 支持角色：admin / manager / staff
+ *
+ * @param {string} username - 登录用户名
+ * @param {string} password - 明文密码
  */
-async function merchantLogin(phone, password) {
-  const user = await db.queryOne(
-    "SELECT * FROM users WHERE phone = ? AND role IN ('merchant', 'admin')",
-    [phone]
-  );
+async function merchantLogin(username, password) {
+  // 委托给商家账号服务（与顾客 users 表完全隔离）
+  const merchantAccount = require('./merchant-account.service');
+  const result = await merchantAccount.login(username, password);
 
-  if (!user) {
-    throw new Error('账号不存在或非商家账号');
-  }
-
-  // 密码验证（兼容 SHA256 旧密码 → 自动升级为 bcrypt）
-  const { valid, needsRehash } = await verifyPasswordCompat(password, user.password);
-  if (!valid) {
-    throw new Error('密码错误');
-  }
-
-  // 旧 SHA256 密码自动升级为 bcrypt
-  if (needsRehash) {
-    const newHash = await hashPassword(password);
-    await db.execute('UPDATE users SET password = ? WHERE id = ?', [newHash, user.id]);
-    logger.info(`[auth] 商家 ${phone} 密码已自动升级为 bcrypt`);
-  }
-
-  // 更新登录时间
-  await db.execute('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
-
-  const tokens = signTokens(user);
-
-  // 存储 refresh token
+  // 存储 refresh token（复用到 refresh_tokens 表）
   await db.insert(
     `INSERT INTO refresh_tokens (user_id, token, expires_at)
      VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY))`,
-    [user.id, tokens.refreshToken]
+    [result.id, result.refreshToken]
   );
 
-  logger.info(`[auth] 商家登录: ${phone}`);
-
   return {
-    openid: user.openid,
-    phone: user.phone,
-    nickName: user.nickName || '',
-    role: user.role,
-    merchantId: String(user.id),
-    accessToken: tokens.accessToken,
-    refreshToken: tokens.refreshToken,
+    id: result.id,
+    username: result.username,
+    displayName: result.displayName,
+    role: result.role,
+    merchantId: String(result.id),
+    accessToken: result.accessToken,
+    refreshToken: result.refreshToken,
   };
 }
 

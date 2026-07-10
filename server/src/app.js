@@ -92,19 +92,24 @@ app.use('/api/products', require('./routes/product.routes'));
 app.use('/api/categories', require('./routes/category.routes'));
 // banners 路由统一通过 /api/store/banners 访问
 
-// 需登录的路由
-const auth = require('./middleware/auth');
-app.use('/api/orders', auth(), require('./routes/order.routes'));
-app.use('/api/addresses', auth(), require('./routes/address.routes'));
-app.use('/api/pai-numbers', auth(), require('./routes/pai-number.routes'));
-app.use('/api/pickup', auth(), require('./routes/pickup.routes'));
-app.use('/api/merchant', auth('merchant'), require('./routes/merchant.routes'));
+// 需登录的路由（verifyToken 解析 JWT 附加 req.user）
+const { verifyToken } = require('./middleware/auth');
+app.use('/api/orders', verifyToken, require('./routes/order.routes'));
+app.use('/api/addresses', verifyToken, require('./routes/address.routes'));
+app.use('/api/pai-numbers', verifyToken, require('./routes/pai-number.routes'));
+app.use('/api/pickup', verifyToken, require('./routes/pickup.routes'));
+
+// 商家端路由（内部自带 verifyToken + requireMerchant）
+app.use('/api/merchant', require('./routes/merchant.routes'));
+
+// 商家账号管理路由（内部自带 verifyToken + requireMerchant + 角色校验）
+app.use('/api/merchant/accounts', require('./routes/merchant-account.routes'));
 
 // 文件上传路由（需登录，内部自行解析 multipart）
 app.use('/api/upload', require('./routes/upload.routes'));
 
 // 开发工具路由
-app.use('/api/dev', auth(), require('./routes/dev.routes'));
+app.use('/api/dev', verifyToken, require('./routes/dev.routes'));
 
 // ========== 404 处理 ==========
 app.use((req, res) => {

@@ -24,10 +24,10 @@
       </div>
 
       <el-form ref="formRef" :model="form" :rules="rules" @submit.prevent="onLogin">
-        <el-form-item prop="phone">
+        <el-form-item prop="username">
           <el-input
-            v-model="form.phone"
-            placeholder="请输入手机号"
+            v-model="form.username"
+            placeholder="请输入用户名"
             size="large"
             :prefix-icon="User"
           />
@@ -68,9 +68,9 @@ const formRef = ref(null)
 const loading = ref(false)
 const loginType = ref('manager') // 'manager' | 'employee'
 
-const form = reactive({ phone: '', password: '' })
+const form = reactive({ username: '', password: '' })
 const rules = {
-  phone: [{ required: true, message: '请输入手机号', trigger: 'blur' }],
+  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
 }
 
@@ -81,17 +81,16 @@ async function onLogin() {
   loading.value = true
   try {
     const res = await api.post('/auth/merchant-login', {
-      phone: form.phone,
+      username: form.username,
       password: form.password
     }, true)
 
     if (res && res.success) {
       const d = res.data
-      authStore.saveTokens(d.accessToken, d.refreshToken)
-      authStore.setUser(d.merchantId, d.role, d.name)
+      authStore.setAuth(d.token, d.refreshToken, d.userInfo)
 
       // 根据角色路由到不同界面
-      if (d.role === 'employee') {
+      if (d.userInfo.role === 'staff') {
         router.push('/cashier')
       } else {
         router.push('/dashboard')
@@ -100,7 +99,21 @@ async function onLogin() {
       ElMessage.error((res && res.message) || '登录失败')
     }
   } catch (err) {
-    ElMessage.error('登录失败，请检查网络')
+    // 处理限流（429）和服务器错误
+    if (err.response) {
+      const { status, data } = err.response
+      if (status === 429) {
+        ElMessage.error(data?.message || '登录失败次数过多，请15分钟后再试')
+      } else if (status === 401) {
+        ElMessage.error(data?.message || '用户名或密码错误')
+      } else if (status === 403) {
+        ElMessage.error(data?.message || '账号已被禁用')
+      } else {
+        ElMessage.error(data?.message || '登录失败，请检查网络')
+      }
+    } else {
+      ElMessage.error('登录失败，请检查网络')
+    }
   } finally {
     loading.value = false
   }

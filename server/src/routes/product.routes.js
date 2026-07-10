@@ -2,7 +2,7 @@
  * 商品 & 分类路由 /api/products/* + /api/categories/*
  */
 const router = require('express').Router();
-const auth = require('../middleware/auth');
+const { verifyToken, requireMerchant } = require('../middleware/auth');
 const productService = require('../services/product.service');
 const logger = require('../utils/logger');
 const { validateKeyword, validatePageSize } = require('../utils/validate');
@@ -45,7 +45,7 @@ router.get('/:productId', async (req, res) => {
 // ========== 商家接口（需要登录 + merchant 角色） ==========
 
 /** POST /api/products — 添加商品 */
-router.post('/', auth('merchant'), async (req, res) => {
+router.post('/', verifyToken, requireMerchant, async (req, res) => {
   try {
     const id = await productService.createProduct(req.body);
     res.json({ success: true, code: 200, message: '商品添加成功', data: { id } });
@@ -56,7 +56,7 @@ router.post('/', auth('merchant'), async (req, res) => {
 });
 
 /** PUT /api/products/:productId — 更新商品 */
-router.put('/:productId', auth('merchant'), async (req, res) => {
+router.put('/:productId', verifyToken, requireMerchant, async (req, res) => {
   try {
     await productService.updateProduct(req.params.productId, req.body);
     res.json({ success: true, code: 200, message: '商品更新成功' });
@@ -67,7 +67,7 @@ router.put('/:productId', auth('merchant'), async (req, res) => {
 });
 
 /** PATCH /api/products/:productId/status — 上下架 */
-router.patch('/:productId/status', auth('merchant'), async (req, res) => {
+router.patch('/:productId/status', verifyToken, requireMerchant, async (req, res) => {
   try {
     await productService.updateProductStatus(req.params.productId, req.body);
     res.json({ success: true, code: 200, message: '状态更新成功' });

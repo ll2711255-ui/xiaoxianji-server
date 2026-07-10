@@ -4,7 +4,7 @@
     <div class="mine-header">
       <el-avatar :size="56" icon="UserFilled" />
       <div class="mine-user-info">
-        <span class="mine-name">{{ authStore.userName || '商家用户' }}</span>
+        <span class="mine-name">{{ authStore.userInfo?.displayName || '商家用户' }}</span>
         <el-tag :type="roleTag" size="small">{{ roleLabel }}</el-tag>
       </div>
     </div>
@@ -72,13 +72,13 @@ const { requestPermission, getPermissionStatus } = useNotification()
 const notifGranted = ref(getPermissionStatus() === 'granted')
 
 const roleLabel = computed(() => {
-  const m = { admin: '管理员', manager: '店长', employee: '员工' }
-  return m[authStore.role] || '员工'
+  const m = { admin: '管理员', manager: '店长', staff: '员工' }
+  return m[authStore.userInfo?.role] || '员工'
 })
 
 const roleTag = computed(() => {
-  const m = { admin: 'danger', manager: 'warning', employee: 'info' }
-  return m[authStore.role] || 'info'
+  const m = { admin: 'danger', manager: 'warning', staff: 'info' }
+  return m[authStore.userInfo?.role] || 'info'
 })
 
 const notifStatus = computed(() => notifGranted.value ? '已开启' : '未授权')

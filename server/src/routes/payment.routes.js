@@ -8,7 +8,7 @@
  * 不同于 /api/pay-callback/*（异步通知回调），这里是前端主动调用的下单接口
  */
 const router = require('express').Router();
-const auth = require('../middleware/auth');
+const { verifyToken } = require('../middleware/auth');
 const rateLimiter = require('../middleware/rateLimiter');
 const db = require('../config/db');
 const config = require('../config');
@@ -31,7 +31,7 @@ const payLimiter = rateLimiter({ windowMs: 60000, max: 5 });
  * Body: { orderNo }
  * 需登录
  */
-router.post('/alipay-create', auth(), payLimiter, async (req, res) => {
+router.post('/alipay-create', verifyToken, payLimiter, async (req, res) => {
   try {
     const { orderNo } = req.body;
     if (!orderNo) {
@@ -102,7 +102,7 @@ router.post('/alipay-create', auth(), payLimiter, async (req, res) => {
  * Body: { orderNo }
  * 需登录
  */
-router.post('/tt-create', auth(), payLimiter, async (req, res) => {
+router.post('/tt-create', verifyToken, payLimiter, async (req, res) => {
   try {
     const { orderNo } = req.body;
     if (!orderNo) {

@@ -1,5 +1,8 @@
 /**
  * 商家端路由 /api/merchant/*
+ *
+ * 所有接口统一鉴权：verifyToken + requireMerchant
+ * 账号管理路由已独立到 merchant-account.routes.js
  */
 const router = require('express').Router();
 const db = require('../config/db');
@@ -7,6 +10,11 @@ const weighService = require('../services/weigh.service');
 const wxpay = require('../utils/wxpay');
 const logger = require('../utils/logger');
 const { validateOrderNo } = require('../utils/validate');
+const { verifyToken, requireMerchant } = require('../middleware/auth');
+
+// ========== 全局商家鉴权 ==========
+// 所有 /api/merchant/* 接口必须通过 JWT 验证 + 来源校验
+router.use(verifyToken, requireMerchant);
 
 // ========== 订单状态流转规则 ==========
 // 每个 action 的前置条件：订单必须在对应状态才能执行
@@ -296,7 +304,7 @@ router.patch('/refund-alerts/:id', async (req, res) => {
 
 /**
  * GET /api/merchant/products — 商家端商品列表（支持关键词搜索）
- * 挂载在 /api/merchant 下，自带 auth('merchant') 鉴权
+ * 挂载在 /api/merchant 下，自带 verifyToken + requireMerchant 鉴权
  */
 router.get('/products', async (req, res) => {
   try {

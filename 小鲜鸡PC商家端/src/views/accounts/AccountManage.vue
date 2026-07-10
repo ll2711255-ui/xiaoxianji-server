@@ -1,13 +1,5 @@
 <template>
   <div>
-    <el-alert
-      title="功能开发中"
-      type="warning"
-      description="账号管理后端接口尚未部署，当前页面仅展示 UI 原型。API 调用将返回提示信息。"
-      show-icon
-      :closable="false"
-      style="margin-bottom: 16px"
-    />
     <div class="page-header">
       <h2 class="page-title">账号管理</h2>
       <el-button type="primary" @click="openCreate">
@@ -20,25 +12,36 @@
     <el-card>
       <el-table :data="accounts" stripe v-loading="loading">
         <el-table-column prop="username" label="用户名" min-width="120" />
-        <el-table-column prop="name" label="姓名" min-width="100" />
-        <el-table-column label="角色" width="100">
+        <el-table-column prop="displayName" label="姓名" min-width="100" />
+        <el-table-column label="角色" width="80">
           <template #default="{ row }">
             <el-tag :type="roleTag(row.role)" size="small">{{ roleLabel(row.role) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="phone" label="手机号" min-width="130" />
-        <el-table-column label="创建时间" min-width="170">
+        <el-table-column label="状态" width="80">
+          <template #default="{ row }">
+            <el-tag :type="row.isActive ? 'success' : 'info'" size="small">
+              {{ row.isActive ? '启用' : '停用' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="最后登录" min-width="160">
+          <template #default="{ row }">
+            {{ formatDate(row.lastLoginAt) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="创建时间" min-width="160">
           <template #default="{ row }">
             {{ formatDate(row.createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="操作" width="260" fixed="right">
           <template #default="{ row }">
             <el-button text type="primary" size="small" @click="openEdit(row)">编辑</el-button>
             <el-button text type="warning" size="small" @click="resetPassword(row)">重置密码</el-button>
             <el-button
               text type="danger" size="small"
-              :disabled="row._id === authStore.merchantId"
+              :disabled="row.role === 'admin' || row.id === authStore.merchantId"
               @click="removeAccount(row)"
             >删除</el-button>
           </template>
@@ -61,22 +64,22 @@
         <el-form-item v-if="!isEdit" label="密码" prop="password">
           <el-input v-model="form.password" type="password" placeholder="至少6位" show-password maxlength="32" />
         </el-form-item>
-        <el-form-item label="姓名" prop="name">
-          <el-input v-model="form.name" placeholder="显示名称" maxlength="20" />
-        </el-form-item>
-        <el-form-item label="手机号" prop="phone">
-          <el-input v-model="form.phone" placeholder="手机号（选填）" maxlength="11" />
+        <el-form-item label="姓名" prop="displayName">
+          <el-input v-model="form.displayName" placeholder="显示名称" maxlength="20" />
         </el-form-item>
         <el-form-item label="角色" prop="role">
-          <el-select v-model="form.role" :disabled="isEdit && form._id === authStore.merchantId">
-            <!-- admin 可以创建 manager 和 employee -->
+          <el-select v-model="form.role">
+            <!-- admin 可以创建 manager 和 staff -->
             <el-option
               v-if="authStore.role === 'admin'"
-              label="店长" value="manager"
+              label="店长（可管理员工）" value="manager"
             />
-            <!-- admin 和 manager 都可以创建 employee -->
-            <el-option label="员工" value="employee" />
+            <!-- admin 和 manager 都可以创建 staff -->
+            <el-option label="员工（仅业务操作）" value="staff" />
           </el-select>
+        </el-form-item>
+        <el-form-item v-if="isEdit" label="状态" prop="isActive">
+          <el-switch v-model="form.isActive" active-text="启用" inactive-text="停用" />
         </el-form-item>
       </el-form>
 
@@ -121,12 +124,12 @@ const resetTargetId = ref('')
 
 function emptyForm() {
   return {
-    _id: '',
+    id: '',
     username: '',
     password: '',
-    name: '',
-    phone: '',
-    role: 'employee'
+    displayName: '',
+    role: 'staff',
+    isActive: true,
   }
 }
 
@@ -135,25 +138,25 @@ const form = reactive(emptyForm())
 const rules = computed(() => ({
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: isEdit.value ? [] : [{ required: true, message: '请输入密码', trigger: 'blur' }, { min: 6, message: '密码至少6位', trigger: 'blur' }],
-  name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
-  role: [{ required: true, message: '请选择角色', trigger: 'change' }]
+  displayName: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
+  role: [{ required: true, message: '请选择角色', trigger: 'change' }],
 }))
 
 const pwdForm = reactive({ newPassword: '' })
 const pwdRules = {
   newPassword: [
     { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 6, message: '密码至少6位', trigger: 'blur' }
-  ]
+    { min: 6, message: '密码至少6位', trigger: 'blur' },
+  ],
 }
 
 function roleTag(role) {
-  const map = { admin: 'danger', manager: 'warning', employee: 'info' }
+  const map = { admin: 'danger', manager: 'warning', staff: 'info' }
   return map[role] || 'info'
 }
 
 function roleLabel(role) {
-  const map = { admin: '管理员', manager: '店长', employee: '员工' }
+  const map = { admin: '管理员', manager: '店长', staff: '员工' }
   return map[role] || role
 }
 
@@ -166,10 +169,10 @@ function formatDate(str) {
 async function loadAccounts() {
   loading.value = true
   try {
-    const res = await api.get('/accounts')
+    const res = await api.get('/merchant/accounts')
     accounts.value = (res && res.data && res.data.accounts) || []
   } catch (err) {
-    ElMessage.error(err.response?.data?.message || err.message || '账号管理功能暂未开放')
+    ElMessage.error(err.response?.data?.message || err.message || '加载账号列表失败')
   } finally {
     loading.value = false
   }
@@ -186,12 +189,12 @@ function openCreate() {
 function openEdit(row) {
   isEdit.value = true
   Object.assign(form, {
-    _id: row._id,
+    id: row.id,
     username: row.username,
     password: '',
-    name: row.name,
-    phone: row.phone || '',
-    role: row.role
+    displayName: row.displayName,
+    role: row.role,
+    isActive: row.isActive,
   })
   dialogVisible.value = true
 }
@@ -204,26 +207,25 @@ async function onSave() {
   saving.value = true
   try {
     if (isEdit.value) {
-      await api.put('/accounts/' + form._id, {
-        name: form.name,
-        phone: form.phone,
-        role: form.role
+      await api.put('/merchant/accounts/' + form.id, {
+        displayName: form.displayName,
+        role: form.role,
+        isActive: form.isActive,
       })
       ElMessage.success('账号已更新')
     } else {
-      await api.post('/accounts', {
+      await api.post('/merchant/accounts', {
         username: form.username,
         password: form.password,
-        name: form.name,
-        phone: form.phone,
-        role: form.role
+        displayName: form.displayName,
+        role: form.role,
       })
       ElMessage.success('账号已创建')
     }
     dialogVisible.value = false
     loadAccounts()
   } catch (err) {
-    ElMessage.error(err.response?.data?.message || err.message || '账号管理功能暂未开放')
+    ElMessage.error(err.response?.data?.message || err.message || '操作失败')
   } finally {
     saving.value = false
   }
@@ -232,21 +234,25 @@ async function onSave() {
 // ========== 删除 ==========
 async function removeAccount(row) {
   try {
-    await ElMessageBox.confirm(`确定删除账号「${row.name}」吗？此操作不可撤销。`, '删除确认', { type: 'warning' })
+    await ElMessageBox.confirm(
+      `确定删除账号「${row.displayName}」(${row.username}) 吗？此操作不可撤销。`,
+      '删除确认',
+      { type: 'warning' }
+    )
   } catch { return }
 
   try {
-    await api.del('/accounts/' + row._id)
+    await api.del('/merchant/accounts/' + row.id)
     ElMessage.success('账号已删除')
     loadAccounts()
   } catch (err) {
-    ElMessage.error(err.response?.data?.message || err.message || '账号管理功能暂未开放')
+    ElMessage.error(err.response?.data?.message || err.message || '删除失败')
   }
 }
 
 // ========== 重置密码 ==========
 function resetPassword(row) {
-  resetTargetId.value = row._id
+  resetTargetId.value = row.id
   pwdForm.newPassword = ''
   passwordDialogVisible.value = true
 }
@@ -257,13 +263,13 @@ async function onResetPassword() {
 
   resetting.value = true
   try {
-    await api.put('/accounts/' + resetTargetId.value + '/reset-password', {
-      newPassword: pwdForm.newPassword
+    await api.put('/merchant/accounts/' + resetTargetId.value + '/reset-password', {
+      newPassword: pwdForm.newPassword,
     })
     ElMessage.success('密码已重置')
     passwordDialogVisible.value = false
   } catch (err) {
-    ElMessage.error(err.response?.data?.message || err.message || '账号管理功能暂未开放')
+    ElMessage.error(err.response?.data?.message || err.message || '重置密码失败')
   } finally {
     resetting.value = false
   }

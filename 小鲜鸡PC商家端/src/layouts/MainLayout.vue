@@ -12,8 +12,8 @@
         <!-- 商家管理后台：员工不可点击 -->
         <div
           class="zone-btn"
-          :class="{ active: currentZone === 'admin', disabled: authStore.isEmployee }"
-          @click="authStore.isEmployee ? null : switchZone('admin')"
+          :class="{ active: currentZone === 'admin', disabled: authStore.isStaff }"
+          @click="authStore.isStaff ? null : switchZone('admin')"
         >
           <el-icon :size="collapsed ? 20 : 18"><HomeFilled /></el-icon>
           <span v-if="!collapsed" class="zone-label">商家管理后台</span>
@@ -65,7 +65,7 @@
           <template #title>广告管理</template>
         </el-menu-item>
 
-        <el-menu-item v-if="authStore.isAdmin" index="/accounts">
+        <el-menu-item v-if="authStore.canManageAccounts" index="/accounts">
           <el-icon><UserFilled /></el-icon>
           <template #title>账号管理</template>
         </el-menu-item>
@@ -120,10 +120,10 @@
           </el-breadcrumb>
         </div>
         <div class="header-right">
-          <span class="merchant-name">{{ authStore.userName || '商家用户' }}</span>
-          <el-tag v-if="authStore.role === 'admin'" size="small" type="danger">管理员</el-tag>
-          <el-tag v-else-if="authStore.role === 'manager'" size="small" type="warning">店长</el-tag>
-          <el-tag v-else size="small" type="info">员工</el-tag>
+          <span class="merchant-name">{{ authStore.userInfo?.displayName || '商家用户' }}</span>
+          <el-tag v-if="authStore.userInfo?.role === 'admin'" size="small" type="danger">管理员</el-tag>
+          <el-tag v-else-if="authStore.userInfo?.role === 'manager'" size="small" type="warning">店长</el-tag>
+          <el-tag v-else-if="authStore.userInfo?.role === 'staff'" size="small" type="info">员工</el-tag>
           <el-button text type="danger" @click="onLogout">退出</el-button>
         </div>
       </el-header>
