@@ -4,6 +4,8 @@
  *
  * 仅在 merchant_accounts 表不存在 admin 角色时创建。
  * 默认密码 Admin@2024，首次登录后请立即修改。
+ *
+ * 此函数在 server.js 启动时自动调用（幂等，已存在则跳过）。
  */
 const bcrypt = require('bcryptjs')
 const db = require('../src/config/db')
@@ -25,9 +27,15 @@ async function initAdmin() {
      VALUES (?, ?, 'admin', '管理员', NULL)`,
     ['admin', hash]
   )
-  logger.info('[init-admin] 管理员账号创建成功，默认密码 Admin@2024，请立即修改')
+  logger.info('[init-admin] 管理员账号创建成功，用户名 admin，默认密码 Admin@2024，请立即修改')
 }
 
-initAdmin()
-  .then(() => process.exit(0))
-  .catch(err => { logger.error('[init-admin] 失败:', err.message); process.exit(1) })
+// 导出函数，供 server.js 启动时调用
+module.exports = { initAdmin }
+
+// 直接运行时（node scripts/init-admin.js）执行并退出
+if (require.main === module) {
+  initAdmin()
+    .then(() => process.exit(0))
+    .catch(err => { logger.error('[init-admin] 失败:', err.message); process.exit(1) })
+}

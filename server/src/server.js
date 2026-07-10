@@ -96,7 +96,15 @@ async function preflightCheck(maxRetries = 5, delayMs = 3000) {
   const app = require('./app');
   const { startAllJobs } = require('./jobs');
 
-  // 2.5 预热 Redis 库存（从 MySQL 回填，防止 Redis 重启后库存归零）
+  // 2.5 初始化内置管理员账号（幂等，已存在则跳过）
+  try {
+    const { initAdmin } = require('../scripts/init-admin');
+    await initAdmin();
+  } catch (err) {
+    logger.error('[启动] 管理员账号初始化异常:', err.message);
+  }
+
+  // 2.6 预热 Redis 库存（从 MySQL 回填，防止 Redis 重启后库存归零）
   try {
     const { warmupStock } = require('./services/stock.service');
     const warmResult = await warmupStock();
@@ -106,12 +114,12 @@ async function preflightCheck(maxRetries = 5, delayMs = 3000) {
   }
 
   // 3. 启动 HTTP 服务
-  app.listen(PORT, () => {
+  app.listen(PORT, async () => {
     logger.info(`✅ 小鲜鸡服务端已启动 → http://localhost:${PORT}`);
 
     // 检查支付配置
     const wxpay = require('./utils/wxpay');
-    if (!wxpay.checkConfig()) {
+    if (!await wxpay.checkConfig()) {
       logger.warn('⚠️ 微信支付密钥未完整配置，支付功能暂不可用');
     } else {
       logger.info('✅ 微信支付配置完整');
