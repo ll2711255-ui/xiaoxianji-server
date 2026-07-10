@@ -24,18 +24,30 @@ function signRefreshToken(payload) {
 
 /**
  * 签发 token 对
+ * 每个 token 包含 jti（JWT ID），用于 Redis 黑名单主动失效
  */
 function signTokens(user) {
+  const now = Date.now();
   const payload = {
     id: user.id,
     openid: user.openid,
     role: user.role || 'customer',
     phone: user.phone || '',
+    // 商家端独立账号扩展字段（顾客登录时为空）
+    username: user.username || '',
+    displayName: user.displayName || '',
+    source: user.source || 'customer',
+    jti: `at_${now}_${Math.random().toString(36).substring(2, 10)}`,
+  };
+
+  const refreshPayload = {
+    ...payload,
+    jti: `rt_${now}_${Math.random().toString(36).substring(2, 10)}`,
   };
 
   return {
     accessToken: signAccessToken(payload),
-    refreshToken: signRefreshToken(payload),
+    refreshToken: signRefreshToken(refreshPayload),
   };
 }
 

@@ -47,6 +47,19 @@ const config = {
     appSecret: process.env.WX_APPSECRET || '',
   },
 
+  // 支付宝小程序
+  alipay: {
+    appId: process.env.ALIPAY_APPID || '',
+    privateKey: (process.env.ALIPAY_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+    alipayPublicKey: (process.env.ALIPAY_PUBLIC_KEY || '').replace(/\\n/g, '\n'),
+  },
+
+  // 抖音小程序
+  toutiao: {
+    appId: process.env.TOUTIAO_APPID || '',
+    appSecret: process.env.TOUTIAO_APPSECRET || '',
+  },
+
   // 微信支付 V3
   wxpay: {
     mchId: process.env.WXPAY_MCHID || '',
@@ -59,6 +72,8 @@ const config = {
   notify: {
     pay: process.env.PAY_NOTIFY_URL || 'https://www.xuaioxianji.top/api/pay-callback',
     refund: process.env.REFUND_NOTIFY_URL || 'https://www.xuaioxianji.top/api/pay-callback/refund',
+    alipay: process.env.ALIPAY_NOTIFY_URL || 'https://www.xuaioxianji.top/api/pay-callback/alipay',
+    tt: process.env.TOUTIAO_NOTIFY_URL || 'https://www.xuaioxianji.top/api/pay-callback/tt',
   },
 
   // 店铺默认配置
@@ -74,8 +89,40 @@ const config = {
     stockLockPrefix: 'stock:lock:',
   },
 
-  // 密码盐
-  passwordSalt: process.env.PASSWORD_SALT || 'xiaoxianji_salt',
+  // bcrypt 哈希轮数（10 = 约 100ms，安全性/性能的平衡点）
+  bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS, 10) || 10,
+
+  // 密码规则
+  passwordRules: {
+    minLength: 8,
+    requireDigit: true,
+    requireLowercase: true,
+    requireUppercase: true,
+  },
 };
+
+// ========== 生产环境安全检查 ==========
+// 如果缺密钥用默认值运行，进程直接退出不启动
+if (config.env === 'production') {
+  const checks = [];
+  if (config.jwt.accessSecret === 'dev-access-secret-change-me') {
+    checks.push('JWT_ACCESS_SECRET 未设置（仍在使用 dev 默认值）');
+  }
+  if (config.jwt.refreshSecret === 'dev-refresh-secret-change-me') {
+    checks.push('JWT_REFRESH_SECRET 未设置（仍在使用 dev 默认值）');
+  }
+  if (!config.wxpay.mchId && process.env.WXPAY_MCHID === undefined) {
+    // mchId 为空可能是未配置微信支付，允许启动但打印警告
+    // 生产环境不强制拦截，由 health check 暴露
+  }
+  if (checks.length > 0) {
+    const msg = '生产环境安全检查失败:\n' + checks.map((c, i) => `  ${i + 1}. ${c}`).join('\n');
+    console.error('\n' + '='.repeat(55));
+    console.error(msg);
+    console.error('请在 .env 中设置这些环境变量后重新启动。');
+    console.error('='.repeat(55) + '\n');
+    process.exit(1);
+  }
+}
 
 module.exports = config;

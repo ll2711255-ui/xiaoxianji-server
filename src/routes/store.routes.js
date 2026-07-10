@@ -3,19 +3,36 @@
  */
 const router = require('express').Router();
 const db = require('../config/db');
-const auth = require('../middleware/auth');
+const { verifyToken, requireMerchant } = require('../middleware/auth');
 const logger = require('../utils/logger');
 
 // ========== 店铺配置（公开） ==========
 
-/** GET /api/store */
+// 字段筛选（db.query 已自动转为驼峰，此处仅做字段白名单过滤）
+function filterConfigFields(row) {
+  if (!row) return {};
+  return {
+    name: row.name,
+    address: row.address,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    deliveryRadius: row.deliveryRadius,
+    contactName: row.contactName,
+    contactPhone: row.contactPhone,
+    openTime: row.openTime,
+    closeTime: row.closeTime,
+  };
+}
+
+/** GET /api/store — 公开接口，返回店铺配置（当前单店铺模式，config_key='store_config'） */
+// TODO: 多店铺时按 merchant_id 隔离，或按 req.query.merchantId 筛选
 router.get('/', async (req, res) => {
   try {
     const config = await db.queryOne("SELECT * FROM store_config WHERE config_key = 'store_config'");
     if (!config) {
-      return res.json({ success: true, code: 200, data: {} });
+      return res.json({ success: true, code: 200, data: { config: {} } });
     }
-    res.json({ success: true, code: 200, data: { config } });
+    res.json({ success: true, code: 200, data: { config: filterConfigFields(config) } });
   } catch (err) {
     logger.error('[store] 查询失败:', err.message);
     res.status(500).json({ success: false, code: 500, message: err.message });
@@ -23,7 +40,7 @@ router.get('/', async (req, res) => {
 });
 
 /** PUT /api/store — 更新店铺配置（商家） */
-router.put('/', auth('merchant'), async (req, res) => {
+router.put('/', verifyToken, requireMerchant, async (req, res) => {
   try {
     const data = req.body;
     const fields = [];
@@ -68,7 +85,7 @@ router.get('/banners', async (req, res) => {
 });
 
 /** PUT /api/banners — 更新轮播图（商家） */
-router.put('/banners', auth('merchant'), async (req, res) => {
+router.put('/banners', verifyToken, requireMerchant, async (req, res) => {
   try {
     const { banners } = req.body;
     if (!banners || !Array.isArray(banners)) {

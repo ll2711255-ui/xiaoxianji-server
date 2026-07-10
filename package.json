@@ -7,7 +7,9 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "init-db": "node src/scripts/init-db.js",
+    "init:admin": "node scripts/init-admin.js",
     "seed": "node src/scripts/seed.js",
+    "validate": "node deploy/validate-env.js",
     "test": "jest"
   },
   "dependencies": {
@@ -16,6 +18,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "express-rate-limit": "^8.5.2",
     "ioredis": "^5.3.2",
     "joi": "^17.11.0",
     "jsonwebtoken": "^9.0.2",
@@ -26,6 +29,7 @@
     "winston-daily-rotate-file": "^4.7.1"
   },
   "devDependencies": {
+    "jest": "^30.4.2",
     "nodemon": "^3.0.2"
   },
   "engines": {

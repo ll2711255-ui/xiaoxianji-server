@@ -3,7 +3,7 @@
  * 从 product.routes.js 拆出，独立挂载
  */
 const router = require('express').Router();
-const auth = require('../middleware/auth');
+const { verifyToken, requireMerchant } = require('../middleware/auth');
 const productService = require('../services/product.service');
 const logger = require('../utils/logger');
 
@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
 });
 
 /** POST /api/categories — 添加分类（商家） */
-router.post('/', auth('merchant'), async (req, res) => {
+router.post('/', verifyToken, requireMerchant, async (req, res) => {
   try {
     const id = await productService.createCategory(req.body.name);
     res.json({ success: true, code: 200, message: '分类添加成功', data: { id } });
@@ -30,7 +30,7 @@ router.post('/', auth('merchant'), async (req, res) => {
 });
 
 /** DELETE /api/categories/:categoryId — 删除分类（商家） */
-router.delete('/:categoryId', auth('merchant'), async (req, res) => {
+router.delete('/:categoryId', verifyToken, requireMerchant, async (req, res) => {
   try {
     await productService.deleteCategory(req.params.categoryId);
     res.json({ success: true, code: 200, message: '分类已删除' });
@@ -40,8 +40,10 @@ router.delete('/:categoryId', auth('merchant'), async (req, res) => {
   }
 });
 
-/** PUT /api/categories/sort — 分类排序（商家） */
-router.put('/sort', auth('merchant'), async (req, res) => {
+/** PUT /api/categories/sort — 分类排序（商家）
+ * TODO: PC 端分类管理页尚未实现拖拽排序 UI，接口已就绪，待前端接入
+ */
+router.put('/sort', verifyToken, requireMerchant, async (req, res) => {
   try {
     await productService.updateCategorySort(req.body.sorts || []);
     res.json({ success: true, code: 200, message: '排序更新成功' });

@@ -5,7 +5,7 @@ const db = require('../config/db');
 
 // ========== 商品 ==========
 
-async function getProducts({ categoryId, keyword, pageSize = 20, status } = {}) {
+async function getProducts({ categoryId, keyword, page = 1, pageSize = 20, status } = {}) {
   let sql = 'SELECT * FROM products WHERE 1=1';
   const params = [];
 
@@ -24,9 +24,10 @@ async function getProducts({ categoryId, keyword, pageSize = 20, status } = {}) 
     sql += " AND status = 'on'";
   }
 
+  const offset = (parseInt(page, 10) - 1) * parseInt(pageSize, 10);
   sql += ' ORDER BY sort ASC, create_time DESC';
-  sql += ' LIMIT ?';
-  params.push(parseInt(pageSize, 10));
+  sql += ' LIMIT ? OFFSET ?';
+  params.push(parseInt(pageSize, 10), Math.max(0, offset));
 
   return db.query(sql, params);
 }

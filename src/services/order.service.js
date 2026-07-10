@@ -34,99 +34,107 @@ async function createOrder({ openid, items, type, deliveryAddress, isScheduled, 
   // 2. 生成订单号
   const orderNo = await generateOrderNo();
 
-  // 3. 锁定库存（Redis Lua 原子操作）
-  // P0 阶段：每个商品一个库存锁，batch_no 默认 'default'
-  for (const item of validatedItems) {
-    const result = await stockService.lockStock(item.productId, 'default', item.quantity);
-    if (!result.success) {
-      // 回滚已锁定的库存
-      for (const locked of validatedItems) {
-        if (locked.productId === item.productId) break;
-        await stockService.releaseStock(locked.productId, 'default', locked.quantity);
-      }
-      throw new Error(result.message || '库存不足');
-    }
+  // 3. 批量锁定库存（Lua 原子操作：全部校验通过才统一扣减，失败自动回滚）
+  const batchLockResult = await stockService.lockStockBatch(
+    validatedItems.map(item => ({ goodsId: item.productId, qty: item.quantity }))
+  );
+  if (!batchLockResult.success) {
+    throw new Error(batchLockResult.message || '库存不足');
   }
 
-  // 4. 写入 MySQL 事务（order_info + order_item + stock_lock_record + payment_record）
-  const expireMinutes = config.business.payTimeoutMinute;
-  const expireTime = new Date(Date.now() + expireMinutes * 60 * 1000);
+  // 4-8. MySQL + 微信预下单（失败时释放 Redis 库存，防止幽灵库存泄漏）
+  try {
+    // 4. 写入 MySQL 事务（order_info + order_item + stock_lock_record + payment_record）
+    const expireMinutes = config.business.payTimeoutMinute;
+    const expireTime = new Date(Date.now() + expireMinutes * 60 * 1000);
 
-  await db.transaction(async (conn) => {
-    // 订单主表
-    await conn.execute(
-      `INSERT INTO order_info
-       (order_no, user_id, type, order_status, status_label, items,
-        total_amount, pay_amount, expire_time, is_scheduled, scheduled_date, scheduled_time,
-        delivery_address)
-       VALUES (?, ?, ?, 0, 'pending', ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        orderNo, openid, type,
-        JSON.stringify(validatedItems),
-        totalFen, totalFen,
-        expireTime,
-        isScheduled ? 1 : 0,
-        scheduledDate || '',
-        scheduledTime || '',
-        deliveryAddress ? JSON.stringify(deliveryAddress) : null,
-      ]
+    await db.transaction(async (conn) => {
+      // 订单主表
+      await conn.execute(
+        `INSERT INTO order_info
+         (order_no, user_id, type, order_status, status_label, items,
+          total_amount, pay_amount, expire_time, is_scheduled, scheduled_date, scheduled_time,
+          delivery_address)
+         VALUES (?, ?, ?, 0, 'pending', ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          orderNo, openid, type,
+          JSON.stringify(validatedItems),
+          totalFen, totalFen,
+          expireTime,
+          isScheduled ? 1 : 0,
+          scheduledDate || '',
+          scheduledTime || '',
+          deliveryAddress ? JSON.stringify(deliveryAddress) : null,
+        ]
+      );
+
+      // 库存锁定记录
+      for (const item of validatedItems) {
+        await conn.execute(
+          `INSERT INTO stock_lock_record
+           (order_no, goods_id, batch_no, lock_num, lock_status, expire_time)
+           VALUES (?, ?, 'default', ?, 1, ?)`,
+          [orderNo, item.productId, item.quantity, expireTime]
+        );
+      }
+
+      // 支付流水记录（待支付）
+      // 注：此时还没有 prepay_id，prepay_id 在预下单后更新
+    });
+
+    // 5. 微信支付 V3 JSAPI 预下单
+    const notifyUrl = config.notify.pay;
+    const payResult = await wxpay.jsapiPrepay({
+      appid: config.wx.appId,
+      out_trade_no: orderNo,
+      total: totalFen,
+      openid,
+      description: '小鲜鸡-新鲜生鲜',
+      notify_url: notifyUrl,
+    });
+
+    if (!payResult.success) {
+      // 预下单失败，但订单已创建保留为 pending
+      logger.error(`[order] 预下单失败: ${orderNo}`, payResult.error);
+      return {
+        orderNo,
+        payment: null,
+        payError: payResult.error,
+      };
+    }
+
+    // 6. 生成 wx.requestPayment 参数（二次签名）
+    const payment = wxpay.buildPayParams(payResult.prepay_id, config.wx.appId);
+
+    // 7. 更新 payment_record 的 prepay_id
+    await db.execute(
+      'INSERT INTO payment_record (order_no, prepay_id, pay_amount, pay_status, pay_type) VALUES (?, ?, ?, 0, 1)',
+      [orderNo, payResult.prepay_id, totalFen]
     );
 
-    // 库存锁定记录
-    for (const item of validatedItems) {
-      await conn.execute(
-        `INSERT INTO stock_lock_record
-         (order_no, goods_id, batch_no, lock_num, lock_status, expire_time)
-         VALUES (?, ?, 'default', ?, 1, ?)`,
-        [orderNo, item.productId, item.quantity, expireTime]
-      );
-    }
+    // 8. 加入 Redis 延时队列（超时关单用）
+    const timeoutScore = Date.now() + expireMinutes * 60 * 1000;
+    await redis.zadd('order:timeout:queue', timeoutScore, orderNo);
 
-    // 支付流水记录（待支付）
-    // 注：此时还没有 prepay_id，prepay_id 在预下单后更新
-  });
+    logger.info(`[order] 订单创建成功: ${orderNo}, 金额: ${totalFen}分`);
 
-  // 5. 微信支付 V3 JSAPI 预下单
-  const notifyUrl = config.notify.pay;
-  const payResult = await wxpay.jsapiPrepay({
-    appid: config.wx.appId,
-    out_trade_no: orderNo,
-    total: totalFen,
-    openid,
-    description: '小鲜鸡-新鲜生鲜',
-    notify_url: notifyUrl,
-  });
-
-  if (!payResult.success) {
-    // 预下单失败，但订单已创建保留为 pending
-    logger.error(`[order] 预下单失败: ${orderNo}`, payResult.error);
     return {
       orderNo,
-      payment: null,
-      payError: payResult.error,
+      payment,
     };
+  } catch (err) {
+    // MySQL 写入或微信预下单失败 → 释放所有已锁定的 Redis 库存
+    // 用 try/catch 包裹每个 releaseStock，防止一个失败影响其他
+    logger.error(`[order] 订单创建失败，释放 Redis 库存: ${orderNo}`, err.message);
+    for (const item of validatedItems) {
+      try {
+        await stockService.releaseStock(item.productId, 'default', item.quantity);
+      } catch (releaseErr) {
+        logger.error(`[order] 释放库存异常: goods=${item.productId}`, releaseErr.message);
+      }
+    }
+    throw err;
   }
-
-  // 6. 生成 wx.requestPayment 参数（二次签名）
-  const payment = wxpay.buildPayParams(payResult.prepay_id, config.wx.appId);
-
-  // 7. 更新 payment_record 的 prepay_id
-  await db.execute(
-    'INSERT INTO payment_record (order_no, prepay_id, pay_amount, pay_status, pay_type) VALUES (?, ?, ?, 0, 1)',
-    [orderNo, payResult.prepay_id, totalFen]
-  );
-
-  // 8. 加入 Redis 延时队列（超时关单用）
-  const timeoutScore = Date.now() + expireMinutes * 60 * 1000;
-  await redis.zadd('order:timeout:queue', timeoutScore, orderNo);
-
-  logger.info(`[order] 订单创建成功: ${orderNo}, 金额: ${totalFen}分`);
-
-  return {
-    orderId: orderNo,
-    orderNo,
-    payment,
-  };
 }
 
 // ========== 查询订单 ==========
@@ -134,7 +142,7 @@ async function createOrder({ openid, items, type, deliveryAddress, isScheduled, 
 /**
  * 用户订单列表
  */
-async function getUserOrders(openid, { status, pageSize = 20 } = {}) {
+async function getUserOrders(openid, { status, page = 1, pageSize = 20 } = {}) {
   let sql = 'SELECT * FROM order_info WHERE user_id = ? AND is_deleted = 0';
   const params = [openid];
 
@@ -144,8 +152,9 @@ async function getUserOrders(openid, { status, pageSize = 20 } = {}) {
     params.push(...statuses);
   }
 
-  sql += ' ORDER BY create_time DESC LIMIT ?';
-  params.push(parseInt(pageSize, 10));
+  const offset = (parseInt(page, 10) - 1) * parseInt(pageSize, 10);
+  sql += ' ORDER BY create_time DESC LIMIT ? OFFSET ?';
+  params.push(parseInt(pageSize, 10), Math.max(0, offset));
 
   return db.query(sql, params);
 }
@@ -186,16 +195,16 @@ async function getPayStatus(orderNo) {
 async function cancelOrder(orderNo, openid) {
   const order = await db.queryOne('SELECT * FROM order_info WHERE order_no = ?', [orderNo]);
   if (!order) throw new Error('订单不存在');
-  if (order.user_id !== openid) throw new Error('无权操作此订单');
+  if (order.userId !== openid) throw new Error('无权操作此订单');
 
   // 状态校验
   const cancelable = ['pending'];
-  if (!cancelable.includes(order.status_label)) {
+  if (!cancelable.includes(order.status)) {
     throw new Error('当前订单状态不可取消');
   }
 
   // 未支付：直接取消 + 释放库存
-  if (order.order_status === 0 && order.prepay_id) {
+  if (order.orderStatus === 0 && order.prepayId) {
     // 尝试关闭微信预支付单（best effort）
     await wxpay.closeOrder(orderNo);
   }

@@ -28,15 +28,15 @@ async function handleWeigh({ orderNo, actualWeight, weighPhoto, cardNumber, staf
   }
 
   // 2. 自动检测是否为退款重试
-  const detectedRetry = order.status_label === 'weighed' &&
+  const detectedRetry = order.status === 'weighed' &&
     (order.refund_status === 'failed' ||
      (order.refund_info && order.refund_info.status === 'failed'));
   const effectiveRetry = isRetry || detectedRetry;
 
   // 3. 状态校验
   if (!effectiveRetry) {
-    if (order.status_label !== 'accepted') {
-      return { success: false, error: `当前状态 [${order.status_label}] 不可称重` };
+    if (order.status !== 'accepted') {
+      return { success: false, error: `当前状态 [${order.status}] 不可称重` };
     }
   }
 
@@ -59,14 +59,50 @@ async function handleWeigh({ orderNo, actualWeight, weighPhoto, cardNumber, staf
     pricePerJin = Math.round((item.unitPrice - processingFee) * 500 / weightMax);
   }
 
-  const prepayAmount = order.pay_amount || 0;
+  // 兜底：items 中价格缺失时，回源查 products 表获取当前定价
+  if (!pricePerJin && item.productId && pricingType === 'range_weight') {
+    logger.warn(`[weigh] 订单items缺价格，回源查products: order=${orderNo} goods=${item.productId}`);
+    const product = await db.queryOne(
+      'SELECT price_per_jin, specs, processing_fee FROM products WHERE id = ?',
+      [item.productId]
+    );
+    if (product) {
+      // 优先查 specs 中匹配规格的价格
+      if (product.specs) {
+        const productSpecs = typeof product.specs === 'string' ? JSON.parse(product.specs) : product.specs;
+        if (Array.isArray(productSpecs)) {
+          const matchedSpec = productSpecs.find(s => s.type === (spec.type || ''));
+          if (matchedSpec && matchedSpec.price_per_jin) {
+            pricePerJin = matchedSpec.price_per_jin;
+            processingFee = processingFee || matchedSpec.processing_fee || product.processingFee || 0;
+          }
+        }
+      }
+      // 兜底：用 products.price_per_jin
+      if (!pricePerJin && product.pricePerJin) {
+        pricePerJin = product.pricePerJin;
+        processingFee = processingFee || product.processingFee || 0;
+      }
+      if (pricePerJin) {
+        logger.info(`[weigh] 回源定价成功: goods=${item.productId} pricePerJin=${pricePerJin}`);
+      }
+    }
+  }
+
+  // 最终校验：按重计价商品必须有有效单价，pricePerJin=0 会导致退全款
+  if (pricingType === 'range_weight' && !pricePerJin) {
+    logger.error(`[weigh] 商品定价缺失: order=${orderNo} goods=${item.productId}`);
+    return { success: false, error: '商品定价信息缺失，无法称重计价，请联系管理员' };
+  }
+
+  const prepayAmount = order.payAmount || 0;
 
   // 5. 计算金额
   let actualAmount, refundAmount;
 
   if (effectiveRetry) {
-    actualAmount = order.actual_amount || 0;
-    refundAmount = order.refund_amount || 0;
+    actualAmount = order.actualAmount || 0;
+    refundAmount = order.refundAmount || 0;
     if (!refundAmount && pricingType === 'range_weight') {
       actualAmount = Math.floor((actualWeight / 500) * pricePerJin + processingFee);
       refundAmount = Math.max(0, prepayAmount - actualAmount);
@@ -80,17 +116,8 @@ async function handleWeigh({ orderNo, actualWeight, weighPhoto, cardNumber, staf
     refundAmount = 0;
   }
 
-  // 6. 初次称重：绑定号码牌 + 写订单
+  // 6. 初次称重：号码牌绑定 + 写订单（同一事务，失败全部回滚）
   if (!effectiveRetry) {
-    // 原子绑定号码牌
-    const updateRes = await db.execute(
-      "UPDATE pai_numbers SET status = 'in_use', order_id = ? WHERE number = ? AND status = 'idle'",
-      [orderNo, cardNumber]
-    );
-    if (updateRes === 0) {
-      return { success: false, error: '该号码牌已被使用，请重新选择' };
-    }
-
     // 构建 weighInfo / refundInfo
     const actualWeightJin = parseFloat((actualWeight / 500).toFixed(2));
     const weighInfo = {
@@ -108,7 +135,8 @@ async function handleWeigh({ orderNo, actualWeight, weighPhoto, cardNumber, staf
       pricingType,
     };
 
-    const refundNoStr = refundAmount > 0 ? ('REF' + orderNo + '_' + Date.now()) : '';
+    // outRefundNo 使用固定格式（不含时间戳），数据库唯一约束兜底防重
+    const refundNoStr = refundAmount > 0 ? (orderNo + '_WEIGH') : '';
     const refundInfo = {
       refundNo: refundNoStr,
       refundAmount,
@@ -118,26 +146,73 @@ async function handleWeigh({ orderNo, actualWeight, weighPhoto, cardNumber, staf
       successTime: '',
     };
 
-    // 更新订单
-    await db.execute(
-      `UPDATE order_info SET status_label = 'weighed', actual_weight = ?, actual_amount = ?,
-       refund_amount = ?, weigh_info = ?, refund_info = ?, refund_status = ?,
-       card_number = ?, weigh_time = NOW() WHERE order_no = ?`,
-      [
-        actualWeight, actualAmount, refundAmount,
-        JSON.stringify(weighInfo), JSON.stringify(refundInfo),
-        refundAmount > 0 ? 'processing' : 'none',
-        cardNumber, orderNo,
-      ]
-    );
+    // 事务包裹：号码牌绑定 + 订单更新 → 全部成功或全部回滚
+    // UPDATE 加 status_label='accepted' 防止双店员重复称重
+    try {
+      await db.transaction(async (conn) => {
+        const [plateResult] = await conn.execute(
+          "UPDATE pai_numbers SET status = 'in_use', order_id = ? WHERE number = ? AND status = 'idle'",
+          [orderNo, cardNumber]
+        );
+        if (plateResult.affectedRows === 0) {
+          throw Object.assign(new Error('该号码牌已被使用，请重新选择'), { code: 'PLATE_TAKEN' });
+        }
+
+        const [orderResult] = await conn.execute(
+          `UPDATE order_info SET status_label = 'weighed', actual_weight = ?, actual_amount = ?,
+           refund_amount = ?, weigh_info = ?, refund_info = ?, refund_status = ?,
+           card_number = ?, weigh_time = NOW() WHERE order_no = ? AND status_label = 'accepted'`,
+          [
+            actualWeight, actualAmount, refundAmount,
+            JSON.stringify(weighInfo), JSON.stringify(refundInfo),
+            refundAmount > 0 ? 'processing' : 'none',
+            cardNumber, orderNo,
+          ]
+        );
+        if (orderResult.affectedRows === 0) {
+          throw Object.assign(new Error('订单已被处理，请刷新页面'), { code: 'ORDER_PROCESSED' });
+        }
+      });
+    } catch (err) {
+      if (err.code === 'PLATE_TAKEN') {
+        return { success: false, error: err.message };
+      }
+      if (err.code === 'ORDER_PROCESSED') {
+        return { success: false, error: err.message };
+      }
+      logger.error('[weigh] 称重事务失败:', err.message);
+      throw err;
+    }
   }
 
   // 7. 调用微信退款 API（V3）
   let refundStatus = refundAmount > 0 ? 'processing' : 'none';
 
   if (refundAmount > 0) {
-    const outRefundNo = orderNo + (effectiveRetry ? '_retry_' : '_refund_') + Date.now();
+    // 固定退款单号（不含时间戳），利用 refund_record.refund_no UNIQUE 约束数据库层兜底防重
+    const outRefundNo = orderNo + '_WEIGH';
 
+    // ===== 幂等检查：查退款记录是否已终态 =====
+    const existingRefund = await db.queryOne(
+      'SELECT refund_no, refund_status, refund_id FROM refund_record WHERE refund_no = ?',
+      [outRefundNo]
+    );
+
+    if (existingRefund && existingRefund.refund_status === 1) {
+      // 已成功退款，直接返回（幂等）
+      logger.info(`[weigh] 退款已成功处理，跳过: ${outRefundNo}`);
+      refundStatus = 'success';
+      return {
+        success: true,
+        actualWeight,
+        actualAmount,
+        refundAmount,
+        refundStatus,
+        cardNumber: cardNumber || order.cardNumber || '',
+      };
+    }
+
+    // 首次退款或重试，均使用同一个 outRefundNo
     try {
       const refundResult = await wxpay.createRefund({
         out_trade_no: orderNo,
@@ -147,16 +222,27 @@ async function handleWeigh({ orderNo, actualWeight, weighPhoto, cardNumber, staf
         reason: effectiveRetry ? '称重差额退款（重试）' : '称重差额退款',
       });
 
-      // 写入退款流水
-      await db.insert(
-        `INSERT INTO refund_record (refund_no, order_no, refund_amount, total_amount, refund_reason, refund_status, apply_user)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [
-          outRefundNo, orderNo, refundAmount, prepayAmount,
-          effectiveRetry ? '称重差额退款（重试）' : '称重差额退款',
-          0, staffId || 0,
-        ]
-      );
+      // 写入退款流水（仅在首次时 INSERT；refund_no UNIQUE 约束兜底防重复插入）
+      if (!existingRefund) {
+        try {
+          await db.insert(
+            `INSERT INTO refund_record (refund_no, order_no, refund_amount, total_amount, refund_reason, refund_status, apply_user)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [
+              outRefundNo, orderNo, refundAmount, prepayAmount,
+              effectiveRetry ? '称重差额退款（重试）' : '称重差额退款',
+              0, staffId || 0,
+            ]
+          );
+        } catch (insertErr) {
+          // INSERT 失败通常是唯一约束冲突（并发写入），忽略继续
+          if (insertErr.message && insertErr.message.includes('Duplicate')) {
+            logger.warn(`[weigh] refund_record 并发写入冲突，忽略: ${outRefundNo}`);
+          } else {
+            throw insertErr;
+          }
+        }
+      }
 
       if (refundResult.success) {
         // 同步：退款申请成功，更新 refund_id
@@ -178,6 +264,17 @@ async function handleWeigh({ orderNo, actualWeight, weighPhoto, cardNumber, staf
           [orderNo]
         );
         refundStatus = 'failed';
+
+        // 写入退款告警记录（店员可在 PC 端首页看到待处理角标）
+        try {
+          await db.insert(
+            `INSERT INTO refund_alert (order_no, refund_no, refund_amount, alert_type, error_message)
+             VALUES (?, ?, ?, 'weigh_refund_failed', ?)`,
+            [orderNo, outRefundNo, refundAmount, (refundResult.error || '退款API返回失败')]
+          );
+        } catch (alertErr) {
+          logger.error('[weigh] 写入退款告警失败:', alertErr.message);
+        }
       }
     } catch (err) {
       logger.error('[weigh] 退款API调用失败:', err.message);
@@ -186,6 +283,17 @@ async function handleWeigh({ orderNo, actualWeight, weighPhoto, cardNumber, staf
         [orderNo]
       );
       refundStatus = 'failed';
+
+      // 写入退款告警记录
+      try {
+        await db.insert(
+          `INSERT INTO refund_alert (order_no, refund_no, refund_amount, alert_type, error_message)
+           VALUES (?, ?, ?, 'weigh_refund_failed', ?)`,
+          [orderNo, outRefundNo, refundAmount, err.message]
+        );
+      } catch (alertErr) {
+        logger.error('[weigh] 写入退款告警失败:', alertErr.message);
+      }
 
       if (effectiveRetry) {
         return { success: false, error: '退款失败: ' + err.message };
@@ -201,7 +309,7 @@ async function handleWeigh({ orderNo, actualWeight, weighPhoto, cardNumber, staf
     actualAmount,
     refundAmount,
     refundStatus,
-    cardNumber: cardNumber || order.card_number || '',
+    cardNumber: cardNumber || order.cardNumber || '',
   };
 }
 

@@ -59,4 +59,39 @@ async function getAccessToken() {
   }
 }
 
-module.exports = { code2session, getAccessToken };
+/**
+ * 解密手机号（wx.getPhoneNumber 返回的 code）
+ * @param {string} code — 前端 wx.getPhoneNumber 获取的动态令牌
+ * @returns {Promise<{phone: string, countryCode: string, purePhoneNumber: string}>}
+ */
+async function getPhoneNumber(code) {
+  const accessToken = await getAccessToken();
+  const url = `https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=${accessToken}`;
+
+  try {
+    const res = await axios.post(url, { code }, { timeout: 10000 });
+
+    if (res.data.errcode === 40029) {
+      throw new Error('phoneCode 无效或已过期，请重新授权');
+    }
+    if (res.data.errcode) {
+      logger.error('[wechat] 获取手机号失败:', res.data);
+      throw new Error(`获取手机号失败: ${res.data.errmsg || '未知错误'} (${res.data.errcode})`);
+    }
+
+    const phoneInfo = res.data.phone_info || {};
+    return {
+      phone: phoneInfo.purePhoneNumber || phoneInfo.phoneNumber || '',
+      countryCode: phoneInfo.countryCode || '86',
+      purePhoneNumber: phoneInfo.purePhoneNumber || '',
+    };
+  } catch (err) {
+    if (err.message && !err.message.includes('获取手机号失败')) {
+      throw err;
+    }
+    logger.error('[wechat] 获取手机号网络错误:', err.message);
+    throw new Error('手机号授权网络异常，请重试');
+  }
+}
+
+module.exports = { code2session, getAccessToken, getPhoneNumber };

@@ -1,18 +1,38 @@
 /**
  * 商家端路由 /api/merchant/*
+ *
+ * 所有接口统一鉴权：verifyToken + requireMerchant
+ * 账号管理路由已独立到 merchant-account.routes.js
  */
 const router = require('express').Router();
 const db = require('../config/db');
 const weighService = require('../services/weigh.service');
 const wxpay = require('../utils/wxpay');
 const logger = require('../utils/logger');
+const { validateOrderNo } = require('../utils/validate');
+const { verifyToken, requireMerchant } = require('../middleware/auth');
+
+// ========== 全局商家鉴权 ==========
+// 所有 /api/merchant/* 接口必须通过 JWT 验证 + 来源校验
+router.use(verifyToken, requireMerchant);
+
+// ========== 订单状态流转规则 ==========
+// 每个 action 的前置条件：订单必须在对应状态才能执行
+const STATE_RULES = {
+  accept:   { require: ['paid'],       nextLabel: 'accepted' },
+  process:  { require: ['weighed'],    nextLabel: 'processing' },
+  ready:    { require: ['processing'], nextLabel: 'ready' },
+  deliver:  { require: ['ready'],      nextLabel: 'delivering', requireType: 'delivery' },
+  complete: { require: ['delivering', 'ready'], nextLabel: 'completed', nextStatus: 3 },
+  markPaid: { require: ['ready'],      nextLabel: 'paid',      nextStatus: 1 },
+};
 
 /**
  * GET /api/merchant/orders — 商家订单列表
  */
 router.get('/orders', async (req, res) => {
   try {
-    const { status, type, dateFrom, dateTo, pageSize = 50 } = req.query;
+    const { status, type, dateFrom, dateTo, page = 1, pageSize = 50 } = req.query;
     let sql = 'SELECT * FROM order_info WHERE is_deleted = 0';
     const params = [];
 
@@ -34,8 +54,9 @@ router.get('/orders', async (req, res) => {
       params.push(dateTo + ' 23:59:59');
     }
 
-    sql += ' ORDER BY create_time DESC LIMIT ?';
-    params.push(parseInt(pageSize, 10));
+    const offset = (parseInt(page, 10) - 1) * parseInt(pageSize, 10);
+    sql += ' ORDER BY create_time DESC LIMIT ? OFFSET ?';
+    params.push(parseInt(pageSize, 10), Math.max(0, offset));
 
     const orders = await db.query(sql, params);
     res.json({ success: true, code: 200, data: { orders } });
@@ -82,45 +103,89 @@ router.post('/offline-orders', async (req, res) => {
 /**
  * POST /api/merchant/orders/:orderNo/:action — 商家操作
  * action: accept | process | ready | deliver | complete | markPaid
+ *
+ * 每次操作都会校验：
+ *   1. 订单是否存在
+ *   2. 当前状态 → 目标状态是否合法（防跳过流程）
+ *   3. 配送操作需匹配订单类型
  */
 router.post('/orders/:orderNo/:action', async (req, res) => {
   try {
     const { orderNo, action } = req.params;
+    const rule = STATE_RULES[action];
 
-    const actionMap = {
-      accept: { status_label: 'accepted', timeField: 'accept_time' },
-      process: { status_label: 'processing', timeField: 'process_time' },
-      ready: { status_label: 'ready', timeField: 'ready_time' },
-      deliver: { status_label: 'delivering', timeField: 'deliver_time' },
-      complete: { status_label: 'completed', timeField: 'complete_time', order_status: 3 },
-      markPaid: { order_status: 1, status_label: 'paid', timeField: 'pay_time' },
-    };
-
-    const mapping = actionMap[action];
-    if (!mapping) {
+    if (!rule) {
       return res.status(400).json({ success: false, code: 400, message: '未知操作' });
     }
 
+    const v = validateOrderNo(orderNo);
+    if (!v.valid) return res.status(400).json({ success: false, code: 400, message: v.error });
+
+    // 查订单当前状态
+    const order = await db.queryOne(
+      'SELECT order_no, status_label, type FROM order_info WHERE order_no = ?',
+      [orderNo]
+    );
+    if (!order) {
+      return res.status(404).json({ success: false, code: 404, message: '订单不存在' });
+    }
+
+    // 状态校验：当前状态必须在允许列表中
+    if (!rule.require.includes(order.status)) {
+      return res.status(400).json({
+        success: false, code: 400,
+        message: `订单状态「${order.status}」不允许执行此操作，请先完成上一步`,
+      });
+    }
+
+    // 订单类型校验
+    if (rule.requireType && order.type !== rule.requireType) {
+      return res.status(400).json({
+        success: false, code: 400,
+        message: `此操作仅适用于「${rule.requireType === 'delivery' ? '配送' : '自取'}」订单`,
+      });
+    }
+
+    // 通过校验 → 执行状态更新（原子条件：加 status_label 防止 TOCTOU 竞态）
     const updates = [];
     const params = [];
 
-    if (mapping.status_label) {
-      updates.push("status_label = ?");
-      params.push(mapping.status_label);
+    if (rule.nextLabel) {
+      updates.push('status_label = ?');
+      params.push(rule.nextLabel);
     }
-    if (mapping.order_status !== undefined) {
-      updates.push("order_status = ?");
-      params.push(mapping.order_status);
-    }
-    if (mapping.timeField) {
-      updates.push(`${mapping.timeField} = NOW()`);
+    if (rule.nextStatus !== undefined) {
+      updates.push('order_status = ?');
+      params.push(rule.nextStatus);
     }
 
-    params.push(orderNo);
-    await db.execute(
-      `UPDATE order_info SET ${updates.join(', ')} WHERE order_no = ?`,
+    // 时间戳字段（标记操作时间）
+    const timeFieldMap = {
+      accept: 'accept_time', process: 'process_time', ready: 'ready_time',
+      deliver: 'deliver_time', complete: 'complete_time', markPaid: 'pay_time',
+    };
+    const timeField = timeFieldMap[action];
+    if (timeField) {
+      updates.push(`${timeField} = NOW()`);
+    }
+
+    // 状态前置条件：UPDATE 带 status_label 防 TOCTOU 竞态
+    params.push(orderNo);              // WHERE order_no = ?
+    params.push(rule.require[0]);      // WHERE status_label = ?
+
+    const [updateResult] = await db.execute(
+      `UPDATE order_info SET ${updates.join(', ')} WHERE order_no = ? AND status_label = ?`,
       params
     );
+
+    if (updateResult.affectedRows === 0) {
+      return res.status(409).json({
+        success: false, code: 409,
+        message: '订单状态已变更，请刷新页面后重试',
+      });
+    }
+
+    logger.info(`[merchant] ${action} → ${orderNo} (${order.status} → ${rule.nextLabel})`);
 
     res.json({ success: true, code: 200, message: '操作成功' });
   } catch (err) {
@@ -183,6 +248,84 @@ router.post('/orders/:orderNo/refund', async (req, res) => {
   } catch (err) {
     logger.error('[merchant] 退款重试失败:', err.message);
     res.status(500).json({ success: false, code: 500, message: err.message || '退款失败' });
+  }
+});
+
+/**
+ * GET /api/merchant/refund-alerts — 退款告警列表/计数
+ *
+ * 供 PC 商家端首页「待处理退款」角标使用
+ * ?type=count → 只返回未处理数量；?type=list → 返回详细列表
+ */
+router.get('/refund-alerts', async (req, res) => {
+  try {
+    const { type = 'count' } = req.query;
+
+    if (type === 'count') {
+      const row = await db.queryOne(
+        "SELECT COUNT(*) AS count FROM refund_alert WHERE status = 0"
+      );
+      res.json({ success: true, code: 200, data: { count: row ? row.count : 0 } });
+    } else {
+      const alerts = await db.query(
+        "SELECT * FROM refund_alert WHERE status = 0 ORDER BY create_time DESC LIMIT 50"
+      );
+      res.json({ success: true, code: 200, data: { alerts } });
+    }
+  } catch (err) {
+    logger.error('[merchant] 退款告警查询失败:', err.message);
+    res.status(500).json({ success: false, code: 500, message: err.message });
+  }
+});
+
+/**
+ * PATCH /api/merchant/refund-alerts/:id — 标记告警为已处理/已忽略
+ */
+router.patch('/refund-alerts/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status = 1 } = req.body; // 1=已处理, 2=已忽略
+
+    if (![1, 2].includes(status)) {
+      return res.status(400).json({ success: false, code: 400, message: '无效状态' });
+    }
+
+    await db.execute(
+      'UPDATE refund_alert SET status = ?, resolved_by = ?, resolved_at = NOW() WHERE id = ?',
+      [status, req.user.openid, id]
+    );
+
+    res.json({ success: true, code: 200, message: '已更新' });
+  } catch (err) {
+    logger.error('[merchant] 退款告警更新失败:', err.message);
+    res.status(500).json({ success: false, code: 500, message: err.message });
+  }
+});
+
+/**
+ * GET /api/merchant/products — 商家端商品列表（支持关键词搜索）
+ * 挂载在 /api/merchant 下，自带 verifyToken + requireMerchant 鉴权
+ */
+router.get('/products', async (req, res) => {
+  try {
+    const { keyword, page = 1, pageSize = 50 } = req.query;
+    let sql = 'SELECT * FROM products WHERE 1=1';
+    const params = [];
+
+    if (keyword) {
+      sql += ' AND (name LIKE ? OR selling_point LIKE ?)';
+      params.push(`%${keyword}%`, `%${keyword}%`);
+    }
+
+    const offset = (parseInt(page, 10) - 1) * parseInt(pageSize, 10);
+    sql += ' ORDER BY sales DESC LIMIT ? OFFSET ?';
+    params.push(parseInt(pageSize, 10), Math.max(0, offset));
+
+    const products = await db.query(sql, params);
+    res.json({ success: true, code: 200, data: { products } });
+  } catch (err) {
+    logger.error('[merchant] 商品列表失败:', err.message);
+    res.status(500).json({ success: false, code: 500, message: err.message });
   }
 });
 
