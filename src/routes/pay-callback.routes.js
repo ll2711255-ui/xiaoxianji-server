@@ -62,7 +62,7 @@ router.post('/', async (req, res) => {
   // APIv3 格式：解密 resource
   if (body.resource && body.resource.ciphertext) {
     try {
-      const resourceData = wxpay.decryptResource(
+      const resourceData = await wxpay.decryptResource(
         body.resource.ciphertext,
         body.resource.nonce,
         body.resource.associated_data || ''
@@ -186,7 +186,7 @@ router.post('/refund', async (req, res) => {
 
   if (body.resource && body.resource.ciphertext) {
     try {
-      refundData = wxpay.decryptResource(
+      refundData = await wxpay.decryptResource(
         body.resource.ciphertext,
         body.resource.nonce,
         body.resource.associated_data || ''

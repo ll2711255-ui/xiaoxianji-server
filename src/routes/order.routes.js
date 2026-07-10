@@ -190,7 +190,7 @@ router.post('/:orderNo/pay', async (req, res) => {
       return res.status(500).json({ success: false, code: 500, message: result.error });
     }
 
-    const payment = wxpay.buildPayParams(result.prepay_id, config.wx.appId);
+    const payment = await wxpay.buildPayParams(result.prepay_id, config.wx.appId);
 
     await require('../config/db').execute(
       'UPDATE order_info SET prepay_id = ? WHERE order_no = ?',

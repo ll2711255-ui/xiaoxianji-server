@@ -8,22 +8,103 @@
  *   - 回调签名验证 / AES-256-GCM 解密
  *   - wx.requestPayment 二次签名
  *
- * 对标现有 cloudfunctions/createOrder/payHelper.js 实现
+ * 配置来源（优先级）：
+ *   1. payment_methods 表（is_default=1 且 enabled=1 的 wechat 记录）
+ *   2. .env 环境变量（兜底）
+ *   配置缓存 5 分钟，调用 clearPayConfigCache() 强制刷新。
  */
 const crypto = require('crypto');
 const https = require('https');
 const config = require('../config');
 const logger = require('./logger');
 
-const MCHID = config.wxpay.mchId;
-const SERIAL_NO = config.wxpay.serialNo;
-const APIv3_KEY = config.wxpay.apiV3Key;
-const PRIVATE_KEY = config.wxpay.privateKey;
+// ========== 支付配置缓存 ==========
+
+let cachedPayConfig = null;
+let cacheExpiresAt = 0;
+const CACHE_TTL = 300000; // 5 分钟
+
+/**
+ * 获取当前生效的微信支付配置
+ *
+ * 优先级：payment_methods 表（默认启用的微信记录）→ .env 兜底
+ * 结果缓存 5 分钟，减少数据库查询。
+ *
+ * @returns {Promise<{mchId:string, serialNo:string, apiV3Key:string, privateKey:string, appId:string, appSecret:string, source:'database'|'env'}>}
+ */
+async function getPayConfig() {
+  if (cachedPayConfig && Date.now() < cacheExpiresAt) {
+    return cachedPayConfig;
+  }
+
+  try {
+    const db = require('../config/db');
+
+    // 优先取默认启用的微信支付方式
+    let row = await db.queryOne(
+      `SELECT * FROM payment_methods
+       WHERE channel = 'wechat' AND enabled = 1 AND is_default = 1
+       LIMIT 1`
+    );
+    // 没有默认则取任意启用的微信
+    if (!row) {
+      row = await db.queryOne(
+        `SELECT * FROM payment_methods
+         WHERE channel = 'wechat' AND enabled = 1
+         LIMIT 1`
+      );
+    }
+
+    if (row && row.mchid && row.apiKey && row.keyPem) {
+      cachedPayConfig = {
+        mchId: row.mchid,
+        serialNo: row.serialNo || '',
+        apiV3Key: row.apiKey,
+        privateKey: (row.keyPem || '').replace(/\\n/g, '\n'),
+        appId: row.appId || config.wx.appId,
+        appSecret: row.appSecret || config.wx.appSecret,
+        source: 'database',
+      };
+      logger.info('[wxpay] 配置来源: payment_methods 表');
+    } else {
+      cachedPayConfig = _envConfig();
+      logger.info('[wxpay] 配置来源: .env 环境变量');
+    }
+  } catch (err) {
+    logger.warn('[wxpay] 从数据库读取支付配置失败，回退到 .env:', err.message);
+    cachedPayConfig = _envConfig();
+  }
+
+  cacheExpiresAt = Date.now() + CACHE_TTL;
+  return cachedPayConfig;
+}
+
+/** .env 兜底配置 */
+function _envConfig() {
+  return {
+    mchId: config.wxpay.mchId,
+    serialNo: config.wxpay.serialNo,
+    apiV3Key: config.wxpay.apiV3Key,
+    privateKey: config.wxpay.privateKey,
+    appId: config.wx.appId,
+    appSecret: config.wx.appSecret,
+    source: 'env',
+  };
+}
+
+/** 清除配置缓存（支付方式变更后调用） */
+function clearPayConfigCache() {
+  cachedPayConfig = null;
+  cacheExpiresAt = 0;
+  logger.info('[wxpay] 配置缓存已清除');
+}
 
 // ========== 环境变量检查 ==========
-function checkConfig() {
-  if (!MCHID || !PRIVATE_KEY) {
-    logger.warn('[wxpay] ⚠️ 支付密钥环境变量未配置！请设置 WXPAY_MCHID, WXPAY_SERIAL_NO, WXPAY_APIv3_KEY, WXPAY_PRIVATE_KEY');
+
+async function checkConfig() {
+  const cfg = await getPayConfig();
+  if (!cfg.mchId || !cfg.privateKey) {
+    logger.warn('[wxpay] ⚠️ 支付密钥未配置！请在 payment_methods 表或 .env 中设置微信支付参数');
     return false;
   }
   return true;
@@ -34,16 +115,16 @@ function checkConfig() {
 /**
  * 构建 WECHATPAY2-SHA256-RSA2048 Authorization 头
  */
-function buildAuth(method, urlPath, body) {
+function buildAuth(cfg, method, urlPath, body) {
   const ts = Math.floor(Date.now() / 1000).toString();
   const nonce = crypto.randomBytes(16).toString('hex');
   const msg = method + '\n' + urlPath + '\n' + ts + '\n' + nonce + '\n' + (body || '') + '\n';
-  const sig = crypto.createSign('RSA-SHA256').update(msg).sign(PRIVATE_KEY, 'base64');
+  const sig = crypto.createSign('RSA-SHA256').update(msg).sign(cfg.privateKey, 'base64');
   return (
-    'WECHATPAY2-SHA256-RSA2048 mchid="' + MCHID +
+    'WECHATPAY2-SHA256-RSA2048 mchid="' + cfg.mchId +
     '",nonce_str="' + nonce +
     '",timestamp="' + ts +
-    '",serial_no="' + SERIAL_NO +
+    '",serial_no="' + cfg.serialNo +
     '",signature="' + sig + '"'
   );
 }
@@ -51,13 +132,18 @@ function buildAuth(method, urlPath, body) {
 // ========== APIv3 通用请求 ==========
 
 /**
- * 发起 APIv3 请求
+ * 发起 APIv3 请求（自动加载支付配置）
  * @param {'GET'|'POST'} method
  * @param {string} path - 接口路径（如 /v3/pay/transactions/jsapi）
  * @param {object} body - 请求体（POST 时）
  * @returns {Promise<{status: number, data: object|string}>}
  */
-function v3Request(method, path, body) {
+async function v3Request(method, path, body) {
+  const cfg = await getPayConfig();
+  return _doRequest(cfg, method, path, body);
+}
+
+function _doRequest(cfg, method, path, body) {
   return new Promise((resolve, reject) => {
     const bodyStr = body ? JSON.stringify(body) : '';
     const options = {
@@ -67,7 +153,7 @@ function v3Request(method, path, body) {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Authorization': buildAuth(method, path, bodyStr),
+        'Authorization': buildAuth(cfg, method, path, bodyStr),
         'User-Agent': 'XiaoXianJi/1.0',
       },
     };
@@ -101,13 +187,19 @@ function v3Request(method, path, body) {
  *   timeStamp\n
  *   nonceStr\n
  *   prepay_id=xxx\n
+ *
+ * @param {string} prepayId - JSAPI 预下单返回的 prepay_id
+ * @param {string} [appId] - 小程序 AppID（不传则从支付配置中读取）
+ * @returns {Promise<{timeStamp:string, nonceStr:string, package:string, signType:string, paySign:string}>}
  */
-function buildPayParams(prepayId, appId) {
+async function buildPayParams(prepayId, appId) {
+  const cfg = await getPayConfig();
+  const effectiveAppId = appId || cfg.appId;
   const ts = Math.floor(Date.now() / 1000).toString();
   const nonce = crypto.randomBytes(16).toString('hex');
   const pkg = 'prepay_id=' + prepayId;
-  const msg = appId + '\n' + ts + '\n' + nonce + '\n' + pkg + '\n';
-  const paySign = crypto.createSign('RSA-SHA256').update(msg).sign(PRIVATE_KEY, 'base64');
+  const msg = effectiveAppId + '\n' + ts + '\n' + nonce + '\n' + pkg + '\n';
+  const paySign = crypto.createSign('RSA-SHA256').update(msg).sign(cfg.privateKey, 'base64');
   return {
     timeStamp: ts,
     nonceStr: nonce,
@@ -130,9 +222,11 @@ function buildPayParams(prepayId, appId) {
  * @param {string} params.notify_url - 回调地址
  */
 async function jsapiPrepay({ appid, out_trade_no, total, openid, description, notify_url }) {
+  const cfg = await getPayConfig();
+
   const apiBody = {
     appid,
-    mchid: MCHID,
+    mchid: cfg.mchId,
     description: description || '小鲜鸡-新鲜生鲜',
     out_trade_no,
     notify_url,
@@ -141,10 +235,10 @@ async function jsapiPrepay({ appid, out_trade_no, total, openid, description, no
   };
 
   logger.info('[wxpay] JSAPI 预下单:', JSON.stringify({
-    appid, mchid: MCHID, out_trade_no, total, openid,
+    appid, mchid: cfg.mchId, out_trade_no, total, openid,
   }));
 
-  const result = await v3Request('POST', '/v3/pay/transactions/jsapi', apiBody);
+  const result = await _doRequest(cfg, 'POST', '/v3/pay/transactions/jsapi', apiBody);
 
   if (result.status === 200 && result.data && result.data.prepay_id) {
     logger.info('[wxpay] 预下单成功 prepay_id:', result.data.prepay_id);
@@ -163,10 +257,11 @@ async function jsapiPrepay({ appid, out_trade_no, total, openid, description, no
  * @param {string} outTradeNo - 商户订单号
  */
 async function queryOrder(outTradeNo) {
-  const path = '/v3/pay/transactions/out-trade-no/' + outTradeNo + '?mchid=' + MCHID;
+  const cfg = await getPayConfig();
+  const path = '/v3/pay/transactions/out-trade-no/' + outTradeNo + '?mchid=' + cfg.mchId;
   logger.info('[wxpay] 查询订单:', outTradeNo);
 
-  const result = await v3Request('GET', path);
+  const result = await _doRequest(cfg, 'GET', path);
 
   if (result.status === 200 && result.data) {
     return {
@@ -188,10 +283,11 @@ async function queryOrder(outTradeNo) {
  * @param {string} outTradeNo - 商户订单号
  */
 async function closeOrder(outTradeNo) {
+  const cfg = await getPayConfig();
   const path = '/v3/pay/transactions/out-trade-no/' + outTradeNo + '/close';
   logger.info('[wxpay] 关闭订单:', outTradeNo);
 
-  const result = await v3Request('POST', path, { mchid: MCHID });
+  const result = await _doRequest(cfg, 'POST', path, { mchid: cfg.mchId });
 
   // 204 No Content 表示成功
   if (result.status === 204 || result.status === 200) {
@@ -295,7 +391,7 @@ async function fetchPlatformCertificates() {
 
   for (const cert of result.data.data) {
     const ec = cert.encrypt_certificate;
-    const pem = decryptResource(ec.ciphertext, ec.nonce, ec.associated_data || '');
+    const pem = await decryptResource(ec.ciphertext, ec.nonce, ec.associated_data || '');
 
     certCache.set(cert.serial_no, {
       publicKey: crypto.createPublicKey(pem),
@@ -387,16 +483,17 @@ async function verifyCallbackSign(headers, rawBody) {
  * @param {string} ciphertext - Base64 密文
  * @param {string} nonce - 随机串
  * @param {string} associatedData - 附加数据（通常为空）
- * @returns {object} 解密后的 JSON 对象
+ * @returns {Promise<object>} 解密后的 JSON 对象
  */
-function decryptResource(ciphertext, nonce, associatedData = '') {
+async function decryptResource(ciphertext, nonce, associatedData = '') {
+  const cfg = await getPayConfig();
   const ciphertextBuf = Buffer.from(ciphertext, 'base64');
   const authTag = ciphertextBuf.slice(ciphertextBuf.length - 16);
   const data = ciphertextBuf.slice(0, ciphertextBuf.length - 16);
 
   const decipher = crypto.createDecipheriv(
     'aes-256-gcm',
-    Buffer.from(APIv3_KEY),
+    Buffer.from(cfg.apiV3Key),
     Buffer.from(nonce, 'utf8')
   );
   decipher.setAuthTag(authTag);
@@ -407,8 +504,9 @@ function decryptResource(ciphertext, nonce, associatedData = '') {
 }
 
 module.exports = {
-  MCHID,
   checkConfig,
+  getPayConfig,
+  clearPayConfigCache,
   v3Request,
   buildPayParams,
   jsapiPrepay,

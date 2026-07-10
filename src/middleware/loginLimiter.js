@@ -28,7 +28,6 @@ function getRedis() {
 const loginLimiter = rateLimit({
   windowMs: 60 * 1000,      // 60 秒窗口
   max: 10,                   // 最多 10 次
-  keyGenerator: (req) => req.ip,
   handler: (_req, res) => {
     res.status(429).json({
       success: false,

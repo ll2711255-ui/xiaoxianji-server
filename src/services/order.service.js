@@ -104,7 +104,7 @@ async function createOrder({ openid, items, type, deliveryAddress, isScheduled, 
     }
 
     // 6. 生成 wx.requestPayment 参数（二次签名）
-    const payment = wxpay.buildPayParams(payResult.prepay_id, config.wx.appId);
+    const payment = await wxpay.buildPayParams(payResult.prepay_id, config.wx.appId);
 
     // 7. 更新 payment_record 的 prepay_id
     await db.execute(

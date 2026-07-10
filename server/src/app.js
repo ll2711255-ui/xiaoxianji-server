@@ -68,7 +68,7 @@ app.get('/api/health', async (req, res) => {
   // 检查微信支付配置
   try {
     const wxpay = require('./utils/wxpay');
-    result.services.wxpay = wxpay.checkConfig() ? 'ok' : 'not_configured';
+    result.services.wxpay = await wxpay.checkConfig() ? 'ok' : 'not_configured';
   } catch (_) {
     result.services.wxpay = 'not_available';
   }
@@ -104,6 +104,9 @@ app.use('/api/merchant', require('./routes/merchant.routes'));
 
 // 商家账号管理路由（内部自带 verifyToken + requireMerchant + 角色校验）
 app.use('/api/merchant/accounts', require('./routes/merchant-account.routes'));
+
+// 支付方式管理路由（商家端，内部自带 verifyToken + requireMerchant）
+app.use('/api/payment-methods', require('./routes/payment-methods.routes'));
 
 // 文件上传路由（需登录，内部自行解析 multipart）
 app.use('/api/upload', require('./routes/upload.routes'));
