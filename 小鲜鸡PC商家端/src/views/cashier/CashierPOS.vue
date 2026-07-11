@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="pos-page">
     <h2 class="page-title">收银界面</h2>
 
@@ -6,32 +6,15 @@
       <!-- ==================== Tab 1: 收银开单 ==================== -->
       <el-tab-pane label="收银开单" name="order">
         <el-row :gutter="20">
-          <!-- 左侧：金额显示 + 支付方式 + 号码牌 -->
+          <!-- 左侧：号码牌选择（置顶）+ 确认收款 -->
           <el-col :span="10">
-            <!-- 金额显示区 -->
-            <div class="amount-display">
-              <span class="currency">¥</span>
-              <span class="amount">{{ amountDisplay }}</span>
-            </div>
-
-            <!-- 付款方式 -->
-            <div class="section">
-              <div class="section-title">付款方式</div>
-              <div class="pay-types">
-                <div
-                  v-for="pt in payTypes" :key="pt.value"
-                  class="pay-type-btn"
-                  :class="{ active: paymentType === pt.value }"
-                  @click="paymentType = pt.value"
-                >{{ pt.label }}</div>
-              </div>
-            </div>
-
             <!-- 号码牌 -->
-            <div class="section">
-              <div class="section-title">
-                选择号码牌
-                <span class="section-badge">空闲 {{ idleCards.length }} 个</span>
+            <div class="card-section">
+              <div class="card-section-header">
+                <span class="card-section-title">🏷 选择号码牌</span>
+                <el-tag type="danger" size="small" effect="dark" round>
+                  空闲 {{ idleCards.length }} 个
+                </el-tag>
               </div>
               <div class="card-chips" v-if="idleCards.length > 0">
                 <div
@@ -39,9 +22,11 @@
                   class="card-chip"
                   :class="{ selected: selectedCard === card.number }"
                   @click="onCardSelect(card.number)"
-                >{{ card.number }}</div>
+                >
+                  <span class="card-chip-num">{{ card.number }}</span>
+                </div>
               </div>
-              <el-empty v-else description="暂无可用的空闲号码牌" :image-size="40" />
+              <el-empty v-else description="暂无可用的空闲号码牌" :image-size="50" />
             </div>
 
             <!-- 提交按钮 -->
@@ -51,12 +36,32 @@
               :loading="submitting"
               @click="onSubmitOrder"
             >
-              {{ selectedCard ? `确认收款（绑定 ${selectedCard} 号牌）` : '请选择号码牌' }}
+              {{ selectedCard ? `确认收款（绑定 ${selectedCard} 号牌）` : '👆 请先选择号码牌' }}
             </el-button>
           </el-col>
 
-          <!-- 右侧：数字键盘 -->
+          <!-- 右侧：金额显示 + 付款方式 + 数字键盘 -->
           <el-col :span="14">
+            <!-- 金额显示区 -->
+            <div class="amount-display">
+              <span class="currency">¥</span>
+              <span class="amount">{{ amountDisplay }}</span>
+            </div>
+
+            <!-- 付款方式 -->
+            <div class="pay-types">
+              <div
+                v-for="pt in payTypes" :key="pt.value"
+                class="pay-type-btn"
+                :class="{ active: paymentType === pt.value }"
+                @click="paymentType = pt.value"
+              >
+                <span class="pay-type-icon">{{ pt.icon }}</span>
+                <span class="pay-type-label">{{ pt.label }}</span>
+              </div>
+            </div>
+
+            <!-- 数字键盘 -->
             <div class="keypad">
               <div class="keypad-row" v-for="row in keypadRows" :key="row.join('')">
                 <div
@@ -368,9 +373,9 @@ const amountDisplay = computed(() => {
 })
 const paymentType = ref('cash')
 const payTypes = [
-  { label: '现金/扫码', value: 'cash' },
-  { label: '微信支付', value: 'wechat' },
-  { label: '未支付', value: 'unpaid' }
+  { label: '现金/扫码', value: 'cash', icon: '💵' },
+  { label: '微信支付', value: 'wechat', icon: '💚' },
+  { label: '未支付', value: 'unpaid', icon: '📝' }
 ]
 const selectedCard = ref('')
 const cardNumbers = ref([])
@@ -902,56 +907,61 @@ onMounted(() => {
 <style scoped>
 .page-title { font-size: 22px; font-weight: 700; color: #333; margin-bottom: 20px; }
 
-/* ========== 金额显示 ========== */
+/* ========== 金额显示（右侧上方） ========== */
 .amount-display {
   background: linear-gradient(135deg, #A83108, #D4420A);
-  padding: 32px 24px; border-radius: 12px; text-align: center; margin-bottom: 16px;
+  padding: 20px 24px; border-radius: 12px; text-align: center; margin-bottom: 12px;
 }
-.currency { font-size: 28px; color: rgba(255,255,255,0.6); margin-right: 6px; }
-.amount { font-size: 56px; font-weight: 700; color: #fff; }
-
-/* ========== 分区 ========== */
-.section { margin-bottom: 16px; }
-.section-title { font-size: 14px; color: #999; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-.section-badge { font-size: 12px; color: #D4420A; background: #FFF8F5; padding: 2px 8px; border-radius: 10px; }
+.currency { font-size: 24px; color: rgba(255,255,255,0.5); margin-right: 4px; }
+.amount { font-size: 48px; font-weight: 700; color: #fff; letter-spacing: 2px; }
 
 /* ========== 付款方式 ========== */
-.pay-types { display: flex; gap: 10px; }
+.pay-types { display: flex; gap: 8px; margin-bottom: 12px; }
 .pay-type-btn {
-  flex: 1; text-align: center; padding: 14px 8px; border-radius: 10px; font-size: 14px;
-  background: #f5f6fa; color: #999; border: 2px solid #e0e0e0; cursor: pointer; transition: all 0.2s;
+  flex: 1; text-align: center; padding: 10px 6px; border-radius: 10px; 
+  background: #f5f6fa; color: #999; border: 2px solid #e0e0e0; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; transition: all 0.2s;
 }
-.pay-type-btn:hover { border-color: #D4420A; color: #D4420A; }
-.pay-type-btn.active { background: #FFF8F5; color: #D4420A; border-color: #D4420A; font-weight: 600; }
+.pay-type-btn:hover { border-color: #D4420A; color: #D4420A; transform: translateY(-1px); }
+.pay-type-btn.active { background: #FFF8F5; color: #D4420A; border-color: #D4420A; font-weight: 600; box-shadow: 0 2px 8px rgba(212,66,10,0.15); }
+.pay-type-icon { font-size: 20px; line-height: 1; }
+.pay-type-label { font-size: 12px; }
 
+/* ========== 号码牌区域（左侧置顶） ========== */
+.card-section {
+  background: #fff; border: 1px solid #ebeef5; border-radius: 12px; padding: 20px;
+  margin-bottom: 16px; min-height: 320px;
+}
+.card-section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #f5f6fa;
+}
+.card-section-title { font-size: 16px; font-weight: 700; color: #333; }
 /* ========== 号码牌 ========== */
 .card-chips { display: flex; flex-wrap: wrap; gap: 10px; }
 .card-chip {
-  padding: 10px 18px; border-radius: 10px; background: #fff; border: 2px solid #e0e0e0;
-  font-size: 15px; font-weight: 600; color: #333; cursor: pointer; transition: all 0.2s;
+  padding: 14px 20px; border-radius: 10px; background: #fff; border: 2px solid #e0e0e0;
+  font-size: 16px; font-weight: 600; text-align: center; min-width: 56px; color: #333; cursor: pointer; transition: all 0.2s;
 }
-.card-chip:hover { border-color: #D4420A; }
-.card-chip.selected { background: #D4420A; color: #fff; border-color: #D4420A; }
+.card-chip:hover { border-color: #D4420A; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(212,66,10,0.12); }
+.card-chip.selected { background: #D4420A; color: #fff; border-color: #D4420A; box-shadow: 0 4px 12px rgba(212,66,10,0.3); }
 .card-chip.used { opacity: 0.35; cursor: not-allowed; }
 
 /* ========== 提交按钮 ========== */
 .submit-btn {
-  width: 100%; height: 48px; font-size: 16px; font-weight: 600; border-radius: 10px;
+  width: 100%; height: 52px; font-size: 17px; font-weight: 700; border-radius: 10px;
   background: linear-gradient(135deg, #D4420A, #E55A2B) !important;
-  border: none !important;
+  border: none !important; letter-spacing: 1px;
 }
 
 /* ========== 数字键盘 ========== */
 .keypad {
-  background: #e8e8e8; border-radius: 12px; padding: 6px; height: 100%;
-  display: flex; flex-direction: column; justify-content: center;
-}
+  background: #e8e8e8; border-radius: 12px; padding: 8px; }
 .keypad-row { display: flex; gap: 6px; margin-bottom: 6px; }
 .keypad-row:last-child { margin-bottom: 0; }
 .keypad-key {
-  flex: 1; background: #fff; border-radius: 8px; text-align: center; padding: 22px 0;
+  flex: 1; background: #fff; border-radius: 8px; text-align: center; padding: 20px 0;
   font-size: 24px; font-weight: 500; color: #333; cursor: pointer; user-select: none;
-  transition: all 0.15s; min-height: 60px; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; min-height: 56px; display: flex; align-items: center; justify-content: center;
 }
 .keypad-key:active { background: #d0d0d0; transform: scale(0.96); }
 .key-backspace { background: #d8d8d8; font-size: 20px; }
@@ -1008,7 +1018,7 @@ onMounted(() => {
 .ticket-center { text-align: center; }
 .ticket-shop { font-size: 18px; font-weight: 700; }
 .ticket-sub { font-size: 11px; color: #999; margin: 4px 0 8px; }
-.ticket-divider { color: #ddd; font-size: 10px; letter-spacing: 2px; margin: 8px 0; text-align: center; }
+.ticket-divider { color: #ddd;  letter-spacing: 2px; margin: 8px 0; text-align: center; }
 .ticket-body { text-align: left; }
 .ticket-row { display: flex; padding: 1px 0; }
 .ticket-label { color: #666; white-space: nowrap; }
