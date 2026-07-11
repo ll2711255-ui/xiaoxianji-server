@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
     const products = await productService.getProducts({ categoryId, keyword, page, pageSize: psCheck.value, status });
     res.json({ success: true, code: 200, data: { products } });
   } catch (err) {
-    logger.error('[products] 列表查询失败:', err.message);
+    logger.error('[products] 列表查询失败:', err.message, err.stack);
     res.status(500).json({ success: false, code: 500, message: err.message });
   }
 });
