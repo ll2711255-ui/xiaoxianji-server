@@ -108,7 +108,7 @@ router.get('/:orderNo', async (req, res) => {
     if (order.userId !== req.user.openid && req.user.role !== 'merchant') {
       return res.status(403).json({ success: false, code: 403, message: '无权查看此订单' });
     }
-    res.json({ success: true, code: 200, data: order });
+    res.json({ success: true, code: 200, data: { order } });
   } catch (err) {
     logger.error('[orders] 详情查询失败:', err.message);
     res.status(500).json({ success: false, code: 500, message: err.message });
