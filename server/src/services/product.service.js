@@ -31,10 +31,6 @@ async function getProducts({ categoryId, keyword, page = 1, pageSize = 20, statu
   sql += ' LIMIT ? OFFSET ?';
   params.push(parseInt(pageSize, 10), Math.max(0, offset));
 
-  const dbModule = require('../config/db');
-  const logger = require('../utils/logger');
-  logger.info('[debug getProducts] SQL:', sql, 'PARAMS:', JSON.stringify(params));
-
   return db.query(sql, params);
 }
 
