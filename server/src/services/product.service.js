@@ -121,9 +121,11 @@ async function deleteCategory(id) {
 }
 
 async function updateCategorySort(sorts) {
-  // sorts: [{ id, sort }]
+  // sorts: [{ id, sort }] 或 [{ _id, sort }]（前端统一用 _id）
   for (const item of sorts) {
-    await db.execute('UPDATE categories SET sort = ? WHERE id = ?', [item.sort, item.id]);
+    const id = item._id || item.id;
+    if (!id) continue;
+    await db.execute('UPDATE categories SET sort = ? WHERE id = ?', [item.sort, id]);
   }
   return sorts.length;
 }
