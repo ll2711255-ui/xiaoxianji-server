@@ -255,20 +255,20 @@ async function loadProduct() {
     const p = res.data.product
     form.name = p.name || ''
     form.categoryId = p.categoryId || ''
-    form.pricingType = p.pricing_type || 'exact_weight'
-    form.sellingPoint = p.selling_point || ''
+    form.pricingType = p.pricingType || 'exact_weight'
+    form.sellingPoint = p.sellingPoint || ''
     form.description = p.description || ''
-    form.deliveryModes = p.delivery_modes || ['delivery', 'pickup']
-    if (p.pricing_type === 'exact_weight') {
-      form.pricePerJin = p.price_per_jin || 0
-      form.weightOptions = p.weight_options || [500]
-      form.processingFee = p.processing_fee || 0
-      checkedProcOpts.value = p.processing_options || ['整只', '切块']
-    } else if (p.pricing_type === 'per_piece') {
-      form.unitPrice = p.unit_price || 0
-      form.processingFee = p.processing_fee || 0
-      checkedProcOpts.value = p.processing_options || ['整只', '切块']
-    } else if (p.pricing_type === 'range_weight') {
+    form.deliveryModes = p.deliveryModes || ['delivery', 'pickup']
+    if (p.pricingType === 'exact_weight') {
+      form.pricePerJin = p.pricePerJin || 0
+      form.weightOptions = p.weightOptions || [500]
+      form.processingFee = p.processingFee || 0
+      checkedProcOpts.value = p.processingOptions || ['整只', '切块']
+    } else if (p.pricingType === 'per_piece') {
+      form.unitPrice = p.unitPrice || 0
+      form.processingFee = p.processingFee || 0
+      checkedProcOpts.value = p.processingOptions || ['整只', '切块']
+    } else if (p.pricingType === 'range_weight') {
       const specs = p.specs || []
       const typeMap = {}
       const procSet = new Set()

@@ -17,12 +17,14 @@ async function getProducts({ categoryId, keyword, page = 1, pageSize = 20, statu
     sql += ' AND name LIKE ?';
     params.push(`%${keyword}%`);
   }
-  if (status) {
+  if (status && status !== 'all') {
     sql += ' AND status = ?';
     params.push(status);
-  } else {
+  } else if (!status) {
+    // 未传 status 参数时默认只返回上架商品（公开接口）
     sql += " AND status = 'on'";
   }
+  // status === 'all' 时不加筛选条件，返回全部
 
   const offset = (parseInt(page, 10) - 1) * parseInt(pageSize, 10);
   sql += ' ORDER BY sort ASC, create_time DESC';

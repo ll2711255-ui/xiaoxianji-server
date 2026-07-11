@@ -75,6 +75,10 @@ function toCamelCase(row) {
       out[camelKey] = val;
     }
   }
+  // 统一添加 _id 别名（前端统一用 _id 引用记录，如 row._id, cat._id）
+  if (out.id !== undefined) {
+    out._id = out.id;
+  }
   return out;
 }
 

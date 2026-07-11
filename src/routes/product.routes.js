@@ -35,7 +35,7 @@ router.get('/:productId', async (req, res) => {
     if (!product) {
       return res.status(404).json({ success: false, code: 404, message: '商品不存在' });
     }
-    res.json({ success: true, code: 200, data: product });
+    res.json({ success: true, code: 200, data: { product } });
   } catch (err) {
     logger.error('[products] 详情查询失败:', err.message);
     res.status(500).json({ success: false, code: 500, message: err.message });
