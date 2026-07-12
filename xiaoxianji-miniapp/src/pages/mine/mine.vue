@@ -310,7 +310,8 @@ function onChooseAvatar(e) {
 
   // 上传至后端
   uni.uploadFile({
-    url: (import.meta.env.VITE_API_BASE_URL || 'https://www.xuaioxianji.top') + '/api/upload/image',
+    // TODO: 备案+SSL 证书下来后改回 https://www.xuaioxianji.top
+    url: (import.meta.env.VITE_API_BASE_URL || 'http://159.75.0.194') + '/api/upload/image',
     filePath: url,
     name: 'file',
     success: (res) => {
