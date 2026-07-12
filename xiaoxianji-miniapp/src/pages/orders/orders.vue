@@ -232,7 +232,7 @@ function onCancelOrderItem(orderNo) {
 function onGetPhoneForOrder(e) {
   if (e.detail.errMsg === 'getPhoneNumber:ok') {
     uni.showLoading({ title: '授权中...' })
-    post('/auth/wx-phone', { phoneCode: e.detail.code }, { skipAuth: true }).then(res => {
+    post('/auth/wx-phone', { phoneCode: e.detail.code }).then(res => {
       uni.hideLoading()
       const d = (res && res.data) || res
       if (d.phone) {

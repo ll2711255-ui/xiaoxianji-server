@@ -92,7 +92,7 @@
     </view>
 
     <!-- ========== Banner 轮播 ========== -->
-    <swiper v-if="bannerList.length > 0" class="banner-swiper" autoplay interval="3000" circular indicator-dots indicator-color="rgba(0,0,0,0.2)" indicator-active-color="#D4420A">
+    <swiper v-if="bannerList.length > 0" class="banner-swiper" autoplay interval="3000" circular indicator-dots indicator-color="rgba(0,0,0,0.2)" indicator-active-color="#E8712A">
       <swiper-item v-for="item in bannerList" :key="item._id">
         <view v-if="item.image" class="banner-slide">
           <image class="banner-slide-img" :src="item.image" mode="aspectFill" />
@@ -279,7 +279,12 @@ async function loadBanners() {
       const banners = res.data.banners || []
       if (banners.length > 0) {
         bannerList.value = banners.map(b => ({
-          _id: b._id, image: b.image || '', bg: b.bg || '#FFF9ED', title: b.title || '', subtitle: b.subtitle || ''
+          _id: b._id,
+          image: b.imageUrl || b.image_url || b.image || '',
+          linkUrl: b.linkUrl || b.link_url || b.link || '',
+          bg: '#FFF9ED',
+          title: b.title || '',
+          subtitle: b.subtitle || ''
         }))
       }
     }
