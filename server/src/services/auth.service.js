@@ -16,6 +16,30 @@ const { signTokens, verifyRefreshToken } = require('../utils/jwt');
 const config = require('../config');
 const logger = require('../utils/logger');
 
+// ========== 新用户默认值 ==========
+const DEFAULT_NICKNAME_PREFIX = '鲜鸡食客_';
+const DEFAULT_AVATAR = ''; // 空字符串，前端展示本地品牌默认头像
+
+/**
+ * 生成唯一随机昵称：鲜鸡食客_XXXX（4位数字，查重避免重复）
+ * @returns {Promise<string>}
+ */
+async function generateUniqueNickname() {
+  const maxRetries = 20;
+  for (let i = 0; i < maxRetries; i++) {
+    const suffix = String(Math.floor(1000 + Math.random() * 9000)); // 1000-9999
+    const nickName = DEFAULT_NICKNAME_PREFIX + suffix;
+    const row = await db.queryOne('SELECT COUNT(*) AS cnt FROM users WHERE nick_name = ?', [nickName]);
+    if (row && row.cnt === 0) {
+      return nickName;
+    }
+  }
+  // 极端情况：20次都重名 → 加时间戳兜底
+  const fallback = DEFAULT_NICKNAME_PREFIX + String(Date.now()).slice(-6);
+  logger.warn('[auth] 随机昵称生成重试耗尽，使用兜底:', fallback);
+  return fallback;
+}
+
 /**
  * 微信静默登录
  * @param {string} code - wx.login 返回的 code
@@ -29,7 +53,7 @@ async function wxLogin(code, profile = {}) {
   let user = await db.queryOne('SELECT * FROM users WHERE openid = ?', [openid]);
 
   if (user) {
-    // 更新登录信息和资料
+    // 老用户：仅在有新资料时更新
     const updates = { last_login: new Date() };
     const params = [];
     if (profile.nickName) {
@@ -55,15 +79,21 @@ async function wxLogin(code, profile = {}) {
     updateParams.push(openid);
     await db.execute(`UPDATE users SET ${setClauses.join(', ')} WHERE openid = ?`, updateParams);
   } else {
+    // 新用户：无微信资料时自动生成品牌默认头像 + 随机生鲜风格昵称
+    const nickName = profile.nickName || await generateUniqueNickname();
+    const avatarUrl = profile.avatarUrl || DEFAULT_AVATAR;
+
     const insertResult = await db.insert(
       `INSERT INTO users (openid, nick_name, avatar_url, last_login)
        VALUES (?, ?, ?, NOW())`,
-      [openid, profile.nickName || '', profile.avatarUrl || '']
+      [openid, nickName, avatarUrl]
     );
-    user = { id: insertResult, openid, role: 'customer', phone: '' };
+    user = { id: insertResult, openid, role: 'customer', phone: '', nickName, avatarUrl };
+
+    logger.info(`[auth] 新用户注册: ${openid}, 昵称: ${nickName}`);
   }
 
-  // 3. 签发 JWT
+  // 3. 签发 JWT（7天有效期）
   const tokens = signTokens(user);
 
   // 4. 存储 refresh token
@@ -78,8 +108,8 @@ async function wxLogin(code, profile = {}) {
   return {
     openid: user.openid,
     phone: user.phone || '',
-    nickName: user.nickName || '',
-    avatarUrl: user.avatarUrl || '',
+    nickName: user.nickName || user.nick_name || '',
+    avatarUrl: user.avatarUrl || user.avatar_url || '',
     role: user.role,
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
@@ -338,12 +368,17 @@ async function alipayLogin(authCode, profile = {}) {
     updateParams.push(userId);
     await db.execute(`UPDATE users SET ${setClauses.join(', ')} WHERE openid = ?`, updateParams);
   } else {
+    const nickName = profile.nickName || await generateUniqueNickname();
+    const avatarUrl = profile.avatarUrl || DEFAULT_AVATAR;
+
     const insertResult = await db.insert(
       `INSERT INTO users (openid, nick_name, avatar_url, last_login)
        VALUES (?, ?, ?, NOW())`,
-      [userId, profile.nickName || '', profile.avatarUrl || '']
+      [userId, nickName, avatarUrl]
     );
-    user = { id: insertResult, openid: userId, role: 'customer', phone: '' };
+    user = { id: insertResult, openid: userId, role: 'customer', phone: '', nickName, avatarUrl };
+
+    logger.info(`[auth] 新支付宝用户注册: ${userId}, 昵称: ${nickName}`);
   }
 
   // 3. 签发 JWT
@@ -361,8 +396,8 @@ async function alipayLogin(authCode, profile = {}) {
   return {
     openid: user.openid,
     phone: user.phone || '',
-    nickName: user.nickName || '',
-    avatarUrl: user.avatarUrl || '',
+    nickName: user.nickName || user.nick_name || '',
+    avatarUrl: user.avatarUrl || user.avatar_url || '',
     role: user.role,
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
@@ -415,12 +450,17 @@ async function ttLogin(code, profile = {}) {
     updateParams.push(openid);
     await db.execute(`UPDATE users SET ${setClauses.join(', ')} WHERE openid = ?`, updateParams);
   } else {
+    const nickName = profile.nickName || await generateUniqueNickname();
+    const avatarUrl = profile.avatarUrl || DEFAULT_AVATAR;
+
     const insertResult = await db.insert(
       `INSERT INTO users (openid, nick_name, avatar_url, last_login)
        VALUES (?, ?, ?, NOW())`,
-      [openid, profile.nickName || '', profile.avatarUrl || '']
+      [openid, nickName, avatarUrl]
     );
-    user = { id: insertResult, openid, role: 'customer', phone: '' };
+    user = { id: insertResult, openid, role: 'customer', phone: '', nickName, avatarUrl };
+
+    logger.info(`[auth] 新抖音用户注册: ${openid}, 昵称: ${nickName}`);
   }
 
   // 3. 签发 JWT
@@ -438,12 +478,52 @@ async function ttLogin(code, profile = {}) {
   return {
     openid: user.openid,
     phone: user.phone || '',
-    nickName: user.nickName || '',
-    avatarUrl: user.avatarUrl || '',
+    nickName: user.nickName || user.nick_name || '',
+    avatarUrl: user.avatarUrl || user.avatar_url || '',
     role: user.role,
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
   };
 }
 
-module.exports = { wxLogin, alipayLogin, ttLogin, phoneAuth, merchantLogin, refreshToken, handlePhoneAuth, validatePasswordStrength, hashPassword, verifyPassword: verifyPasswordCompat };
+/**
+ * 更新用户资料（头像、昵称）
+ * @param {string} openid
+ * @param {object} profile — { nickName?, avatarUrl? }
+ * @returns {Promise<{nickName: string, avatarUrl: string}>}
+ */
+async function updateProfile(openid, profile = {}) {
+  const sets = [];
+  const params = [];
+
+  if (profile.nickName !== undefined) {
+    sets.push('nick_name = ?');
+    params.push(profile.nickName);
+  }
+  if (profile.avatarUrl !== undefined) {
+    sets.push('avatar_url = ?');
+    params.push(profile.avatarUrl);
+  }
+
+  if (sets.length === 0) {
+    throw new Error('没有需要更新的字段');
+  }
+
+  params.push(openid);
+  await db.execute(`UPDATE users SET ${sets.join(', ')} WHERE openid = ?`, params);
+
+  // 读取更新后的完整资料返回
+  const user = await db.queryOne(
+    'SELECT nick_name, avatar_url FROM users WHERE openid = ?',
+    [openid]
+  );
+
+  logger.info(`[auth] 用户资料更新: ${openid}`);
+
+  return {
+    nickName: (user && user.nick_name) || '',
+    avatarUrl: (user && user.avatar_url) || ''
+  };
+}
+
+module.exports = { wxLogin, alipayLogin, ttLogin, phoneAuth, merchantLogin, refreshToken, handlePhoneAuth, validatePasswordStrength, hashPassword, verifyPassword: verifyPasswordCompat, updateProfile };
