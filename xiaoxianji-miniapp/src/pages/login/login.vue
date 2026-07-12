@@ -259,11 +259,11 @@ function onTogglePolicy() {
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 24rpx;
-  box-shadow: 0 8rpx 24rpx rgba(255, 87, 34, 0.35);
+  box-shadow: 0 8rpx 24rpx var(--color-brand-soy-red-shadow);
 }
 
 .brand-icon { font-size: 80rpx; }
-.brand-name { font-size: 48rpx; font-weight: 700; color: var(--color-text-1); margin-bottom: 8rpx; }
+.brand-name { font-size: 48rpx; font-weight:var(--weight-bold); color: var(--color-text-1); margin-bottom: 8rpx; }
 .brand-desc { font-size: var(--font-base); color: var(--color-text-3); }
 
 .login-card {
@@ -271,7 +271,7 @@ function onTogglePolicy() {
   background: var(--color-bg-card);
   border-radius: var(--radius-lg);
   padding: 48rpx 40rpx 36rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-card);
   display: flex; flex-direction: column; align-items: center;
 }
 
@@ -297,7 +297,7 @@ function onTogglePolicy() {
 .login-btn {
   width: 100%; height: 96rpx; border-radius: var(--radius-full);
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
-  color: #FFFFFF; font-size: var(--font-lg); font-weight: 600;
+  color: #FFFFFF; font-size: var(--font-lg); font-weight:var(--weight-bold);
   display: flex; align-items: center; justify-content: center;
   border: none; margin-bottom: 24rpx;
 }

@@ -553,21 +553,21 @@ function formatSpec(spec) {
 /* Tab */
 .tab-bar { display:flex; background:var(--color-bg-card); margin:16rpx 24rpx; border-radius:var(--radius-lg); overflow:hidden; }
 .tab-item { flex:1; text-align:center; padding:20rpx 0; font-size:var(--font-base); color:var(--color-text-2); border-bottom:3rpx solid transparent; }
-.tab-active { color:var(--color-primary); border-bottom-color:var(--color-primary); font-weight:600; }
+.tab-active { color:var(--color-primary); border-bottom-color:var(--color-primary); font-weight:var(--weight-bold); }
 
 /* 区块 */
 .section { background:var(--color-bg-card); padding:24rpx; margin:0 24rpx 16rpx; border-radius:var(--radius-lg); }
-.section-title { font-size:var(--font-base); font-weight:600; color:var(--color-text-1); margin-bottom:16rpx; display:block; }
+.section-title { font-size:var(--font-base); font-weight:var(--weight-bold); color:var(--color-text-1); margin-bottom:16rpx; display:block; }
 
 /* 商品清单 */
 .item-row { display:flex; align-items:center; padding:12rpx 0; border-bottom:1rpx solid var(--color-border); gap:12rpx; }
 .item-row:last-child { border-bottom:none; }
 .item-emoji { font-size:36rpx; flex-shrink:0; }
 .item-info { flex:1; overflow:hidden; }
-.item-name { font-size:var(--font-base); font-weight:600; color:var(--color-text-1); display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.item-name { font-size:var(--font-base); font-weight:var(--weight-bold); color:var(--color-text-1); display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .item-spec { font-size:var(--font-sm); color:var(--color-text-3); display:block; margin-top:4rpx; }
 .item-right { display:flex; flex-direction:column; align-items:flex-end; flex-shrink:0; }
-.item-price { font-size:var(--font-base); color:var(--color-primary); font-weight:700; }
+.item-price { font-size:var(--font-base); color:var(--color-primary); font-weight:var(--weight-bold); }
 .item-qty { font-size:var(--font-sm); color:var(--color-text-3); margin-top:4rpx; }
 
 /* 地址 */
@@ -576,7 +576,7 @@ function formatSpec(spec) {
 .address-icon { font-size:var(--font-lg); flex-shrink:0; }
 .address-info { flex:1; overflow:hidden; }
 .address-contact { display:flex; gap:16rpx; margin-bottom:8rpx; }
-.address-name { font-size:var(--font-base); font-weight:600; color:var(--color-text-1); }
+.address-name { font-size:var(--font-base); font-weight:var(--weight-bold); color:var(--color-text-1); }
 .address-phone { font-size:var(--font-base); color:var(--color-text-2); }
 .address-text { font-size:var(--font-md); color:var(--color-text-3); display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .address-arrow { font-size:var(--font-xl); color:var(--color-text-4); flex-shrink:0; }
@@ -595,27 +595,27 @@ function formatSpec(spec) {
 /* 费用 */
 .fee-row { display:flex; justify-content:space-between; padding:8rpx 0; }
 .fee-label { font-size:var(--font-base); color:var(--color-text-2); }
-.fee-value { font-size:var(--font-base); color:var(--color-text-1); font-weight:600; }
+.fee-value { font-size:var(--font-base); color:var(--color-text-1); font-weight:var(--weight-bold); }
 .fee-free { color:var(--color-success); }
 .fee-hint { font-size:var(--font-sm); color:var(--color-warning); margin-top:12rpx; padding:12rpx; background:var(--color-warning-bg); border-radius:var(--radius-md); }
 
 /* 底部 */
-.bottom-bar { position:fixed; bottom:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between; background:var(--color-bg-card); padding:16rpx 24rpx; padding-bottom:calc(16rpx + env(safe-area-inset-bottom)); box-shadow:0 -4rpx 20rpx rgba(0,0,0,0.06); z-index:50; }
+.bottom-bar { position:fixed; bottom:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between; background:var(--color-bg-card); padding:16rpx 24rpx; padding-bottom:calc(16rpx + env(safe-area-inset-bottom)); box-shadow:var(--shadow-float); z-index:50; }
 .bottom-total { display:flex; align-items:baseline; }
 .bottom-total-label { font-size:var(--font-md); color:var(--color-text-2); }
-.bottom-total-value { font-size:var(--font-xl); color:var(--color-primary); font-weight:700; }
-.bottom-submit-btn { background:var(--color-primary); color:#fff; padding:16rpx 48rpx; border-radius:var(--radius-xl); font-size:var(--font-base); font-weight:600; }
+.bottom-total-value { font-size:var(--font-xl); color:var(--color-primary); font-weight:var(--weight-bold); }
+.bottom-submit-btn { background:var(--color-primary); color:#fff; padding:16rpx 48rpx; border-radius:var(--radius-xl); font-size:var(--font-base); font-weight:var(--weight-bold); }
 
 /* 弹窗 */
 .modal-mask { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:200; }
 .modal-card { background:#fff; border-radius:var(--radius-xl); padding:40rpx 32rpx; margin:0 48rpx; width:100%; max-width:560rpx; display:flex; flex-direction:column; align-items:center; }
-.modal-title { font-size:var(--font-lg); font-weight:700; color:var(--color-text-1); margin-bottom:16rpx; }
+.modal-title { font-size:var(--font-lg); font-weight:var(--weight-bold); color:var(--color-text-1); margin-bottom:16rpx; }
 .modal-body { font-size:var(--font-base); color:var(--color-text-2); text-align:center; margin-bottom:12rpx; line-height:1.6; }
 .modal-detail { font-size:var(--font-sm); color:var(--color-text-3); margin-bottom:24rpx; }
 .modal-actions { display:flex; flex-direction:column; gap:16rpx; width:100%; }
-.modal-btn { text-align:center; padding:18rpx 0; border-radius:var(--radius-xl); font-size:var(--font-base); font-weight:600; }
+.modal-btn { text-align:center; padding:18rpx 0; border-radius:var(--radius-xl); font-size:var(--font-base); font-weight:var(--weight-bold); }
 .modal-btn-primary { background:var(--color-primary); color:#fff; }
 .modal-btn-outline { border:2rpx solid var(--color-primary); color:var(--color-primary); }
 .modal-cancel { margin-top:20rpx; font-size:var(--font-md); color:var(--color-text-3); }
-.phone-auth-btn { width:100%; background:var(--color-primary); color:#fff; border-radius:var(--radius-xl); font-size:var(--font-base); font-weight:600; padding:18rpx 0; text-align:center; border:none; margin-top:8rpx; }
+.phone-auth-btn { width:100%; background:var(--color-primary); color:#fff; border-radius:var(--radius-xl); font-size:var(--font-base); font-weight:var(--weight-bold); padding:18rpx 0; text-align:center; border:none; margin-top:8rpx; }
 </style>

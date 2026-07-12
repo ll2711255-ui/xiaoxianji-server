@@ -1,1 +1,0 @@
-<template><view class="page"><view class="empty-state"><text>仪表盘 — 待迁移</text></view></view></template>

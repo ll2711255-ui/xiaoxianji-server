@@ -183,9 +183,9 @@ function formatSpec(spec) {
 /* 空状态 */
 .empty-state { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:80rpx; }
 .empty-icon { font-size:120rpx; margin-bottom:24rpx; }
-.empty-title { font-size:var(--font-lg); color:var(--color-text-2); font-weight:600; }
+.empty-title { font-size:var(--font-lg); color:var(--color-text-2); font-weight:var(--weight-bold); }
 .empty-hint { font-size:var(--font-md); color:var(--color-text-3); margin-top:12rpx; }
-.empty-btn { margin-top:40rpx; background:var(--color-primary); color:#fff; padding:16rpx 64rpx; border-radius:var(--radius-xl); font-size:var(--font-base); font-weight:600; }
+.empty-btn { margin-top:40rpx; background:var(--color-primary); color:#fff; padding:16rpx 64rpx; border-radius:var(--radius-xl); font-size:var(--font-base); font-weight:var(--weight-bold); }
 
 /* 列表 */
 .cart-list { flex:1; padding:16rpx 24rpx; padding-bottom:140rpx; }
@@ -200,24 +200,24 @@ function formatSpec(spec) {
 .cart-thumb-emoji { font-size:54rpx; }
 
 .cart-info { flex:1; overflow:hidden; display:flex; flex-direction:column; justify-content:space-between; min-height:140rpx; }
-.cart-name { font-size:var(--font-base); font-weight:600; color:var(--color-text-1); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cart-name { font-size:var(--font-base); font-weight:var(--weight-bold); color:var(--color-text-1); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .cart-spec { font-size:var(--font-sm); color:var(--color-text-3); margin-top:4rpx; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .cart-price-row { display:flex; align-items:center; justify-content:space-between; margin-top:8rpx; }
-.cart-price { font-size:var(--font-lg); color:var(--color-primary); font-weight:700; }
+.cart-price { font-size:var(--font-lg); color:var(--color-primary); font-weight:var(--weight-bold); }
 .cart-qty { display:flex; align-items:center; gap:12rpx; }
 .cart-qty-btn { width:48rpx; height:48rpx; border-radius:var(--radius-full); background:var(--color-bg-page); border:2rpx solid var(--color-border); display:flex; align-items:center; justify-content:center; font-size:var(--font-lg); color:var(--color-text-2); }
-.cart-qty-val { font-size:var(--font-base); font-weight:600; color:var(--color-text-1); min-width:40rpx; text-align:center; }
+.cart-qty-val { font-size:var(--font-base); font-weight:var(--weight-bold); color:var(--color-text-1); min-width:40rpx; text-align:center; }
 
 .cart-delete { padding:8rpx; font-size:var(--font-xl); opacity:0.6; }
 
 /* 底部结算栏 */
-.bottom-bar { position:fixed; bottom:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between; background:var(--color-bg-card); padding:16rpx 24rpx; padding-bottom:calc(16rpx + env(safe-area-inset-bottom)); box-shadow:0 -4rpx 20rpx rgba(0,0,0,0.06); z-index:50; }
+.bottom-bar { position:fixed; bottom:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between; background:var(--color-bg-card); padding:16rpx 24rpx; padding-bottom:calc(16rpx + env(safe-area-inset-bottom)); box-shadow:var(--shadow-float); z-index:50; }
 .bottom-left { display:flex; align-items:center; gap:12rpx; }
 .bottom-all { font-size:var(--font-base); color:var(--color-text-2); }
 .bottom-right { display:flex; align-items:center; gap:16rpx; }
 .bottom-total { display:flex; align-items:baseline; }
 .bottom-total-label { font-size:var(--font-md); color:var(--color-text-2); }
-.bottom-total-value { font-size:var(--font-xl); color:var(--color-primary); font-weight:700; }
-.bottom-checkout-btn { background:var(--color-primary); color:#fff; padding:16rpx 40rpx; border-radius:var(--radius-xl); font-size:var(--font-base); font-weight:600; }
+.bottom-total-value { font-size:var(--font-xl); color:var(--color-primary); font-weight:var(--weight-bold); }
+.bottom-checkout-btn { background:var(--color-primary); color:#fff; padding:16rpx 40rpx; border-radius:var(--radius-xl); font-size:var(--font-base); font-weight:var(--weight-bold); }
 .btn-disabled { background:var(--color-border-dark); color:var(--color-text-3); }
 </style>

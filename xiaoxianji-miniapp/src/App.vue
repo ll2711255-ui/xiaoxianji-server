@@ -45,7 +45,7 @@ async function healthCheck() {
 </script>
 
 <style lang="scss">
-/* ========== 全局设计系统 ========== */
+/* ========== 全局设计系统 v2 ========== */
 /* 引入视觉 Token 系统 */
 @import '@/styles/tokens.scss';
 
@@ -59,11 +59,6 @@ page {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ========== 通用容器 ========== */
-.container {
-  padding: 20rpx 24rpx;
-}
-
 /* ========== 卡片 ========== */
 .card {
   background: var(--color-bg-card);
@@ -75,22 +70,26 @@ page {
 .card-full {
   background: var(--color-bg-card);
   border-radius: var(--radius-lg);
-  padding: 24rpx;
-  margin-bottom: 16rpx;
+  padding: var(--space-md);
+  margin-bottom: var(--space-sm);
   box-shadow: var(--shadow-card);
 }
 
-/* ========== 按钮 ========== */
+/* ========== 主按钮 ========== */
 .btn-primary {
   background: var(--color-primary);
   color: #FFFFFF;
-  border-radius: 40rpx;
+  border-radius: var(--radius-full);
   font-size: var(--font-base);
-  font-weight: 600;
-  padding: 16rpx 32rpx;
-  text-align: center;
-  display: inline-block;
+  font-weight: var(--weight-medium);
+  padding: 0 var(--space-xl);
+  height: 88rpx;
+  line-height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
+  text-align: center;
 
   &:active {
     background: var(--color-primary-dark);
@@ -102,13 +101,20 @@ page {
   }
 }
 
+/* ========== 次按钮 ========== */
 .btn-outline {
-  background: #fff;
+  background: var(--color-bg-card);
   color: var(--color-primary);
   border: 2rpx solid var(--color-primary);
-  border-radius: 40rpx;
+  border-radius: var(--radius-full);
   font-size: var(--font-base);
-  padding: 16rpx 32rpx;
+  font-weight: var(--weight-medium);
+  padding: 0 var(--space-xl);
+  height: 88rpx;
+  line-height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
 
   &:active {
@@ -119,79 +125,68 @@ page {
 /* ========== 价格 ========== */
 .price {
   color: var(--color-primary);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
 }
 
 .price-symbol {
-  font-size: 28rpx;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--weight-bold);
   color: var(--color-primary);
 }
 
 .price-value {
-  font-size: 40rpx;
-  font-weight: 700;
+  font-size: var(--font-xl);
+  font-weight: var(--weight-bold);
   color: var(--color-primary);
 }
 
-/* ========== 标签 ========== */
+/* ========== 标签基类 ========== */
 .tag {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-full);
   padding: 4rpx 16rpx;
-  border-radius: var(--radius-md);
   font-size: var(--font-xs);
+  font-weight: var(--weight-medium);
   line-height: 1.5;
 }
 
-.tag-green {
-  background-color: var(--color-success-bg);
-  color: var(--color-success);
-}
-
-.tag-orange {
-  background-color: var(--color-warning-bg);
-  color: var(--color-warning);
-}
-
-.tag-red {
-  background-color: var(--color-danger-bg);
-  color: var(--color-danger);
-}
-
-.tag-gray {
-  background-color: var(--color-bg-input);
-  color: var(--color-text-2);
-}
+.tag-green  { background-color: var(--color-success-bg); color: var(--color-success); }
+.tag-orange { background-color: var(--color-warning-bg); color: var(--color-warning); }
+.tag-red    { background-color: var(--color-danger-bg);  color: var(--color-danger);  }
+.tag-gray   { background-color: var(--color-bg-input);   color: var(--color-text-2);  }
 
 /* ========== 空状态 ========== */
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 80rpx 48rpx;
+  padding: var(--space-xl) 0;
+  gap: var(--space-md);
 
   .empty-icon {
     font-size: 104rpx;
-    margin-bottom: 24rpx;
+    margin-bottom: var(--space-md);
     opacity: 0.6;
   }
 
   text {
-    font-size: 32rpx;
+    font-size: var(--font-base);
   }
 
   .empty-hint {
-    font-size: 28rpx;
-    margin-top: 12rpx;
+    font-size: var(--font-md);
+    margin-top: var(--space-xs);
+    color: var(--color-text-3);
   }
 }
 
 /* ========== 加载更多 ========== */
 .load-more {
   text-align: center;
-  padding: 24rpx;
+  padding: var(--space-md);
   color: var(--color-text-3);
-  font-size: 28rpx;
+  font-size: var(--font-sm);
 }
 
 /* ========== 分割线 ========== */

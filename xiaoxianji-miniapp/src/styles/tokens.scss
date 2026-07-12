@@ -1,110 +1,117 @@
 /* ==============================================
- * 小鲜鸡 视觉 Token 系统
+ * 小鲜鸡 视觉 Token 系统 v2
  * 统一管理颜色、圆角、阴影、字号、间距
  * uni-app 全局注入（vite.config.js additionalData）
  * ============================================== */
 
 /* ---------- 品牌色系（暖橙主调） ---------- */
-$color-primary: #D4420A;
-$color-primary-light: #FF6B35;
-$color-primary-dark: #A83108;
-$color-primary-pale: #FFF0E6;
+$color-primary:       #E8712A;
+$color-primary-light: #F5C49A;
+$color-primary-dark:  #C45A18;
+$color-primary-pale:  #FDF2EA;
+$color-primary-deep:  #8B3D0A;
 
 /* ---------- 功能色 ---------- */
-$color-success: #67C23A;
-$color-success-bg: #F0F9EB;
-$color-warning: #F5A623;
-$color-warning-bg: #FFF8E1;
-$color-danger: #F56C6C;
-$color-danger-bg: #FFEBEE;
-$color-info: #909399;
-$color-info-bg: #F4F4F5;
+$color-success:    #3B7D3A;
+$color-success-bg: #EAF4E9;
+$color-warning:    #B07D10;
+$color-warning-bg: #FEF6E4;
+$color-danger:     #C23B2E;
+$color-danger-bg:  #FDECEA;
+$color-info:       #909399;
+$color-info-bg:    #F4F4F5;
 
 /* ---------- 中性色（文字 + 背景 + 边框） ---------- */
-$color-text-1: #333333;
-$color-text-2: #666666;
-$color-text-3: #999999;
-$color-text-4: #CCCCCC;
+$color-text-1: #1F1E1B;
+$color-text-2: #6B6760;
+$color-text-3: #A8A49C;
+$color-text-4: #C5C1B9;
 
-$color-bg-page: #FAF9F7;
-$color-bg-card: #FFFFFF;
-$color-bg-input: #F5F5F5;
-$color-bg-warm-white: #FFFEF9;
+$color-bg-page:      #FAF9F7;
+$color-bg-card:      #FFFFFF;
+$color-bg-input:     #F2EFE9;
+$color-bg-warm-white:#FFFEF9;
 
-$color-border: #F0F0F0;
-$color-border-dark: #E0E0E0;
+$color-border:      #E0DDD6;
+$color-border-dark: #CFCBC4;
 
 /* ---------- 圆角 ---------- */
-$radius-sm: 6rpx;
-$radius-md: 12rpx;
-$radius-lg: 16rpx;
-$radius-xl: 24rpx;
+$radius-sm:   8rpx;
+$radius-md:   16rpx;
+$radius-lg:   24rpx;
+$radius-xl:   32rpx;
 $radius-full: 999rpx;
 
 /* ---------- 阴影 ---------- */
-$shadow-card: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
-$shadow-float: 0 4rpx 20rpx rgba(0, 0, 0, 0.2);
+$shadow-card:  0 2rpx 12rpx rgba(31, 30, 27, 0.06);
+$shadow-float: 0 4rpx 24rpx rgba(31, 30, 27, 0.10);
 
 /* ---------- 字号 ---------- */
-$font-xs: 20rpx;
-$font-sm: 24rpx;
-$font-md: 26rpx;
-$font-base: 28rpx;
-$font-lg: 32rpx;
-$font-xl: 36rpx;
-$font-2xl: 40rpx;
-$font-3xl: 48rpx;
+$font-xs:   20rpx;
+$font-sm:   24rpx;
+$font-md:   28rpx;
+$font-base: 32rpx;
+$font-lg:   34rpx;
+$font-xl:   40rpx;
+$font-2xl:  48rpx;
+$font-3xl:  56rpx;
 
 /* ---------- 间距 ---------- */
 $space-xs: 8rpx;
-$space-sm: 12rpx;
-$space-md: 16rpx;
-$space-lg: 24rpx;
-$space-xl: 32rpx;
+$space-sm: 16rpx;
+$space-md: 24rpx;
+$space-lg: 32rpx;
+$space-xl: 48rpx;
+
+/* ---------- 字重 ---------- */
+$weight-normal: 400;
+$weight-medium: 500;
+$weight-bold:   600;
 
 /* ========== CSS 变量（供页面和组件使用） ========== */
 page {
-  --color-primary: #{$color-primary};
+  --color-primary:       #{$color-primary};
   --color-primary-light: #{$color-primary-light};
-  --color-primary-dark: #{$color-primary-dark};
-  --color-primary-pale: #{$color-primary-pale};
+  --color-primary-dark:  #{$color-primary-dark};
+  --color-primary-pale:  #{$color-primary-pale};
+  --color-primary-deep:  #{$color-primary-deep};
 
-  --color-success: #{$color-success};
+  --color-success:    #{$color-success};
   --color-success-bg: #{$color-success-bg};
-  --color-warning: #{$color-warning};
+  --color-warning:    #{$color-warning};
   --color-warning-bg: #{$color-warning-bg};
-  --color-danger: #{$color-danger};
-  --color-danger-bg: #{$color-danger-bg};
+  --color-danger:     #{$color-danger};
+  --color-danger-bg:  #{$color-danger-bg};
 
   --color-text-1: #{$color-text-1};
   --color-text-2: #{$color-text-2};
   --color-text-3: #{$color-text-3};
   --color-text-4: #{$color-text-4};
 
-  --color-bg-page: #{$color-bg-page};
-  --color-bg-card: #{$color-bg-card};
-  --color-bg-input: #{$color-bg-input};
-  --color-bg-warm-white: #{$color-bg-warm-white};
+  --color-bg-page:      #{$color-bg-page};
+  --color-bg-card:      #{$color-bg-card};
+  --color-bg-input:     #{$color-bg-input};
+  --color-bg-warm-white:#{$color-bg-warm-white};
 
-  --color-border: #{$color-border};
+  --color-border:      #{$color-border};
   --color-border-dark: #{$color-border-dark};
 
-  --radius-sm: #{$radius-sm};
-  --radius-md: #{$radius-md};
-  --radius-lg: #{$radius-lg};
-  --radius-xl: #{$radius-xl};
-  --radius-full: #{$radius-full};
+  --radius-sm:    #{$radius-sm};
+  --radius-md:    #{$radius-md};
+  --radius-lg:    #{$radius-lg};
+  --radius-xl:    #{$radius-xl};
+  --radius-full:  #{$radius-full};
 
-  --shadow-card: #{$shadow-card};
+  --shadow-card:  #{$shadow-card};
   --shadow-float: #{$shadow-float};
 
-  --font-xs: #{$font-xs};
-  --font-sm: #{$font-sm};
-  --font-md: #{$font-md};
+  --font-xs:   #{$font-xs};
+  --font-sm:   #{$font-sm};
+  --font-md:   #{$font-md};
   --font-base: #{$font-base};
-  --font-lg: #{$font-lg};
-  --font-xl: #{$font-xl};
-  --font-2xl: #{$font-2xl};
+  --font-lg:   #{$font-lg};
+  --font-xl:   #{$font-xl};
+  --font-2xl:  #{$font-2xl};
 
   --space-xs: #{$space-xs};
   --space-sm: #{$space-sm};
@@ -112,19 +119,23 @@ page {
   --space-lg: #{$space-lg};
   --space-xl: #{$space-xl};
 
-  /* 保留旧版兼容变量名（页面渐进迁移用） */
-  --color-brand-main-red: #D4420A;
-  --color-brand-chili-red: #FF5722;
-  --color-brand-dark-red: #A83108;
-  --color-brand-tangerine: #FF6B35;
-  --color-brand-amber: #F5A623;
-  --color-brand-gold: #FF9500;
-  --color-brand-yolk: #FFCC00;
-  --color-brand-cream: #FFF8E1;
-  --color-brand-cream-bg: #FFFEF7;
-  --color-brand-gold-bg: #FFF8E1;
-  --color-brand-orange-bg: #FFF0E6;
-  --color-brand-red-bg: #FFEBEE;
-  --color-brand-soy-red-shadow: rgba(212, 66, 10, 0.35);
-  --color-bg-warm-white: #FFFEF9;
+  --weight-normal: #{$weight-normal};
+  --weight-medium: #{$weight-medium};
+  --weight-bold:   #{$weight-bold};
+
+  /* ---------- 保留旧版兼容变量名 ---------- */
+  --color-brand-main-red:    #E8712A;
+  --color-brand-chili-red:   #F5A03A;
+  --color-brand-dark-red:    #C45A18;
+  --color-brand-tangerine:   #F5C49A;
+  --color-brand-amber:       #B07D10;
+  --color-brand-gold:        #F5A03A;
+  --color-brand-yolk:        #F5C913;
+  --color-brand-cream:       #FEF6E4;
+  --color-brand-cream-bg:    #FFFEF7;
+  --color-brand-gold-bg:     #FEF6E4;
+  --color-brand-orange-bg:   #FDF2EA;
+  --color-brand-red-bg:      #FDECEA;
+  --color-brand-soy-red-shadow: rgba(232, 113, 42, 0.35);
+  --color-bg-warm-white:     #FFFEF9;
 }

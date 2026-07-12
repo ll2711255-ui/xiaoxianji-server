@@ -65,15 +65,6 @@
       </view>
     </view>
 
-    <!-- ========== 商家端入口 ========== -->
-    <view class="section menu-list">
-      <view class="menu-item" @click="onMerchantEntry">
-        <text class="menu-icon">🏪</text>
-        <text class="menu-label">{{ isMerchant ? '商家后台' : '商家登录' }}</text>
-        <text class="menu-arrow">›</text>
-      </view>
-    </view>
-
     <!-- ========== 其他 ========== -->
     <view class="section menu-list">
       <view class="menu-item" @click="onContactService">
@@ -159,7 +150,6 @@ const showLoginModal = ref(false)
 const agreedProtocol = ref(false)
 const showAgreementTip = ref(false)
 const ongoingCount = ref(0)
-const isMerchant = ref(false)
 const appVersion = ref('1.0.0')
 const isDev = ref(false)
 
@@ -181,16 +171,12 @@ try {
 function loadUserInfo() {
   const userInfo = uni.getStorageSync('userInfo') || {}
   const p = uni.getStorageSync('phone') || ''
-  const role = uni.getStorageSync(STORAGE_KEYS.role) || uni.getStorageSync('merchant_role') || ''
-  const isM = role === 'merchant' || role === 'admin'
-
   avatarUrl.value = userInfo.avatarUrl || ''
   nickName.value = userInfo.nickName || ''
   phone.value = p
   maskedPhone.value = maskPhone(p)
   hasLogin.value = !!(nickName.value || p)
   isLoggedIn.value = !!p
-  isMerchant.value = isM
 }
 
 function maskPhone(p) {
@@ -382,14 +368,6 @@ function onScanPickup() {
   // #endif
 }
 
-function onMerchantEntry() {
-  if (isMerchant.value) {
-    uni.navigateTo({ url: '/pages/merchant/orders/orders' })
-  } else {
-    uni.navigateTo({ url: '/pages/merchantLogin/merchantLogin' })
-  }
-}
-
 function onContactService() {
   uni.makePhoneCall({ phoneNumber: '4000000000' })
 }
@@ -446,14 +424,12 @@ function onLogout() {
       if (!res.confirm) return
       clearAuth()
       clearTokens()
-      uni.removeStorageSync('merchant_role')
       avatarUrl.value = ''
       nickName.value = ''
       phone.value = ''
       maskedPhone.value = ''
       hasLogin.value = false
       isLoggedIn.value = false
-      isMerchant.value = false
       ongoingCount.value = 0
       uni.showToast({ title: '已退出', icon: 'success' })
     }
@@ -473,9 +449,9 @@ function onLogout() {
 .avatar-btn::after { border:none; }
 
 .user-info { flex:1; overflow:hidden; }
-.user-nickname { font-size:var(--font-xl); font-weight:700; color:var(--color-text-1); display:block; }
+.user-nickname { font-size:var(--font-xl); font-weight:var(--weight-bold); color:var(--color-text-1); display:block; }
 .user-phone { font-size:var(--font-md); color:var(--color-text-3); margin-top:8rpx; display:block; }
-.nickname-input { font-size:var(--font-xl); font-weight:700; color:var(--color-text-1); background:transparent; border:none; padding:0; height:auto; }
+.nickname-input { font-size:var(--font-xl); font-weight:var(--weight-bold); color:var(--color-text-1); background:transparent; border:none; padding:0; height:auto; }
 .edit-tag { padding:6rpx 16rpx; background:var(--color-primary-pale); border-radius:var(--radius-md); font-size:var(--font-sm); color:var(--color-primary); }
 
 /* 订单快捷入口 */
@@ -503,7 +479,7 @@ function onLogout() {
 /* 弹窗 */
 .modal-mask { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:200; }
 .modal-card { background:#fff; border-radius:var(--radius-xl); padding:40rpx 32rpx; margin:0 48rpx; width:100%; max-width:560rpx; display:flex; flex-direction:column; align-items:center; }
-.modal-title { font-size:var(--font-xl); font-weight:700; color:var(--color-text-1); margin-bottom:12rpx; }
+.modal-title { font-size:var(--font-xl); font-weight:var(--weight-bold); color:var(--color-text-1); margin-bottom:12rpx; }
 .modal-desc { font-size:var(--font-md); color:var(--color-text-3); text-align:center; margin-bottom:24rpx; }
 
 .modal-protocol { display:flex; align-items:center; margin-bottom:16rpx; }
@@ -514,7 +490,7 @@ function onLogout() {
 .protocol-link { color:var(--color-primary); }
 .agreement-tip { font-size:var(--font-sm); color:var(--color-danger); margin-bottom:12rpx; }
 
-.phone-login-btn { width:100%; background:var(--color-primary); color:#fff; border-radius:var(--radius-xl); font-size:var(--font-base); font-weight:600; padding:18rpx 0; text-align:center; border:none; }
+.phone-login-btn { width:100%; background:var(--color-primary); color:#fff; border-radius:var(--radius-xl); font-size:var(--font-base); font-weight:var(--weight-bold); padding:18rpx 0; text-align:center; border:none; }
 .phone-login-btn::after { border:none; }
 .modal-cancel { margin-top:20rpx; font-size:var(--font-md); color:var(--color-text-3); }
 </style>

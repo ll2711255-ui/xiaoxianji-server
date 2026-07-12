@@ -67,67 +67,8 @@
       "style": {
         "navigationBarTitleText": "取货码"
       }
-    },
-    {
-      "path": "pages/merchantLogin/merchantLogin",
-      "style": {
-        "navigationBarTitleText": "商家登录"
-      }
     }
   ],
-  "subPackages": [
-    {
-      "root": "pages/merchant",
-      "pages": [
-        {
-          "path": "orders/orders",
-          "style": { "navigationBarTitleText": "订单管理" }
-        },
-        {
-          "path": "orders/detail/detail",
-          "style": { "navigationBarTitleText": "订单详情" }
-        },
-        {
-          "path": "orders/weigh/weigh",
-          "style": { "navigationBarTitleText": "称重" }
-        },
-        {
-          "path": "products/products",
-          "style": { "navigationBarTitleText": "商品管理" }
-        },
-        {
-          "path": "products/edit/edit",
-          "style": { "navigationBarTitleText": "编辑商品" }
-        },
-        {
-          "path": "operations/operations",
-          "style": { "navigationBarTitleText": "运营数据" }
-        },
-        {
-          "path": "profile/profile",
-          "style": { "navigationBarTitleText": "个人设置" }
-        },
-        {
-          "path": "numbers/numbers",
-          "style": { "navigationBarTitleText": "号码牌" }
-        },
-        {
-          "path": "offline/offline",
-          "style": { "navigationBarTitleText": "线下订单" }
-        },
-        {
-          "path": "dashboard/dashboard",
-          "style": { "navigationBarTitleText": "仪表盘" }
-        }
-      ]
-    }
-  ],
-  "preloadRule": {
-    "pages/index/index": {
-      "network": "all",
-      "packages": ["pages/merchant"]
-    }
-  },
   "globalStyle": {
     "navigationBarBackgroundColor": "#FFFFFF",
     "navigationBarTitleText": "小鲜鸡",
@@ -135,10 +76,10 @@
     "backgroundColor": "#FAF9F7"
   },
   "tabBar": {
-    "color": "#999999",
-    "selectedColor": "#D4420A",
+    "color": "#A8A49C",
+    "selectedColor": "#E8712A",
     "backgroundColor": "#FFFFFF",
-    "borderStyle": "black",
+    "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/index/index",
