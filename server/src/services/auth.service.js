@@ -53,31 +53,19 @@ async function wxLogin(code, profile = {}) {
   let user = await db.queryOne('SELECT * FROM users WHERE openid = ?', [openid]);
 
   if (user) {
-    // 老用户：仅在有新资料时更新
-    const updates = { last_login: new Date() };
+    // 老用户：更新登录时间，有新资料时一并更新
+    const sets = ['last_login = NOW()'];
     const params = [];
     if (profile.nickName) {
-      updates.nick_name = '?';
+      sets.push('nick_name = ?');
       params.push(profile.nickName);
     }
     if (profile.avatarUrl) {
-      updates.avatar_url = '?';
+      sets.push('avatar_url = ?');
       params.push(profile.avatarUrl);
     }
-
-    const setClauses = [];
-    const updateParams = [];
-    for (const [key, val] of Object.entries(updates)) {
-      if (val === '?') {
-        setClauses.push(`${key} = ?`);
-        updateParams.push(params.shift());
-      } else {
-        setClauses.push(`${key} = ?`);
-        updateParams.push(val);
-      }
-    }
-    updateParams.push(openid);
-    await db.execute(`UPDATE users SET ${setClauses.join(', ')} WHERE openid = ?`, updateParams);
+    params.push(openid);
+    await db.execute(`UPDATE users SET ${sets.join(', ')} WHERE openid = ?`, params);
   } else {
     // 新用户：无微信资料时自动生成品牌默认头像 + 随机生鲜风格昵称
     const nickName = profile.nickName || await generateUniqueNickname();
@@ -343,30 +331,18 @@ async function alipayLogin(authCode, profile = {}) {
   let user = await db.queryOne('SELECT * FROM users WHERE openid = ?', [userId]);
 
   if (user) {
-    const updates = { last_login: new Date() };
+    const sets = ['last_login = NOW()'];
     const params = [];
     if (profile.nickName) {
-      updates.nick_name = '?';
+      sets.push('nick_name = ?');
       params.push(profile.nickName);
     }
     if (profile.avatarUrl) {
-      updates.avatar_url = '?';
+      sets.push('avatar_url = ?');
       params.push(profile.avatarUrl);
     }
-
-    const setClauses = [];
-    const updateParams = [];
-    for (const [key, val] of Object.entries(updates)) {
-      if (val === '?') {
-        setClauses.push(`${key} = ?`);
-        updateParams.push(params.shift());
-      } else {
-        setClauses.push(`${key} = ?`);
-        updateParams.push(val);
-      }
-    }
-    updateParams.push(userId);
-    await db.execute(`UPDATE users SET ${setClauses.join(', ')} WHERE openid = ?`, updateParams);
+    params.push(userId);
+    await db.execute(`UPDATE users SET ${sets.join(', ')} WHERE openid = ?`, params);
   } else {
     const nickName = profile.nickName || await generateUniqueNickname();
     const avatarUrl = profile.avatarUrl || DEFAULT_AVATAR;
@@ -425,30 +401,18 @@ async function ttLogin(code, profile = {}) {
   let user = await db.queryOne('SELECT * FROM users WHERE openid = ?', [openid]);
 
   if (user) {
-    const updates = { last_login: new Date() };
+    const sets = ['last_login = NOW()'];
     const params = [];
     if (profile.nickName) {
-      updates.nick_name = '?';
+      sets.push('nick_name = ?');
       params.push(profile.nickName);
     }
     if (profile.avatarUrl) {
-      updates.avatar_url = '?';
+      sets.push('avatar_url = ?');
       params.push(profile.avatarUrl);
     }
-
-    const setClauses = [];
-    const updateParams = [];
-    for (const [key, val] of Object.entries(updates)) {
-      if (val === '?') {
-        setClauses.push(`${key} = ?`);
-        updateParams.push(params.shift());
-      } else {
-        setClauses.push(`${key} = ?`);
-        updateParams.push(val);
-      }
-    }
-    updateParams.push(openid);
-    await db.execute(`UPDATE users SET ${setClauses.join(', ')} WHERE openid = ?`, updateParams);
+    params.push(openid);
+    await db.execute(`UPDATE users SET ${sets.join(', ')} WHERE openid = ?`, params);
   } else {
     const nickName = profile.nickName || await generateUniqueNickname();
     const avatarUrl = profile.avatarUrl || DEFAULT_AVATAR;
@@ -483,6 +447,26 @@ async function ttLogin(code, profile = {}) {
     role: user.role,
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
+  };
+}
+
+/**
+ * 获取用户资料（头像、昵称、手机号）
+ * @param {string} openid
+ * @returns {Promise<{nickName: string, avatarUrl: string, phone: string}>}
+ */
+async function getProfile(openid) {
+  const user = await db.queryOne(
+    'SELECT nick_name, avatar_url, phone FROM users WHERE openid = ?',
+    [openid]
+  );
+  if (!user) {
+    throw new Error('用户不存在');
+  }
+  return {
+    nickName: user.nick_name || '',
+    avatarUrl: user.avatar_url || '',
+    phone: user.phone || ''
   };
 }
 
@@ -526,4 +510,4 @@ async function updateProfile(openid, profile = {}) {
   };
 }
 
-module.exports = { wxLogin, alipayLogin, ttLogin, phoneAuth, merchantLogin, refreshToken, handlePhoneAuth, validatePasswordStrength, hashPassword, verifyPassword: verifyPasswordCompat, updateProfile };
+module.exports = { wxLogin, alipayLogin, ttLogin, phoneAuth, merchantLogin, refreshToken, handlePhoneAuth, validatePasswordStrength, hashPassword, verifyPassword: verifyPasswordCompat, getProfile, updateProfile };

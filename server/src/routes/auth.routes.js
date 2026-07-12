@@ -273,6 +273,21 @@ router.post(
 )
 
 /**
+ * GET /api/auth/profile
+ * 获取用户资料（头像、昵称、手机号）
+ * 需登录（verifyToken）
+ */
+router.get('/profile', verifyToken, async (req, res) => {
+  try {
+    const result = await authService.getProfile(req.user.openid);
+    res.json({ success: true, code: 200, data: result });
+  } catch (err) {
+    logger.error('[auth] profile 获取失败:', err.message);
+    res.status(500).json({ success: false, code: 500, message: err.message || '获取失败' });
+  }
+});
+
+/**
  * PUT /api/auth/profile
  * 更新用户资料（头像、昵称）
  * Body: { nickName?, avatarUrl? }

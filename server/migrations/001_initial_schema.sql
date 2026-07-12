@@ -229,11 +229,13 @@ CREATE TABLE IF NOT EXISTS store_config (
 -- ===== Refresh Token 表 =====
 CREATE TABLE IF NOT EXISTS refresh_tokens (
     id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_id      BIGINT UNSIGNED NOT NULL,
+    user_id      BIGINT UNSIGNED NOT NULL COMMENT '用户ID（users表或merchant_accounts表）',
     token        VARCHAR(256) NOT NULL UNIQUE,
     expires_at   DATETIME NOT NULL,
     created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    -- 注意：此处不设外键。user_id 来源有二：顾客端 users.id，商家端 merchant_accounts.id
+    -- 若 FK 指向 users，商家登录刷新 token 时会因 merchant_accounts.id 不在 users 表中而失败
+    INDEX idx_user (user_id),
     INDEX idx_token (token),
     INDEX idx_expires (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
