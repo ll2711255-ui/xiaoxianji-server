@@ -171,8 +171,8 @@ export function request(method, path, data = {}, options = {}) {
               // 刷新失败 → 跳转登录页
               const pages = getCurrentPages()
               const currentPage = pages[pages.length - 1]
-              if (currentPage && currentPage.route !== 'pages/login/login') {
-                uni.navigateTo({ url: '/pages/login/login' })
+              if (currentPage && currentPage.route !== 'pages/mine/mine') {
+                uni.switchTab({ url: '/pages/mine/mine' })
               }
               reject(refreshErr)
             }

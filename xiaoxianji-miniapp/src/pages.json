@@ -39,12 +39,6 @@
       }
     },
     {
-      "path": "pages/login/login",
-      "style": {
-        "navigationBarTitleText": "登录"
-      }
-    },
-    {
       "path": "pages/mine/mine",
       "style": {
         "navigationBarTitleText": "我的"
@@ -66,6 +60,18 @@
       "path": "pages/pickup/pickup",
       "style": {
         "navigationBarTitleText": "取货码"
+      }
+    },
+    {
+      "path": "pages/protocol/service",
+      "style": {
+        "navigationBarTitleText": "用户服务协议"
+      }
+    },
+    {
+      "path": "pages/protocol/privacy",
+      "style": {
+        "navigationBarTitleText": "隐私政策"
       }
     }
   ],

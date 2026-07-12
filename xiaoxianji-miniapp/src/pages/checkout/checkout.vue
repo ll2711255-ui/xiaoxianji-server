@@ -607,8 +607,8 @@ function formatSpec(spec) {
 .bottom-submit-btn { background:var(--color-primary); color:#fff; padding:16rpx 48rpx; border-radius:var(--radius-xl); font-size:var(--font-base); font-weight:var(--weight-bold); }
 
 /* 弹窗 */
-.modal-mask { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:200; }
-.modal-card { background:#fff; border-radius:var(--radius-xl); padding:40rpx 32rpx; margin:0 48rpx; width:100%; max-width:560rpx; display:flex; flex-direction:column; align-items:center; }
+.modal-mask { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:200; }
+.modal-card { background:#fff; border-radius:30rpx; padding:40rpx 32rpx; margin:0 48rpx; width:85%; max-width:560rpx; display:flex; flex-direction:column; align-items:center; box-shadow:0 8rpx 40rpx rgba(0,0,0,0.12); }
 .modal-title { font-size:var(--font-lg); font-weight:var(--weight-bold); color:var(--color-text-1); margin-bottom:16rpx; }
 .modal-body { font-size:var(--font-base); color:var(--color-text-2); text-align:center; margin-bottom:12rpx; line-height:1.6; }
 .modal-detail { font-size:var(--font-sm); color:var(--color-text-3); margin-bottom:24rpx; }

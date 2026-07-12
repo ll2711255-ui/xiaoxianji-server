@@ -96,7 +96,7 @@ export function requireLogin() {
   const accessToken = uni.getStorageSync('access_token')
   const openid = uni.getStorageSync(STORAGE_KEYS.openid)
   if (!accessToken && !openid) {
-    uni.navigateTo({ url: '/pages/login/login' })
+    uni.switchTab({ url: '/pages/mine/mine' })
     return false
   }
   return true
