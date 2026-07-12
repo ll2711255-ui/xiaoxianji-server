@@ -37,7 +37,7 @@ const config = {
   jwt: {
     accessSecret: process.env.JWT_ACCESS_SECRET || 'dev-access-secret-change-me',
     refreshSecret: process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-change-me',
-    accessExpires: parseInt(process.env.JWT_ACCESS_EXPIRES, 10) || 7200,       // 2h
+    accessExpires: parseInt(process.env.JWT_ACCESS_EXPIRES, 10) || 604800,    // 7d（顾客端，商家端 auth.routes.js 中硬编码 8h 覆盖）
     refreshExpires: parseInt(process.env.JWT_REFRESH_EXPIRES, 10) || 2592000,  // 30d
   },
 

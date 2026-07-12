@@ -182,39 +182,52 @@ function saveAndEnter(data) {
   uni.redirectTo({ url: '/pages/index/index' })
 }
 
-// ========== 微信手机号一键登录 ==========
-function onWechatLogin(e) {
+// ========== 微信手机号一键登录（两步流程） ==========
+// /auth/wx-phone 需要 verifyToken 中间件，必须先 wx.login 拿到 JWT
+async function onWechatLogin(e) {
   if (e.detail.errMsg !== 'getPhoneNumber:ok') return
   uni.showLoading({ title: '登录中...', mask: true })
 
-  // 阿里/抖音平台：手机号登录接口可能不同
-  // #ifdef MP-WEIXIN
-  post('/auth/wx-phone', { phoneCode: e.detail.code }, { skipAuth: true })
-  // #endif
-  // #ifdef MP-ALIPAY
-  post('/auth/alipay-phone', { phoneCode: e.detail.code }, { skipAuth: true })
-  // #endif
-  // #ifdef MP-TOUTIAO
-  post('/auth/toutiao-phone', { phoneCode: e.detail.code }, { skipAuth: true })
-  // #endif
-    .then(res => {
+  try {
+    // 步骤1: wx.login 获取 code
+    const wxCode = await getLoginCode()
+    if (!wxCode) {
       uni.hideLoading()
-      if (res && res.success) {
-        const d = res.data
-        if (d.phone) {
-          uni.setStorageSync('phone', d.phone)
-          authStore.phone = d.phone
-        }
-        uni.redirectTo({ url: '/pages/index/index' })
-      } else {
-        uni.showToast({ title: (res && res.message) || '登录失败', icon: 'none' })
-      }
-    })
-    .catch(err => {
+      uni.showToast({ title: '获取微信登录凭证失败', icon: 'none' })
+      return
+    }
+
+    // 步骤2: /auth/wx-login 获取 JWT（skipAuth=true，此时尚无 token）
+    const loginRes = await post(getLoginEndpoint(), { code: wxCode }, { skipAuth: true })
+    if (!loginRes || !loginRes.success) {
       uni.hideLoading()
-      console.error('手机号登录失败:', err)
-      uni.showToast({ title: '登录失败，请重试', icon: 'none' })
+      uni.showToast({ title: (loginRes && loginRes.message) || '登录失败', icon: 'none' })
+      return
+    }
+
+    // 步骤3: 保存 token（后续 /auth/wx-phone 需要 verifyToken）
+    const loginData = loginRes.data
+    saveLoginInfo({
+      accessToken: loginData.accessToken || loginData.token,
+      refreshToken: loginData.refreshToken,
+      openid: loginData.openid || '',
+      role: 'customer'
     })
+
+    // 步骤4: /auth/wx-phone 绑定手机号（此时已有 token，不再 skipAuth）
+    const phoneRes = await post(getPhoneEndpoint(), { phoneCode: e.detail.code })
+    uni.hideLoading()
+
+    if (phoneRes && phoneRes.success && phoneRes.data && phoneRes.data.phone) {
+      uni.setStorageSync('phone', phoneRes.data.phone)
+      authStore.phone = phoneRes.data.phone
+    }
+    uni.redirectTo({ url: '/pages/index/index' })
+  } catch (err) {
+    uni.hideLoading()
+    console.error('手机号登录失败:', err)
+    uni.showToast({ title: '登录失败，请重试', icon: 'none' })
+  }
 }
 
 function onTogglePolicy() {

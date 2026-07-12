@@ -1,7 +1,0 @@
-{
-  "usingComponents": {
-    "custom-tab-bar": "/components/custom-tab-bar/custom-tab-bar"
-  },
-  "navigationBarTitleText": "订单",
-  "enablePullDownRefresh": true
-}

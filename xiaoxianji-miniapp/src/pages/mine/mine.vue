@@ -145,7 +145,7 @@
 import { ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { get, post } from '@/utils/request'
-import { clearAuth, STORAGE_KEYS } from '@/utils/auth'
+import { clearAuth, STORAGE_KEYS, getLoginCode, getLoginEndpoint, saveLoginInfo } from '@/utils/auth'
 import { clearTokens } from '@/utils/request'
 
 // ========== State ==========
@@ -234,7 +234,7 @@ function onViewService() {
   uni.showModal({ title: '服务协议', content: '使用小鲜鸡服务即表示您同意遵守平台规则，包括但不限于订单、配送、售后等相关条款。', showCancel: false })
 }
 
-function onGetPhoneNumber(e) {
+async function onGetPhoneNumber(e) {
   if (!agreedProtocol.value) {
     showAgreementTip.value = true
     return
@@ -252,19 +252,48 @@ function onGetPhoneNumber(e) {
   }
 
   uni.showLoading({ title: '登录中...', mask: true })
-  post('/auth/wx-phone', { phoneCode: e.detail.code }, { skipAuth: true }).then(res => {
+
+  try {
+    // 步骤1: wx.login 获取 code
+    const wxCode = await getLoginCode()
+    if (!wxCode) {
+      uni.hideLoading()
+      uni.showToast({ title: '获取微信登录凭证失败', icon: 'none' })
+      return
+    }
+
+    // 步骤2: /auth/wx-login 获取 JWT（skipAuth=true，此时尚无 token）
+    const loginRes = await post(getLoginEndpoint(), { code: wxCode }, { skipAuth: true })
+    if (!loginRes || !loginRes.success) {
+      uni.hideLoading()
+      uni.showToast({ title: (loginRes && loginRes.message) || '登录失败', icon: 'none' })
+      return
+    }
+
+    // 步骤3: 保存 token（后续 /auth/wx-phone 需要 verifyToken）
+    const loginData = loginRes.data
+    saveLoginInfo({
+      accessToken: loginData.accessToken || loginData.token,
+      refreshToken: loginData.refreshToken,
+      openid: loginData.openid || '',
+      role: 'customer'
+    })
+
+    // 步骤4: /auth/wx-phone 绑定手机号（此时已有 token，不再 skipAuth）
+    const phoneRes = await post('/auth/wx-phone', { phoneCode: e.detail.code })
     uni.hideLoading()
-    const d = (res && res.data) || res || {}
+
+    const d = (phoneRes && phoneRes.data) || phoneRes || {}
     if (d.phone) {
       handleLoginSuccess(d.phone, d.openid || '')
     } else {
-      uni.showToast({ title: (res && res.message) || '登录失败', icon: 'none' })
+      uni.showToast({ title: (phoneRes && phoneRes.message) || '登录失败', icon: 'none' })
     }
-  }).catch(err => {
+  } catch (err) {
     uni.hideLoading()
     console.error('[mine] 手机号登录失败:', err)
     uni.showToast({ title: '网络异常，请重试', icon: 'none' })
-  })
+  }
 }
 
 function handleLoginSuccess(phoneNum, openid) {

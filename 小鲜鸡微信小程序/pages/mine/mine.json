@@ -1,6 +1,0 @@
-{
-  "usingComponents": {
-    "custom-tab-bar": "/components/custom-tab-bar/custom-tab-bar"
-  },
-  "navigationBarTitleText": "我的"
-}

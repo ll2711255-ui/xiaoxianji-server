@@ -1,7 +1,5 @@
 /**
- * 已废弃，请使用 server/ecosystem.config.js
- *
- * PM2 生产环境配置
+ * PM2 生产环境配置（唯一权威版本）
  *
  * 部署方式：
  *   pm2 start ecosystem.config.js
@@ -20,6 +18,9 @@ module.exports = {
         PORT: 3000,
       },
       max_memory_restart: '500M',
+      max_restarts: 10,         // 连续崩溃超过 10 次不再重启
+      min_uptime: '10s',        // 运行不满 10s 视为异常启动
+      restart_delay: 5000,      // 崩溃后等 5s 再重启（避免死循环）
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       error_file: './logs/pm2-error.log',
       out_file: './logs/pm2-out.log',

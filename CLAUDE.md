@@ -8,14 +8,14 @@
 
 小鲜鸡是一个生鲜零售多端系统：
 
-**小程序端**（C 端顾客）→ **迁移到 uni-app**，一套代码发布微信 + 支付宝 + 抖音三个小程序平台
+**小程序端**（C 端顾客）→ **uni-app（Vue 3）**，一套代码发布微信 + 支付宝 + 抖音三个小程序平台（8/22 页面已迁移）
 
 **PC 商家端**（店员/管理员）→ **Tauri 2 全平台打包**，一套 Vue 代码库覆盖网站 + Windows + Mac + iOS + Android 五个端
 
 | 端 | 目录 | 技术 | 平台 |
 |---|------|------|------|
 | 服务端 | `server/` | Node.js + Express + MySQL + Redis | 服务器 |
-| 小程序 | `小鲜鸡微信小程序/` → 将迁移为 uni-app 项目 | uni-app（Vue 3） | 微信 + 支付宝 + 抖音 |
+| 小程序 | `xiaoxianji-miniapp/` | uni-app（Vue 3） | 微信 + 支付宝 + 抖音 |
 | PC 商家端 | `小鲜鸡PC商家端/` | Vue 3 + Vite + Tauri 2 + Element Plus | Web + Windows + Mac + iOS + Android |
 
 - **服务器**：腾讯云 4C4G，IP `159.75.0.194`，域名 `www.xuaioxianji.top`
@@ -43,11 +43,15 @@
 │   ├── uploads/                # 上传的图片（git ignore）
 │   └── .env                    # 环境变量（git ignore，绝不提交！）
 │
-├── 小鲜鸡微信小程序/            # 小程序（当前微信原生，将迁移到 uni-app）
-│   ├── pages/                  # 页面（22个页面）
-│   ├── utils/                  # 工具（config.js=API地址, orderActions.js=订单操作）
-│   ├── api.js                  # HTTP 请求封装
-│   └── app.js / app.json       # 小程序入口
+├── xiaoxianji-miniapp/          # uni-app 小程序（Vue 3）
+│   ├── src/
+│   │   ├── pages/                # 页面（8个已实现，14个占位待迁移）
+│   │   ├── stores/               # Pinia 状态管理
+│   │   ├── utils/                # 工具（request.js, auth.js, pay.js, platform.js）
+│   │   └── styles/               # 样式 tokens
+│   ├── docs/                     # 迁移文档
+│   ├── pages.json                # 页面配置 + tabBar
+│   └── manifest.json             # 应用清单（多平台配置）
 │
 └── 小鲜鸡PC商家端/              # PC 管理后台（Vue SPA + Tauri 2）
     ├── src/
@@ -162,8 +166,8 @@ curl -s https://www.xuaioxianji.top/admin/         # PC 端首页
 ```
 > 大白话：部署完了不能说"好了"就完事。用 curl 确认真能访问到。
 
-**规则：** 小程序代码修改后，用微信开发者工具点击"上传"，填写版本号，去 MP 后台提交审核
-> 大白话：小程序代码不在我们服务器上跑，是微信托管。改完必须在微信开发者工具里手动上传。
+**规则：** 小程序代码修改后，用 HBuilderX 或 uni-app CLI 编译，然后去对应平台开发者工具上传
+> 大白话：`npm run build:mp-weixin` 编译微信小程序 → 微信开发者工具打开 `dist/build/mp-weixin/` → 上传。支付宝和抖音同理。
 
 **规则：PC 商家端必须同时支持 Web + 桌面 App + 移动 App 五端（一条代码库）**
 > 大白话：同一套 Vue 代码库通过 Tauri 2 打包成 Windows/Mac 桌面 + iOS/Android 移动应用，Web 端部署到 Nginx。写 UI 时必须考虑不同屏幕尺寸，路由用 hash 模式兼容 `tauri://` 协议，平台相关功能（通知、文件系统）通过 `src/utils/platform.js` + composables 封装隔离。
@@ -173,7 +177,7 @@ curl -s https://www.xuaioxianji.top/admin/         # PC 端首页
 > - 移动 App：`npm run tauri:android` / `npm run tauri:ios`（需 Android Studio / Xcode）
 
 **规则：小程序端迁移到 uni-app，一套代码发布微信 + 支付宝 + 抖音三个小程序平台**
-> 大白话：当前 `小鲜鸡微信小程序/` 是微信原生框架写的，只有微信一个平台。未来迁移到 uni-app（Vue 3），用条件编译 `#ifdef MP-WEIXIN` / `#ifdef MP-ALIPAY` / `#ifdef MP-TOUTIAO` 处理平台差异，一套代码同时发布三个小程序。在此之前，对现有微信原生代码的改动要保持可迁移性——不要把平台特定逻辑写死在业务逻辑里。
+> 大白话：原 `小鲜鸡微信小程序/` 是微信原生框架写的，已删除。当前 `xiaoxianji-miniapp/` 为 uni-app（Vue 3），用条件编译 `#ifdef MP-WEIXIN` / `#ifdef MP-ALIPAY` / `#ifdef MP-TOUTIAO` 处理平台差异。目前 8 个 C 端页面已实现，14 个页面（地址、取货码、商家登录、商家后台全部）仍为占位符待迁移。
 
 ---
 

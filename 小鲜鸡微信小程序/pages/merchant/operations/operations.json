@@ -1,8 +1,0 @@
-{
-  "usingComponents": {
-    "custom-tab-bar": "/components/custom-tab-bar/custom-tab-bar"
-  },
-  "navigationBarTitleText": "商品运营",
-  "navigationBarBackgroundColor": "#A83108",
-  "navigationBarTextStyle": "white"
-}

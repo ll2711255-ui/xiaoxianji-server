@@ -108,15 +108,15 @@ function getDateRange() {
   const endDate = new Date(date.value)
   endDate.setDate(endDate.getDate() + 1)
   const end = endDate.toISOString().slice(0, 10) + 'T00:00:00.000Z'
-  return { startDate: start, endDate: end }
+  return { dateFrom: start, dateTo: end }
 }
 
 async function loadData() {
-  const { startDate, endDate } = getDateRange()
+  const { dateFrom, dateTo } = getDateRange()
   try {
     const [onlineRes, offlineRes] = await Promise.all([
-      api.get('/merchant/orders', { status: 'completed', type: 'online', pageSize: 200, startDate, endDate }),
-      api.get('/merchant/orders', { status: 'completed', type: 'offline', pageSize: 200, startDate, endDate })
+      api.get('/merchant/orders', { status: 'completed', type: 'online', pageSize: 200, dateFrom, dateTo }),
+      api.get('/merchant/orders', { status: 'completed', type: 'offline', pageSize: 200, dateFrom, dateTo })
     ])
 
     const onlineOrders = (onlineRes && onlineRes.data && onlineRes.data.orders) || []

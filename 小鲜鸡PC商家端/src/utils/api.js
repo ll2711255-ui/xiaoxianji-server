@@ -41,6 +41,21 @@ http.interceptors.response.use(
   (response) => response,
   async (error) => {
     const { config, response } = error
+
+    // 处理特定 HTTP 错误状态码
+    if (response) {
+      const msg = (response.data && response.data.message) || ''
+      switch (response.status) {
+        case 403:
+          // 权限不足，不清除 token
+          return Promise.reject(new Error(msg || '无权限执行此操作'))
+        case 429:
+          return Promise.reject(new Error(msg || '请求过于频繁，请稍后重试'))
+        case 500:
+          return Promise.reject(new Error(msg || '服务器内部错误，请稍后重试'))
+      }
+    }
+
     if (response && response.status === 401 && !config.skipAuth && !config._retry) {
       const authStore = useAuthStore()
 
