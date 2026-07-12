@@ -1,4 +1,9 @@
 {
+  "description": "小鲜鸡 uni-app 小程序",
+  "packOptions": {
+    "ignore": [],
+    "include": []
+  },
   "setting": {
     "es6": true,
     "postcss": true,
@@ -12,14 +17,14 @@
       "outputPath": ""
     },
     "useCompilerPlugins": false,
-    "minifyWXML": true
+    "minifyWXML": true,
+    "condition": false
   },
   "compileType": "miniprogram",
-  "simulatorPluginLibVersion": {},
-  "packOptions": {
-    "ignore": [],
-    "include": []
-  },
+  "libVersion": "3.7.0",
   "appid": "wx178d0ae59d576ce1",
+  "projectname": "小鲜鸡",
+  "miniprogramRoot": "dist/build/mp-weixin/",
+  "simulatorPluginLibVersion": {},
   "editorSetting": {}
 }

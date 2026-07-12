@@ -7,7 +7,7 @@
     "dev:mp-weixin": "uni -p mp-weixin",
     "dev:mp-alipay": "uni -p mp-alipay",
     "dev:mp-toutiao": "uni -p mp-toutiao",
-    "build:mp-weixin": "uni build -p mp-weixin",
+    "build:mp-weixin": "uni build -p mp-weixin && node scripts/copy-static.js",
     "build:mp-alipay": "uni build -p mp-alipay",
     "build:mp-toutiao": "uni build -p mp-toutiao"
   },
