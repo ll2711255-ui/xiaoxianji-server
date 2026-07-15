@@ -3,7 +3,7 @@
     <view class="login-card">
       <!-- 顶部品牌区（始终显示） -->
       <view class="brand-row">
-        <text class="brand-icon">🐔</text>
+        <image class="brand-icon" src="/static/icons/brand/brand-logo.png" mode="aspectFit" />
         <text class="brand-title">微信快捷登录</text>
       </view>
 
@@ -194,10 +194,7 @@ function onViewPrivacy() {
   margin-bottom: 24rpx;
 }
 
-.brand-icon {
-  font-size: 48rpx;
-  line-height: 1;
-}
+.brand-icon { width:64rpx; height:64rpx; }
 
 .brand-title {
   font-size: var(--font-xl);

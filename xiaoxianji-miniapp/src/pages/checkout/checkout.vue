@@ -28,7 +28,7 @@
     <view v-if="currentTab === 'delivery'" class="section" @click="onSelectAddress">
       <view v-if="address" class="address-card">
         <view class="address-top">
-          <text class="address-icon">📍</text>
+          <image class="address-icon" src="/static/icons/ui/ui-location.png" mode="aspectFit" />
           <view class="address-info">
             <view class="address-contact">
               <text class="address-name">{{ address.name }}</text>
@@ -39,7 +39,7 @@
         </view>
       </view>
       <view v-else class="address-empty">
-        <text class="address-empty-icon">📍</text>
+        <image class="address-empty-icon" src="/static/icons/ui/ui-location.png" mode="aspectFit" />
         <text>请添加收货地址</text>
         <text class="address-arrow">›</text>
       </view>
@@ -49,7 +49,7 @@
     <view v-if="currentTab === 'pickup'" class="section" @click="onNavigateToStore">
       <view class="address-card">
         <view class="address-top">
-          <text class="address-icon">🏪</text>
+          <image class="address-icon" src="/static/icons/ui/ui-store.png" mode="aspectFit" />
           <view class="address-info">
             <text class="address-name">小鲜鸡线下体验店</text>
             <text class="address-text">{{ storeAddress }}</text>
@@ -573,7 +573,7 @@ function formatSpec(spec) {
 /* 地址 */
 .address-card { display:flex; flex-direction:column; }
 .address-top { display:flex; align-items:center; gap:12rpx; }
-.address-icon { font-size:var(--font-lg); flex-shrink:0; }
+.address-icon { width:36rpx; height:36rpx; flex-shrink:0; }
 .address-info { flex:1; overflow:hidden; }
 .address-contact { display:flex; gap:16rpx; margin-bottom:8rpx; }
 .address-name { font-size:var(--font-base); font-weight:var(--weight-bold); color:var(--color-text-1); }

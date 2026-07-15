@@ -5,7 +5,7 @@
     <template v-if="order">
       <!-- ========== 状态横幅 ========== -->
       <view class="status-banner">
-        <view class="status-icon">{{ statusIcon }}</view>
+        <image class="status-icon" :src="statusIcon" mode="aspectFit" />
         <text class="status-text">{{ statusText }}</text>
         <text v-if="refundStatusText && refundStatusText !== '无需退款'" class="refund-text" :class="refundStatusClass">退款状态：{{ refundStatusText }}</text>
       </view>
@@ -14,7 +14,7 @@
       <view class="section">
         <text class="section-title">{{ order.type === 'delivery' ? '收货地址' : '取货门店' }}</text>
         <view v-if="order.type === 'delivery' && order.deliveryAddress" class="address-card" @click="navigateToAddress">
-          <text class="address-icon">📍</text>
+          <image class="address-icon" src="/static/icons/ui/ui-location.png" mode="aspectFit" />
           <view class="address-info">
             <text class="address-contact">{{ order.deliveryAddress.name }} {{ order.deliveryAddress.phone }}</text>
             <text class="address-text">{{ order.deliveryAddress.province }}{{ order.deliveryAddress.city }}{{ order.deliveryAddress.district }} {{ order.deliveryAddress.detail }}</text>
@@ -22,7 +22,8 @@
           <text class="address-arrow">›</text>
         </view>
         <view v-else class="store-row">
-          <text>🏪 小鲜鸡线下体验店</text>
+          <image class="store-icon" src="/static/icons/ui/ui-store.png" mode="aspectFit" />
+          <text>小鲜鸡线下体验店</text>
         </view>
       </view>
 
@@ -145,10 +146,17 @@ const pollingTimer = ref(null)
 let pollFailCount = 0
 
 const statusIconMap = {
-  pending: '⏳', paid: '✅', accepted: '📋', weighed: '⚖️',
-  processing: '🔪', delivering: '🛵', ready: '📦', completed: '✅', cancelled: '❌'
+  pending: '/static/icons/status/status-pending.png',
+  paid: '/static/icons/status/status-paid.png',
+  accepted: '/static/icons/status/status-accepted.png',
+  weighed: '/static/icons/status/status-weighed.png',
+  processing: '/static/icons/status/status-processing.png',
+  delivering: '/static/icons/status/status-delivering.png',
+  ready: '/static/icons/status/status-ready.png',
+  completed: '/static/icons/status/status-completed.png',
+  cancelled: '/static/icons/status/status-cancelled.png'
 }
-const statusIcon = ref('⏳')
+const statusIcon = ref('/static/icons/status/status-pending.png')
 
 // ========== Lifecycle ==========
 onLoad((options) => {
@@ -244,7 +252,7 @@ async function loadOrder(silent = false) {
     refundStatusClass.value = getRefundStatusClass((refundInfo && refundInfo.status) || o.refundStatus || 'none')
     weighInfo.value = wi
     showCancelBtn.value = canCancelOrder
-    statusIcon.value = statusIconMap[o.status] || '⏳'
+    statusIcon.value = statusIconMap[o.status] || '/static/icons/status/status-pending.png'
 
     if (o.status === 'completed' || o.status === 'cancelled') stopPolling()
   } catch (err) {
@@ -393,7 +401,7 @@ function formatItemSpec(item) {
 
 /* 状态横幅 */
 .status-banner { display:flex; flex-direction:column; align-items:center; padding:48rpx 24rpx 32rpx; background:var(--color-bg-card); margin-bottom:16rpx; }
-.status-icon { font-size:96rpx; margin-bottom:16rpx; }
+.status-icon { width:96rpx; height:96rpx; margin-bottom:16rpx; }
 .status-text { font-size:var(--font-xl); font-weight:var(--weight-bold); color:var(--color-text-1); }
 .refund-text { font-size:var(--font-md); margin-top:12rpx; padding:6rpx 20rpx; border-radius:var(--radius-md); }
 .tag-green { background:var(--color-success-bg); color:var(--color-success); }
@@ -406,7 +414,7 @@ function formatItemSpec(item) {
 
 /* 地址 */
 .address-card { display:flex; align-items:center; gap:12rpx; }
-.address-icon { font-size:var(--font-lg); flex-shrink:0; }
+.address-icon { width:36rpx; height:36rpx; flex-shrink:0; }
 .address-info { flex:1; overflow:hidden; }
 .address-contact { font-size:var(--font-base); font-weight:var(--weight-bold); color:var(--color-text-1); display:block; margin-bottom:6rpx; }
 .address-text { font-size:var(--font-md); color:var(--color-text-3); display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -437,7 +445,8 @@ function formatItemSpec(item) {
 .action-btn-primary { background:var(--color-primary); color:#fff; }
 .action-btn-outline { border:2rpx solid var(--color-border-dark); color:var(--color-text-2); background:var(--color-bg-card); }
 
-.store-row { display:flex; align-items:center; font-size:var(--font-base); color:var(--color-text-1); }
+.store-row { display:flex; align-items:center; gap:8rpx; font-size:var(--font-base); color:var(--color-text-1); }
+.store-icon { width:36rpx; height:36rpx; flex-shrink:0; }
 
 /* 加载 */
 .loading-state { display:flex; flex-direction:column; align-items:center; padding:120rpx; gap:24rpx; color:var(--color-text-3); font-size:var(--font-base); }

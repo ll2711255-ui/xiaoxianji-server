@@ -168,13 +168,14 @@ export function request(method, path, data = {}, options = {}) {
               const newToken = await refreshAccessToken()
               doRequest(newToken)
             } catch (refreshErr) {
-              // 刷新失败 → 跳转登录页
+              // 刷新失败（token 过期 / refresh_token 缺失）→ 清空登录态，引导重新登录
+              console.warn('[request] token 刷新失败，已清除登录态，请重新登录')
               const pages = getCurrentPages()
               const currentPage = pages[pages.length - 1]
               if (currentPage && currentPage.route !== 'pages/mine/mine') {
                 uni.switchTab({ url: '/pages/mine/mine' })
               }
-              reject(refreshErr)
+              reject(new Error('登录已过期，请重新登录'))
             }
             return
           }

@@ -2,7 +2,7 @@
   <view class="page">
     <!-- 空购物车 -->
     <view v-if="isEmpty" class="empty-state">
-      <text class="empty-icon">🛒</text>
+      <image class="empty-icon" src="/static/icons/ui/ui-empty-cart.png" mode="aspectFit" />
       <text class="empty-title">购物车是空的</text>
       <text class="empty-hint">快去首页挑选新鲜好货吧</text>
       <view class="empty-btn" @click="onGoHome"><text>去逛逛</text></view>
@@ -182,7 +182,7 @@ function formatSpec(spec) {
 
 /* 空状态 */
 .empty-state { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:80rpx; }
-.empty-icon { font-size:120rpx; margin-bottom:24rpx; }
+.empty-icon { width:120rpx; height:120rpx; margin-bottom:24rpx; }
 .empty-title { font-size:var(--font-lg); color:var(--color-text-2); font-weight:var(--weight-bold); }
 .empty-hint { font-size:var(--font-md); color:var(--color-text-3); margin-top:12rpx; }
 .empty-btn { margin-top:40rpx; background:var(--color-primary); color:#fff; padding:16rpx 64rpx; border-radius:var(--radius-xl); font-size:var(--font-base); font-weight:var(--weight-bold); }

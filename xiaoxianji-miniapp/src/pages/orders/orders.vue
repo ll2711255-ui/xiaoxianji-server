@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <view class="page">
     <!-- ========== Tab 栏 ========== -->
     <view class="tab-bar">
@@ -12,7 +12,7 @@
     <!-- ========== 订单列表 ========== -->
     <scroll-view class="order-list" scroll-y @scrolltolower="onReachBottom">
       <view v-if="orders.length === 0 && !loading" class="empty-state">
-        <text class="empty-icon">📋</text>
+        <image class="empty-icon" src="/static/icons/ui/ui-empty.png" mode="aspectFit" />
         <text class="empty-title">暂无订单</text>
       </view>
 
@@ -71,7 +71,7 @@
 <script setup>
 import { ref } from 'vue'
 import { onLoad, onShow, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app'
-import { get, post } from '@/utils/request'
+import { get, post, isLoggedIn } from '@/utils/request'
 import { formatMoney, getStatusText } from '@/utils/util'
 import { callPay } from '@/utils/pay'
 
@@ -108,6 +108,12 @@ function onTabTap(idx) {
 // ========== 加载订单 ==========
 async function loadOrders(reset = false) {
   if (loading.value) return
+	  if (!isLoggedIn()) {
+	    orders.value = []
+	    loading.value = false
+	    hasMore.value = false
+	    return
+	  }
   const p = reset ? 1 : page.value
   loading.value = true
 
@@ -315,7 +321,7 @@ function formatItemSpec(item) {
 
 /* 空状态 */
 .empty-state { display:flex; flex-direction:column; align-items:center; padding:120rpx 48rpx; }
-.empty-icon { font-size:88rpx; margin-bottom:24rpx; opacity:0.5; }
+.empty-icon { width:88rpx; height:88rpx; margin-bottom:24rpx; opacity:0.5; }
 .empty-title { font-size:var(--font-base); color:var(--color-text-3); }
 .load-more { text-align:center; padding:24rpx; color:var(--color-text-3); font-size:var(--font-sm); }
 </style>

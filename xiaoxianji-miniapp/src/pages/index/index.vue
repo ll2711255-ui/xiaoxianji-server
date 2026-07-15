@@ -4,7 +4,7 @@
     <view v-if="showSearch" class="search-overlay" @touchmove.stop>
       <view class="search-header">
         <view class="search-header-input-wrap">
-          <text class="search-header-icon">🔍</text>
+          <image class="search-header-icon" src="/static/icons/ui/ui-search.png" mode="aspectFit" />
           <input
             class="search-header-input"
             v-model="searchKeyword"
@@ -46,7 +46,7 @@
           </view>
         </view>
         <view v-else-if="searchHasNoResult" class="search-empty">
-          <text class="search-empty-icon">🔍</text>
+          <image class="search-empty-icon" src="/static/icons/ui/ui-search-empty.png" mode="aspectFit" />
           <text class="search-empty-text">没有找到相关商品</text>
           <text class="search-empty-hint">换个关键词试试吧</text>
         </view>
@@ -85,7 +85,7 @@
     <!-- ========== 顶部搜索栏 ========== -->
     <view v-if="!showSearch" class="search-bar">
       <view class="search-input" @click="onSearchTap">
-        <text class="search-icon">🔍</text>
+        <image class="search-icon" src="/static/icons/ui/ui-search.png" mode="aspectFit" />
         <text class="search-placeholder">搜索鸡肉、鸭肉...</text>
       </view>
       <text class="brand-name">小鲜鸡</text>
@@ -121,14 +121,14 @@
 
     <!-- ========== 加载失败 ========== -->
     <view v-else-if="loadError" class="error-state">
-      <text class="error-icon">😵</text>
+      <image class="error-icon" src="/static/icons/ui/ui-error.png" mode="aspectFit" />
       <text class="error-text">{{ errorMsg }}</text>
       <view class="error-retry-btn" @click="reload"><text>重新加载</text></view>
     </view>
 
     <!-- ========== 商品为空 ========== -->
     <view v-else-if="!loading && !loadError && groupedProducts.length === 0" class="empty-state">
-      <text class="empty-icon">📦</text>
+      <image class="empty-icon" src="/static/icons/ui/ui-empty.png" mode="aspectFit" />
       <text class="empty-text">暂无商品</text>
       <text class="empty-hint">商家正在准备新鲜好货，请稍后再来</text>
     </view>
@@ -200,7 +200,7 @@
     <view v-if="cartCount > 0" class="cart-float" @click="onCartTap">
       <view class="cart-float-left">
         <view class="cart-float-icon">
-          <text>🛒</text>
+          <image class="cart-float-icon-img" src="/static/icons/ui/ui-cart.png" mode="aspectFit" />
           <view class="cart-badge">{{ cartCount }}</view>
         </view>
         <text class="cart-float-total">¥{{ cartTotalDisplay }}</text>
@@ -214,7 +214,7 @@
 import { ref, reactive, computed } from 'vue'
 import { onLoad, onShow, onReady, onPullDownRefresh } from '@dcloudio/uni-app'
 import { get } from '@/utils/request'
-import { formatMoney } from '@/utils/util'
+import { formatMoney, safeImageUrl } from '@/utils/util'
 
 // ========== State ==========
 const categories = ref([])
@@ -280,7 +280,7 @@ async function loadBanners() {
       if (banners.length > 0) {
         bannerList.value = banners.map(b => ({
           _id: b._id,
-          image: b.imageUrl || b.image_url || b.image || '',
+          image: safeImageUrl(b.imageUrl || b.image_url || b.image),
           linkUrl: b.linkUrl || b.link_url || b.link || '',
           bg: '#FFF9ED',
           title: b.title || '',
@@ -322,6 +322,8 @@ async function loadAllProducts() {
     const res = await get('/products', { pageSize: 50 })
     const products = ((res && res.data && res.data.products) || []).map(p => ({
       ...p,
+      // 归一化 images 为字符串数组，防止对象/布尔值被用作 <image> src
+      images: normalizeImages(p.images),
       priceLabel: getPriceLabel(p),
       displayPrice: getDisplayPrice(p),
       sellingPoint: p.selling_point || p.description || '',
@@ -501,6 +503,17 @@ function onCartTap() {
 }
 
 // ========== 辅助函数 ==========
+/** 将 images 字段归一化为纯字符串数组，防止对象/布尔值被用作 <image> src */
+function normalizeImages(images) {
+  if (!images) return []
+  if (!Array.isArray(images)) {
+    // 单个对象/字符串
+    const url = safeImageUrl(images)
+    return url ? [url] : []
+  }
+  return images.map(img => safeImageUrl(img)).filter(Boolean)
+}
+
 function getPriceLabel(product) {
   switch (product.pricing_type) {
     case 'range_weight': return '/斤起'
@@ -584,7 +597,7 @@ function getSpecSummary(product) {
 .search-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:var(--color-bg-page); z-index:200; display:flex; flex-direction:column; }
 .search-header { display:flex; align-items:center; padding:var(--space-sm) var(--space-md); padding-top:calc(var(--space-sm) + env(safe-area-inset-top)); background:var(--color-bg-card); gap:var(--space-sm); flex-shrink:0; box-shadow:var(--shadow-card); }
 .search-header-input-wrap { flex:1; display:flex; align-items:center; background:var(--color-bg-input); border-radius:var(--radius-full); padding:12rpx var(--space-md); }
-.search-header-icon { font-size:var(--font-base); margin-right:12rpx; color:var(--color-text-3); flex-shrink:0; }
+.search-header-icon { width:28rpx; height:28rpx; margin-right:12rpx; flex-shrink:0; }
 .search-header-input { flex:1; font-size:var(--font-base); color:var(--color-text-1); }
 .search-header-clear { font-size:var(--font-base); color:var(--color-text-3); padding:var(--space-xs); flex-shrink:0; }
 .search-header-cancel { font-size:var(--font-base); color:var(--color-primary); flex-shrink:0; padding:var(--space-xs) 0; }
@@ -603,7 +616,7 @@ function getSpecSummary(product) {
 .sri-price .price-value { font-size:var(--font-lg); color:var(--color-primary); font-weight:var(--weight-bold); line-height:1; }
 .sri-price .price-unit { font-size:var(--font-sm); color:var(--color-text-3); margin-left:4rpx; }
 .search-empty { display:flex; flex-direction:column; align-items:center; padding:120rpx var(--space-xl); }
-.search-empty-icon { font-size:88rpx; margin-bottom:var(--space-md); opacity:0.5; }
+.search-empty-icon { width:88rpx; height:88rpx; margin-bottom:var(--space-md); opacity:0.5; }
 .search-empty-text { font-size:var(--font-base); color:var(--color-text-3); }
 .search-empty-hint { font-size:var(--font-md); color:var(--color-text-3); margin-top:12rpx; }
 .search-history { padding:var(--space-md); }
@@ -621,7 +634,7 @@ function getSpecSummary(product) {
 .page { display:flex; flex-direction:column; height:100vh; background:var(--color-bg-page); overflow:hidden; }
 .search-bar { display:flex; align-items:center; padding:var(--space-sm) var(--space-md); background:var(--color-bg-card); gap:20rpx; flex-shrink:0; }
 .search-input { flex:1; display:flex; align-items:center; background:var(--color-bg-input); border-radius:var(--radius-full); padding:16rpx var(--space-md); }
-.search-icon { font-size:var(--font-base); margin-right:12rpx; color:var(--color-text-3); }
+.search-icon { width:28rpx; height:28rpx; margin-right:12rpx; }
 .search-placeholder { font-size:var(--font-base); color:var(--color-text-3); }
 .brand-name { font-size:var(--font-lg); font-weight:var(--weight-bold); color:var(--color-primary); flex-shrink:0; }
 
@@ -665,7 +678,8 @@ function getSpecSummary(product) {
 /* 购物车浮栏 */
 .cart-float { position:fixed; bottom:var(--space-sm); left:var(--space-md); right:var(--space-md); display:flex; align-items:center; justify-content:space-between; background:var(--color-text-1); border-radius:var(--radius-full); padding:14rpx var(--space-md); z-index:100; box-shadow:var(--shadow-float); }
 .cart-float-left { display:flex; align-items:center; gap:var(--space-sm); }
-.cart-float-icon { position:relative; width:60rpx; height:60rpx; background:var(--color-primary); border-radius:var(--radius-full); display:flex; align-items:center; justify-content:center; font-size:var(--font-lg); }
+.cart-float-icon { position:relative; width:60rpx; height:60rpx; background:var(--color-primary); border-radius:var(--radius-full); display:flex; align-items:center; justify-content:center; }
+.cart-float-icon-img { width:32rpx; height:32rpx; }
 .cart-badge { position:absolute; top:-6rpx; right:-6rpx; min-width:30rpx; height:30rpx; background:var(--color-primary); color:#fff; font-size:var(--font-xs); border-radius:var(--radius-lg); display:flex; align-items:center; justify-content:center; padding:0 5rpx; line-height:1; }
 .cart-float-total { font-size:var(--font-lg); color:#fff; font-weight:var(--weight-bold); }
 .cart-float-btn { background:var(--color-primary); color:#fff; padding:14rpx 36rpx; border-radius:var(--radius-full); font-size:var(--font-base); font-weight:var(--weight-bold); }
@@ -676,7 +690,7 @@ function getSpecSummary(product) {
 @keyframes spin { to { transform:rotate(360deg); } }
 .loading-text { margin-top:var(--space-md); font-size:var(--font-base); color:var(--color-text-3); }
 .error-state { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:80rpx var(--space-xl); }
-.error-icon { font-size:88rpx; margin-bottom:var(--space-md); }
+.error-icon { width:88rpx; height:88rpx; margin-bottom:var(--space-md); }
 .error-text { font-size:var(--font-base); color:var(--color-text-3); text-align:center; margin-bottom:var(--space-lg); }
 .error-retry-btn { display:flex; align-items:center; justify-content:center; width:240rpx; height:72rpx; background:var(--color-primary); border-radius:var(--radius-xl); font-size:var(--font-base); color:#fff; font-weight:var(--weight-bold); }
 </style>

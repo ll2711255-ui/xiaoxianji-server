@@ -10,9 +10,11 @@
           mode="aspectFill"
         />
         <view v-else-if="hasLogin && !avatarUrl" class="avatar-placeholder-brand">
-          <text>🐔</text>
+          <image class="brand-logo-sm" src="/static/icons/brand/brand-logo.png" mode="aspectFit" />
         </view>
-        <view v-else class="avatar-placeholder"><text>👤</text></view>
+        <view v-else class="avatar-placeholder">
+          <image class="avatar-default-icon" src="/static/icons/avatar/avatar-default.png" mode="aspectFit" />
+        </view>
         <!-- #ifdef MP-WEIXIN -->
         <button
           v-if="showProfileModal"
@@ -51,20 +53,20 @@
     <!-- ========== 订单快捷入口 ========== -->
     <view class="section order-shortcuts">
       <view class="shortcut-item" @click="onOrderTap('pending')">
-        <text class="shortcut-icon">⏳</text>
+        <image class="shortcut-icon" src="/static/icons/order-shortcuts/icon-order-pending.png" mode="aspectFit" />
         <text class="shortcut-label">待付款</text>
         <view v-if="ongoingCount > 0" class="shortcut-badge">{{ ongoingCount > 99 ? '99+' : ongoingCount }}</view>
       </view>
       <view class="shortcut-item" @click="onOrderTap('active')">
-        <text class="shortcut-icon">📦</text>
+        <image class="shortcut-icon" src="/static/icons/order-shortcuts/icon-order-active.png" mode="aspectFit" />
         <text class="shortcut-label">进行中</text>
       </view>
       <view class="shortcut-item" @click="onOrderTap('completed')">
-        <text class="shortcut-icon">✅</text>
+        <image class="shortcut-icon" src="/static/icons/order-shortcuts/icon-order-done.png" mode="aspectFit" />
         <text class="shortcut-label">已完成</text>
       </view>
       <view class="shortcut-item" @click="onOrderTap('all')">
-        <text class="shortcut-icon">📋</text>
+        <image class="shortcut-icon" src="/static/icons/order-shortcuts/icon-order-all.png" mode="aspectFit" />
         <text class="shortcut-label">全部订单</text>
       </view>
     </view>
@@ -72,12 +74,12 @@
     <!-- ========== 功能列表 ========== -->
     <view class="section menu-list">
       <view class="menu-item" @click="onAddressManage">
-        <text class="menu-icon">📍</text>
+        <image class="menu-icon" src="/static/icons/menu/icon-address.png" mode="aspectFit" />
         <text class="menu-label">收货地址</text>
         <text class="menu-arrow">›</text>
       </view>
       <view class="menu-item" @click="onScanPickup">
-        <text class="menu-icon">📷</text>
+        <image class="menu-icon" src="/static/icons/menu/icon-scan.png" mode="aspectFit" />
         <text class="menu-label">扫码取货</text>
         <text class="menu-arrow">›</text>
       </view>
@@ -86,12 +88,12 @@
     <!-- ========== 其他 ========== -->
     <view class="section menu-list">
       <view class="menu-item" @click="onContactService">
-        <text class="menu-icon">📞</text>
+        <image class="menu-icon" src="/static/icons/menu/icon-service.png" mode="aspectFit" />
         <text class="menu-label">联系客服</text>
         <text class="menu-arrow">›</text>
       </view>
       <view class="menu-item" @click="onAbout">
-        <text class="menu-icon">ℹ️</text>
+        <image class="menu-icon" src="/static/icons/menu/icon-about.png" mode="aspectFit" />
         <text class="menu-label">关于小鲜鸡</text>
         <text class="menu-hint">v{{ appVersion }}</text>
         <text class="menu-arrow">›</text>
@@ -135,16 +137,16 @@
           <view class="avatar-options">
             <!-- #ifdef MP-WEIXIN -->
             <button class="avatar-option-btn" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">
-              <text class="option-icon">💬</text>
+              <image class="option-icon" src="/static/icons/brand/profile-wechat.png" mode="aspectFit" />
               <text class="option-text">微信头像</text>
             </button>
             <!-- #endif -->
             <view class="avatar-option-btn" @click="onPickAvatarFromAlbum">
-              <text class="option-icon">🖼️</text>
+              <image class="option-icon" src="/static/icons/brand/profile-album.png" mode="aspectFit" />
               <text class="option-text">相册上传</text>
             </view>
             <view class="avatar-option-btn" @click="onPickAvatarFromCamera">
-              <text class="option-icon">📷</text>
+              <image class="option-icon" src="/static/icons/brand/profile-camera.png" mode="aspectFit" />
               <text class="option-text">拍照</text>
             </view>
           </view>
@@ -542,7 +544,8 @@ function onLogout() {
 .user-header { display:flex; align-items:center; background:var(--color-bg-card); padding:40rpx 32rpx; margin-bottom:16rpx; gap:20rpx; }
 .user-avatar-wrap { position:relative; flex-shrink:0; }
 .user-avatar { width:120rpx; height:120rpx; border-radius:var(--radius-full); background:var(--color-bg-page); }
-.avatar-placeholder { width:120rpx; height:120rpx; border-radius:var(--radius-full); background:var(--color-bg-page); display:flex; align-items:center; justify-content:center; font-size:56rpx; }
+.avatar-placeholder { width:120rpx; height:120rpx; border-radius:var(--radius-full); background:var(--color-bg-page); display:flex; align-items:center; justify-content:center; }
+.avatar-default-icon { width:64rpx; height:64rpx; }
 .avatar-placeholder-brand { width:120rpx; height:120rpx; border-radius:var(--radius-full); background:var(--color-primary-pale); display:flex; align-items:center; justify-content:center; font-size:56rpx; }
 .avatar-edit-btn-transparent { position:absolute; top:0; left:0; width:120rpx; height:120rpx; border-radius:var(--radius-full); padding:0; margin:0; background:transparent; opacity:0; }
 .avatar-edit-btn-transparent::after { border:none; }
@@ -556,7 +559,7 @@ function onLogout() {
 /* 订单快捷入口 */
 .order-shortcuts { display:flex; padding:20rpx 0 !important; }
 .shortcut-item { flex:1; display:flex; flex-direction:column; align-items:center; position:relative; }
-.shortcut-icon { font-size:44rpx; margin-bottom:8rpx; }
+.shortcut-icon { width:44rpx; height:44rpx; margin-bottom:8rpx; }
 .shortcut-label { font-size:var(--font-sm); color:var(--color-text-2); }
 .shortcut-badge { position:absolute; top:0; right:50%; transform:translateX(150%); min-width:32rpx; height:32rpx; background:var(--color-primary); color:#fff; font-size:var(--font-xs); border-radius:var(--radius-lg); display:flex; align-items:center; justify-content:center; padding:0 6rpx; }
 
@@ -567,7 +570,7 @@ function onLogout() {
 .menu-item:last-child { border-bottom:none; }
 .menu-item:active { background:var(--color-bg-page); }
 .menu-item-danger:active { background:var(--color-danger-bg); }
-.menu-icon { font-size:var(--font-lg); margin-right:16rpx; flex-shrink:0; }
+.menu-icon { width:40rpx; height:40rpx; margin-right:16rpx; flex-shrink:0; }
 .menu-label { flex:1; font-size:var(--font-base); color:var(--color-text-1); }
 .menu-hint { font-size:var(--font-sm); color:var(--color-text-3); margin-right:8rpx; }
 .menu-arrow { font-size:var(--font-xl); color:var(--color-text-4); }
@@ -586,7 +589,8 @@ function onLogout() {
 .avatar-options { display:flex; gap:16rpx; }
 .avatar-option-btn { flex:1; display:flex; flex-direction:column; align-items:center; padding:20rpx 0; background:var(--color-bg-page); border-radius:var(--radius-md); border:none; }
 .avatar-option-btn::after { border:none; }
-.option-icon { font-size:40rpx; margin-bottom:8rpx; }
+.option-icon { width:40rpx; height:40rpx; margin-bottom:8rpx; }
+.brand-logo-sm { width:64rpx; height:64rpx; }
 .option-text { font-size:var(--font-sm); color:var(--color-text-2); }
 
 .nickname-edit-input { width:100%; height:80rpx; background:var(--color-bg-page); border-radius:var(--radius-md); padding:0 20rpx; font-size:var(--font-base); color:var(--color-text-1); box-sizing:border-box; }

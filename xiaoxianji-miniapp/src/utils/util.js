@@ -118,3 +118,33 @@ export function formatWeightDisplay(grams) {
   const jin = gramsToJin(grams)
   return jin.toFixed(2) + '斤（' + grams + '克）'
 }
+
+/**
+ * 安全提取图片 URL，确保返回合法字符串
+ *
+ * 背景：API 返回的 images 可能是字符串数组、对象数组（{url:"..."}）、
+ * 或直接是对象/布尔值。WeChat `<image>` 的 src 必须为合法 URL 字符串，
+ * 否则 DevTools 会尝试加载 `/pages/xxx/[object Object]` 等垃圾路径。
+ *
+ * @param {any} val — 图片字段原始值
+ * @returns {string} 合法的 URL 字符串，无效时返回空字符串
+ */
+export function safeImageUrl(val) {
+  if (!val) return ''
+  if (typeof val === 'string') return val
+  // 对象数组：取第一个元素的 url 字段
+  if (Array.isArray(val)) {
+    const first = val[0]
+    if (!first) return ''
+    if (typeof first === 'string') return first
+    if (typeof first === 'object' && first !== null) {
+      return first.url || first.src || first.image_url || first.imageUrl || ''
+    }
+    return ''
+  }
+  // 单个对象
+  if (typeof val === 'object' && val !== null) {
+    return val.url || val.src || val.image_url || val.imageUrl || ''
+  }
+  return ''
+}
