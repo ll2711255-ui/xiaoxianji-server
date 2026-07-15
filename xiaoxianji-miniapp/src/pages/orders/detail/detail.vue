@@ -74,7 +74,7 @@
           </view>
           <view class="info-row">
             <text class="info-label">创建时间</text>
-            <text class="info-value">{{ order.createdAt || '' }}</text>
+            <text class="info-value">{{ order.createTime || '' }}</text>
           </view>
           <view class="info-row">
             <text class="info-label">预估价</text>

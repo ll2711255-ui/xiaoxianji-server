@@ -29,7 +29,7 @@ export const STORAGE_KEYS = {
  */
 export function saveLoginInfo(result) {
   // 使用动态 import 避免循环依赖
-  const { useAuthStore } = require('@/stores/auth')
+  const { useAuthStore } = require('../stores/auth')
   const authStore = useAuthStore()
 
   // JWT tokens（通过 request.js 的 saveTokens，避免循环导入）
@@ -140,7 +140,7 @@ export function clearAuth() {
   uni.removeStorageSync('token_expires_at')
 
   try {
-    const { useAuthStore } = require('@/stores/auth')
+    const { useAuthStore } = require('../stores/auth')
     const authStore = useAuthStore()
     authStore.$reset()
   } catch (e) { /* ignore */ }

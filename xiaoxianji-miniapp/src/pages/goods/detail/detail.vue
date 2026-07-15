@@ -23,7 +23,7 @@
           <text class="info-name">{{ product.name }}</text>
           <text class="info-emoji">{{ categoryEmoji }}</text>
         </view>
-        <text v-if="product.selling_point || product.description" class="info-desc">{{ product.selling_point || product.description }}</text>
+        <text v-if="product.sellingPoint || product.description" class="info-desc">{{ product.sellingPoint || product.description }}</text>
         <view class="info-price-row">
           <text class="info-price">¥{{ displayPriceStr }}</text>
           <text class="info-unit">{{ priceLabel }}</text>
@@ -107,7 +107,7 @@
     </template>
 
     <!-- 缺货提示 -->
-    <view v-if="product && product.out_of_stock" class="out-of-stock-banner">
+    <view v-if="product && product.outOfStock" class="out-of-stock-banner">
       <text>该商品暂时缺货，补货中</text>
     </view>
 
@@ -181,10 +181,10 @@ async function loadProduct(id) {
       return
     }
 
-    const pt = p.pricing_type
+    const pt = p.pricingType
     const emoji = CATEGORY_EMOJI[p.category] || '🐔'
 
-    const dModes = p.delivery_modes || ['delivery', 'pickup']
+    const dModes = p.deliveryModes || ['delivery', 'pickup']
     const dOpts = dModes.map(m => {
       if (m === 'delivery') return { label: '外卖配送', value: 'delivery' }
       if (m === 'pickup') return { label: '到店自取', value: 'pickup' }
@@ -193,7 +193,7 @@ async function loadProduct(id) {
     })
     const defaultD = dOpts.length > 0 ? dOpts[0].value : ''
 
-    const pOpts = (p.processing_options || ['整只', '切块']).map(x => ({ label: x, value: x }))
+    const pOpts = (p.processingOptions || ['整只', '切块']).map(x => ({ label: x, value: x }))
     const defaultP = pOpts.length > 0 ? pOpts[0].value : ''
 
     product.value = p
@@ -254,7 +254,7 @@ function getWeightSpecLabel(type) {
 }
 
 function initExactWeightSpecs(p, pOpts, dOpts, defaultP, defaultD) {
-  const gramsList = p.weight_options || [500]
+  const gramsList = p.weightOptions || [500]
   const wOpts = gramsList.map(g => {
     const jin = g / 500
     const jinDisplay = jin % 1 === 0 ? jin : jin.toFixed(1)
@@ -271,7 +271,7 @@ function initExactWeightSpecs(p, pOpts, dOpts, defaultP, defaultD) {
 }
 
 function initPerPieceSpecs(p, pOpts, dOpts, defaultP, defaultD) {
-  const unitPrice = p.unit_price || 25
+  const unitPrice = p.unitPrice || 25
   const initPrice = computePiecePrice(p, defaultP)
   const wOpts = [{ label: formatMoney(unitPrice) + '元/只', value: 'per_piece', unitPrice }]
 
@@ -304,16 +304,16 @@ function computeRangePrice(specs, type, weight, processing) {
 function computeExactPrice(p, weight, processing) {
   if (!p || !weight) return 0
   const jin = weight.grams / 500
-  let price = p.price_per_jin * jin
-  if (processing === '切块' && p.processing_fee) price += p.processing_fee
+  let price = p.pricePerJin * jin
+  if (processing === '切块' && p.processingFee) price += p.processingFee
   return Math.round(price)
 }
 
 function computePiecePrice(p, processing) {
   if (!p) return 0
-  const unitPrice = p.unit_price || 25
+  const unitPrice = p.unitPrice || 25
   let price = unitPrice
-  if (processing === '切块' && p.processing_fee) price += p.processing_fee
+  if (processing === '切块' && p.processingFee) price += p.processingFee
   return Math.round(price)
 }
 
@@ -442,7 +442,7 @@ function buildCartItem() {
 }
 
 function onAddToCart() {
-  if (product.value && product.value.out_of_stock) {
+  if (product.value && product.value.outOfStock) {
     uni.showToast({ title: '该商品暂时缺货', icon: 'none' })
     return
   }
@@ -462,7 +462,7 @@ function onAddToCart() {
 }
 
 function onBuyNow() {
-  if (product.value && product.value.out_of_stock) {
+  if (product.value && product.value.outOfStock) {
     uni.showToast({ title: '该商品暂时缺货', icon: 'none' })
     return
   }

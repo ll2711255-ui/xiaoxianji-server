@@ -81,7 +81,7 @@
           </el-table-column>
           <el-table-column label="最低价" width="90" align="right">
             <template #default="{ row }">
-              <span class="col-price">¥{{ row.minPrice || '-' }}</span>
+              <span class="col-price">¥{{ formatMinPrice(row.minPrice) }}</span>
             </template>
           </el-table-column>
           <el-table-column prop="sales" label="销量" width="80" align="right" sortable />
@@ -182,6 +182,43 @@ function pricingLabel(type) {
   return { range_weight: '整鸡规格', exact_weight: '按斤计价', per_piece: '按只计价' }[type] || type
 }
 
+function formatMinPrice(fen) {
+  if (fen === null || fen === undefined || fen === 0) return '-'
+  return (fen / 100).toFixed(2)
+}
+
+/**
+ * 前端计算商品最低价（分）
+ * 数据库 JSON 字段可能以字符串形式返回，需要兼容解析
+ */
+function parseJson(val) {
+  if (!val) return null
+  if (typeof val === 'object') return val
+  try { return JSON.parse(val) } catch { return null }
+}
+
+function computeMinPrice(row) {
+  const pricingType = row.pricing_type || row.pricingType
+  if (pricingType === 'exact_weight') {
+    // 最低价 = 最小重量(斤) × 单价(分/斤)
+    const pricePerJin = row.price_per_jin || row.pricePerJin || 0
+    const weights = parseJson(row.weight_options || row.weightOptions) || [500]
+    const minWeight = weights.length ? Math.min(...weights) : 500
+    return Math.round(pricePerJin * minWeight / 500)
+  }
+  if (pricingType === 'per_piece') {
+    // 按只计价 = 单价
+    return row.unit_price || row.unitPrice || 0
+  }
+  if (pricingType === 'range_weight') {
+    // 整鸡规格 = 所有规格里最低的 price_per_jin
+    const specs = parseJson(row.specs) || []
+    const prices = specs.map(s => s.price_per_jin || 0).filter(p => p > 0)
+    return prices.length ? Math.min(...prices) : 0
+  }
+  return 0
+}
+
 function getCatName(id) {
   return (categories.value.find(c => c._id === id) || {}).name || '-'
 }
@@ -199,7 +236,9 @@ async function loadProducts() {
     const params = { pageSize: 50, status: 'all' }
     if (activeCat.value) params.categoryId = activeCat.value
     const res = await api.get('/products', params)
-    products.value = (res && res.data && res.data.products) || []
+    const raw = (res && res.data && res.data.products) || []
+    // 前端计算最低价（不依赖后端 minPrice 字段）
+    products.value = raw.map(p => ({ ...p, minPrice: computeMinPrice(p) }))
   } catch (err) { console.error('加载商品失败:', err) }
   loading.value = false
 }

@@ -31,11 +31,51 @@ async function getProducts({ categoryId, keyword, page = 1, pageSize = 20, statu
   sql += ' LIMIT ? OFFSET ?';
   params.push(parseInt(pageSize, 10), Math.max(0, offset));
 
-  return db.query(sql, params);
+  const rows = await db.query(sql, params);
+
+  // 为每个商品计算最低价（分），方便前端列表展示
+  return rows.map(r => {
+    let minPrice = 0;
+    if (r.pricing_type === 'exact_weight') {
+      // 按斤计价：最低价 = 最小重量 × 单价
+      const weights = parseJsonField(r.weight_options);
+      const minWeight = (weights && weights.length) ? Math.min(...weights) : 500;
+      minPrice = Math.round((r.price_per_jin || 0) * minWeight / 500);
+    } else if (r.pricing_type === 'per_piece') {
+      minPrice = r.unit_price || 0;
+    } else if (r.pricing_type === 'range_weight') {
+      // 整鸡规格：取所有规格中最低的单价
+      const specs = parseJsonField(r.specs) || [];
+      const prices = specs.map(s => s.price_per_jin || 0).filter(p => p > 0);
+      minPrice = prices.length ? Math.min(...prices) : 0;
+    }
+    return { ...r, minPrice };
+  });
+}
+
+function parseJsonField(val) {
+  if (!val) return null;
+  if (typeof val === 'object') return val;
+  try { return JSON.parse(val); } catch { return null; }
 }
 
 async function getProductById(id) {
-  return db.queryOne('SELECT * FROM products WHERE id = ?', [id]);
+  const row = await db.queryOne('SELECT * FROM products WHERE id = ?', [id]);
+  if (!row) return null;
+  // 计算最低价
+  let minPrice = 0;
+  if (row.pricing_type === 'exact_weight') {
+    const weights = parseJsonField(row.weight_options);
+    const minWeight = (weights && weights.length) ? Math.min(...weights) : 500;
+    minPrice = Math.round((row.price_per_jin || 0) * minWeight / 500);
+  } else if (row.pricing_type === 'per_piece') {
+    minPrice = row.unit_price || 0;
+  } else if (row.pricing_type === 'range_weight') {
+    const specs = parseJsonField(row.specs) || [];
+    const prices = specs.map(s => s.price_per_jin || 0).filter(p => p > 0);
+    minPrice = prices.length ? Math.min(...prices) : 0;
+  }
+  return { ...row, minPrice };
 }
 
 async function createProduct(data) {

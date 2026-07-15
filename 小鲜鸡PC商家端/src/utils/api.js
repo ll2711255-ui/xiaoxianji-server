@@ -47,7 +47,15 @@ http.interceptors.response.use(
       const msg = (response.data && response.data.message) || ''
       switch (response.status) {
         case 403:
-          // 权限不足，不清除 token
+          // 顾客 token 访问商家接口 → 清除旧登录态，跳转登录页
+          if (msg === '仅商家端账号可访问') {
+            const authStore403 = useAuthStore()
+            authStore403.clearAuth()
+            if (window.__router) window.__router.push('/login')
+            else window.location.href = '/login'
+            return Promise.reject(new Error('请使用商家账号登录'))
+          }
+          // 其他权限不足（角色不足等），不清除 token
           return Promise.reject(new Error(msg || '无权限执行此操作'))
         case 429:
           return Promise.reject(new Error(msg || '请求过于频繁，请稍后重试'))

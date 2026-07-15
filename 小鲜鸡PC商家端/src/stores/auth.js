@@ -29,8 +29,30 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // ========== 工具：解码 JWT 负载（不验签，仅读取） ==========
+  function decodeJwtPayload(t) {
+    try {
+      const parts = t.split('.')
+      if (parts.length !== 3) return null
+      // base64url → base64 → UTF-8
+      const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+      const json = decodeURIComponent(atob(base64).split('').map(c =>
+        '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+      ).join(''))
+      return JSON.parse(json)
+    } catch {
+      return null
+    }
+  }
+
   // ========== Getters ==========
   const isLoggedIn = computed(() => !!token.value)
+  /** 当前 token 是否为商家端签发（source === 'merchant'），用于路由守卫拦截顾客 token */
+  const isMerchantToken = computed(() => {
+    if (!token.value) return false
+    const payload = decodeJwtPayload(token.value)
+    return payload?.source === 'merchant'
+  })
   const isAdmin = computed(() => userInfo.value?.role === 'admin')
   const isManager = computed(() => userInfo.value?.role === 'manager')
   const isStaff = computed(() => userInfo.value?.role === 'staff')
@@ -68,7 +90,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   return {
     token, refreshToken, userInfo,
-    isLoggedIn, isAdmin, isManager, isStaff, canManageAccounts,
+    isLoggedIn, isMerchantToken, isAdmin, isManager, isStaff, canManageAccounts,
     setAuth, clearAuth, initFromStorage,
   }
 })

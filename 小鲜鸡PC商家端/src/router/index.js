@@ -221,6 +221,13 @@ router.beforeEach((to, from, next) => {
     return
   }
 
+  // 校验 token 来源：拒绝顾客端 JWT（source === 'customer'），防止小程序 token 误入
+  if (!authStore.isMerchantToken) {
+    authStore.clearAuth()
+    next('/login')
+    return
+  }
+
   // 角色路由守卫：meta.requireRole 限定可访问角色
   if (to.meta.requireRole) {
     if (!to.meta.requireRole.includes(authStore.userInfo?.role)) {

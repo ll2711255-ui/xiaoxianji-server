@@ -169,13 +169,13 @@
             v-for="product in group.products"
             :key="product._id"
             class="goods-card"
-            :class="{ 'goods-out-of-stock': product.out_of_stock }"
+            :class="{ 'goods-out-of-stock': product.outOfStock }"
             @click="onProductTap(product._id)"
           >
             <view class="goods-img-wrap">
               <image v-if="product.images && product.images.length > 0" class="goods-img" :src="product.images[0]" mode="aspectFill" lazy-load />
               <view v-else class="goods-img-placeholder"><text>🐔</text></view>
-              <view v-if="product.out_of_stock" class="out-of-stock-mask">
+              <view v-if="product.outOfStock" class="out-of-stock-mask">
                 <text class="out-of-stock-text">缺货</text>
               </view>
             </view>
@@ -326,7 +326,7 @@ async function loadAllProducts() {
       images: normalizeImages(p.images),
       priceLabel: getPriceLabel(p),
       displayPrice: getDisplayPrice(p),
-      sellingPoint: p.selling_point || p.description || '',
+      sellingPoint: p.sellingPoint || p.description || '',
       salesTag: getSalesTag(p),
       specSummary: getSpecSummary(p)
     }))
@@ -439,7 +439,7 @@ function onSearchInput() {
   }
   const lower = keyword.toLowerCase()
   const results = allProducts.value.filter(p => {
-    if (p.out_of_stock) return false
+    if (p.outOfStock) return false
     return (p.name && p.name.toLowerCase().includes(lower)) ||
            (p.sellingPoint && p.sellingPoint.toLowerCase().includes(lower)) ||
            (p.description && p.description.toLowerCase().includes(lower))
@@ -515,7 +515,7 @@ function normalizeImages(images) {
 }
 
 function getPriceLabel(product) {
-  switch (product.pricing_type) {
+  switch (product.pricingType) {
     case 'range_weight': return '/斤起'
     case 'exact_weight': return '/斤'
     case 'per_piece': return '/只'
@@ -524,7 +524,7 @@ function getPriceLabel(product) {
 }
 
 function getDisplayPrice(product) {
-  if (product.pricing_type === 'range_weight') {
+  if (product.pricingType === 'range_weight') {
     const specs = product.specs || []
     let minPrice = Infinity
     for (const s of specs) {
@@ -532,11 +532,11 @@ function getDisplayPrice(product) {
     }
     if (minPrice < Infinity) return (minPrice / 100).toFixed(2)
   }
-  if (product.pricing_type === 'exact_weight' && product.price_per_jin) {
-    return (product.price_per_jin / 100).toFixed(2)
+  if (product.pricingType === 'exact_weight' && product.pricePerJin) {
+    return (product.pricePerJin / 100).toFixed(2)
   }
-  if (product.pricing_type === 'per_piece' && product.unit_price) {
-    return (product.unit_price / 100).toFixed(2)
+  if (product.pricingType === 'per_piece' && product.unitPrice) {
+    return (product.unitPrice / 100).toFixed(2)
   }
   if (product.minPrice) return (Number(product.minPrice) / 100).toFixed(2)
   return '0.00'
@@ -550,7 +550,7 @@ function getSalesTag(product) {
 }
 
 function getSpecSummary(product) {
-  if (product.pricing_type === 'range_weight') {
+  if (product.pricingType === 'range_weight') {
     const specs = product.specs || []
     if (specs.length === 0) return '称重计价 · 多规格可选'
     const typeSet = []
@@ -573,9 +573,9 @@ function getSpecSummary(product) {
     const weightStr = minJin < Infinity ? (minJin + '-' + maxJin + '斤') : '多规格'
     return typeStr + ' · ' + weightStr
   }
-  if (product.pricing_type === 'exact_weight') {
-    const priceFen = product.price_per_jin
-    const opts = product.weight_options || []
+  if (product.pricingType === 'exact_weight') {
+    const priceFen = product.pricePerJin
+    const opts = product.weightOptions || []
     if (priceFen) {
       const priceYuan = formatMoney(priceFen)
       if (opts.length > 0) return '¥' + priceYuan + '/斤 · ' + opts.map(w => (w >= 500 ? (w / 500) + '斤' : w + 'g')).join('/') + '可选'
@@ -583,8 +583,8 @@ function getSpecSummary(product) {
     }
     return '按斤计价'
   }
-  if (product.pricing_type === 'per_piece') {
-    const priceFen = product.unit_price
+  if (product.pricingType === 'per_piece') {
+    const priceFen = product.unitPrice
     if (priceFen) return '¥' + formatMoney(priceFen) + '/只'
     return '按只计价'
   }

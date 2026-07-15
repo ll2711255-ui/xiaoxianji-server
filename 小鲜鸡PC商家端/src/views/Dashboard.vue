@@ -54,7 +54,7 @@
       <el-col :span="12">
         <el-card>
           <template #header><span>最近订单</span></template>
-          <el-table :data="recentOrders" size="small" style="width:100%" @row-click="onRowClick" row-style="cursor:pointer">
+          <el-table :data="recentOrders" size="small" style="width:100%" @row-click="onRowClick" :row-style="{ cursor: 'pointer' }">
             <el-table-column prop="orderNo" label="订单号" width="150" />
             <el-table-column prop="statusText" label="状态" width="80">
               <template #default="{ row }">

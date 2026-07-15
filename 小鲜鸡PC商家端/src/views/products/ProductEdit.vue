@@ -37,8 +37,8 @@
         <!-- 按斤计价 -->
         <template v-if="form.pricingType === 'exact_weight'">
           <el-divider content-position="left">按斤计价参数</el-divider>
-          <el-form-item label="单价(分/斤)">
-            <el-input-number v-model="form.pricePerJin" :min="100" :max="99999" :step="100" />
+          <el-form-item label="单价(元/斤)">
+            <el-input-number v-model="form.pricePerJin" :min="0.01" :max="999.99" :step="0.1" :precision="2" />
           </el-form-item>
           <el-form-item label="重量选项">
             <el-space wrap>
@@ -48,19 +48,19 @@
               <el-button size="small" @click="showAddWeight = true">+ 添加重量</el-button>
             </el-space>
           </el-form-item>
-          <el-form-item label="加工费(分)">
-            <el-input-number v-model="form.processingFee" :min="0" :max="5000" :step="100" />
+          <el-form-item label="加工费(元)">
+            <el-input-number v-model="form.processingFee" :min="0" :max="50" :step="0.1" :precision="2" />
           </el-form-item>
         </template>
 
         <!-- 按只计价 -->
         <template v-if="form.pricingType === 'per_piece'">
           <el-divider content-position="left">按只计价参数</el-divider>
-          <el-form-item label="单价(分/只)">
-            <el-input-number v-model="form.unitPrice" :min="100" :max="99999" :step="100" />
+          <el-form-item label="单价(元/只)">
+            <el-input-number v-model="form.unitPrice" :min="0.01" :max="999.99" :step="0.1" :precision="2" />
           </el-form-item>
-          <el-form-item label="加工费(分)">
-            <el-input-number v-model="form.processingFee" :min="0" :max="5000" :step="100" />
+          <el-form-item label="加工费(元)">
+            <el-input-number v-model="form.processingFee" :min="0" :max="50" :step="0.1" :precision="2" />
           </el-form-item>
         </template>
 
@@ -73,9 +73,9 @@
                 <el-input v-model="tc.type" placeholder="称重类型（如：毛鸡称重）" size="small" />
               </el-col>
               <el-col :span="8">
-                <el-input-number v-model="tc.price_per_jin" :min="100" :max="99999" :step="100" size="small" controls-position="right" style="width:100%" />
+                <el-input-number v-model="tc.price_per_jin" :min="0.01" :max="999.99" :step="0.1" :precision="2" size="small" controls-position="right" style="width:100%" />
               </el-col>
-              <el-col :span="4"><span class="text-muted">分/斤</span></el-col>
+              <el-col :span="4"><span class="text-muted">元/斤</span></el-col>
               <el-col :span="4" style="text-align:right">
                 <el-button size="small" type="danger" @click="form.typeConfigs.splice(ti, 1)" :disabled="form.typeConfigs.length <= 1">删除</el-button>
               </el-col>
@@ -155,10 +155,10 @@ const newProcName = ref('')
 const form = reactive({
   name: '', categoryId: '', pricingType: 'exact_weight', sellingPoint: '', description: '',
   deliveryModes: ['delivery', 'pickup'],
-  // exact_weight
-  pricePerJin: 1580, weightOptions: [500, 1000, 1500], processingFee: 0,
-  // per_piece
-  unitPrice: 2500,
+  // exact_weight（存储元，提交时 ×100 转分）
+  pricePerJin: 15.80, weightOptions: [500, 1000, 1500], processingFee: 0,
+  // per_piece（存储元，提交时 ×100 转分）
+  unitPrice: 25.00,
   // range_weight
   typeConfigs: []
 })
@@ -176,12 +176,12 @@ function formatJin(grams) {
 function onPricingChange() {
   if (form.pricingType === 'range_weight' && form.typeConfigs.length === 0) {
     form.typeConfigs = [
-      { idx: 1, type: '毛鸡称重', price_per_jin: 1700, weightConfigs: [
+      { idx: 1, type: '毛鸡称重', price_per_jin: 17.00, weightConfigs: [
         { idx: 1, weight_label: '3.0-3.5斤', weight_max: 1750 },
         { idx: 2, weight_label: '3.5-4.0斤', weight_max: 2000 },
         { idx: 3, weight_label: '4.0-4.5斤', weight_max: 2250 }
       ]},
-      { idx: 2, type: '光鸡称重', price_per_jin: 1800, weightConfigs: [
+      { idx: 2, type: '光鸡称重', price_per_jin: 18.00, weightConfigs: [
         { idx: 1, weight_label: '2.5-3.0斤', weight_max: 1500 },
         { idx: 2, weight_label: '3.0-3.5斤', weight_max: 1750 },
         { idx: 3, weight_label: '3.5-4.0斤', weight_max: 2000 }
@@ -224,9 +224,10 @@ function addProc() {
 function generateSpecs() {
   const specs = []
   for (const t of form.typeConfigs) {
+    const pricePerJinFen = Math.round(t.price_per_jin * 100)
     for (const w of (t.weightConfigs || [])) {
       for (const p of checkedProcOpts.value) {
-        specs.push({ type: t.type, weight_label: w.weight_label, weight_max: w.weight_max, price_per_jin: t.price_per_jin, processing: p })
+        specs.push({ type: t.type, weight_label: w.weight_label, weight_max: w.weight_max, price_per_jin: pricePerJinFen, processing: p })
       }
     }
   }
@@ -260,13 +261,13 @@ async function loadProduct() {
     form.description = p.description || ''
     form.deliveryModes = p.deliveryModes || ['delivery', 'pickup']
     if (p.pricingType === 'exact_weight') {
-      form.pricePerJin = p.pricePerJin || 0
+      form.pricePerJin = (p.pricePerJin || 0) / 100
       form.weightOptions = p.weightOptions || [500]
-      form.processingFee = p.processingFee || 0
+      form.processingFee = (p.processingFee || 0) / 100
       checkedProcOpts.value = p.processingOptions || ['整只', '切块']
     } else if (p.pricingType === 'per_piece') {
-      form.unitPrice = p.unitPrice || 0
-      form.processingFee = p.processingFee || 0
+      form.unitPrice = (p.unitPrice || 0) / 100
+      form.processingFee = (p.processingFee || 0) / 100
       checkedProcOpts.value = p.processingOptions || ['整只', '切块']
     } else if (p.pricingType === 'range_weight') {
       const specs = p.specs || []
@@ -274,7 +275,7 @@ async function loadProduct() {
       const procSet = new Set()
       let ti = 0
       specs.forEach(s => {
-        if (!typeMap[s.type]) { ti++; typeMap[s.type] = { idx: ti, type: s.type, price_per_jin: s.price_per_jin, weightConfigs: [] } }
+        if (!typeMap[s.type]) { ti++; typeMap[s.type] = { idx: ti, type: s.type, price_per_jin: (s.price_per_jin || 0) / 100, weightConfigs: [] } }
         typeMap[s.type].weightConfigs.push({ idx: typeMap[s.type].weightConfigs.length + 1, weight_label: s.weight_label, weight_max: s.weight_max })
         procSet.add(s.processing)
       })
@@ -303,13 +304,13 @@ async function onSave() {
 
   if (form.pricingType === 'exact_weight') {
     if (form.weightOptions.length === 0) { ElMessage.warning('请至少添加一个重量选项'); return }
-    payload.pricePerJin = form.pricePerJin
+    payload.pricePerJin = Math.round(form.pricePerJin * 100)
     payload.weightOptions = form.weightOptions
-    payload.processingFee = form.processingFee
+    payload.processingFee = Math.round(form.processingFee * 100)
     payload.processingOptions = checkedProcOpts.value
   } else if (form.pricingType === 'per_piece') {
-    payload.unitPrice = form.unitPrice
-    payload.processingFee = form.processingFee
+    payload.unitPrice = Math.round(form.unitPrice * 100)
+    payload.processingFee = Math.round(form.processingFee * 100)
     payload.processingOptions = checkedProcOpts.value
   } else if (form.pricingType === 'range_weight') {
     if (form.typeConfigs.length === 0) { ElMessage.warning('请至少添加一个称重类型'); return }

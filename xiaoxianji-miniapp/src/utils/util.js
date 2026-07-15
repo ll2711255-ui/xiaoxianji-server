@@ -76,7 +76,7 @@ export function calcDistance(lat1, lng1, lat2, lng2) {
 
 /** 获取价格单位（/斤、/只） */
 export function getPricingUnit(pricingTypeOrProduct) {
-  const type = typeof pricingTypeOrProduct === 'string' ? pricingTypeOrProduct : (pricingTypeOrProduct && pricingTypeOrProduct.pricing_type)
+  const type = typeof pricingTypeOrProduct === 'string' ? pricingTypeOrProduct : (pricingTypeOrProduct && (pricingTypeOrProduct.pricingType || pricingTypeOrProduct.pricing_type))
   switch (type) {
     case 'range_weight': case 'exact_weight': return '/斤'
     case 'per_piece': return '/只'
@@ -87,7 +87,7 @@ export function getPricingUnit(pricingTypeOrProduct) {
 /** 计价方式中文标签 */
 export function getPricingLabel(product) {
   if (!product) return '称重计价'
-  const type = typeof product === 'string' ? product : product.pricing_type
+  const type = typeof product === 'string' ? product : (product.pricingType || product.pricing_type)
   switch (type) {
     case 'range_weight': return '按斤计价'
     case 'exact_weight': return '称重计价'
