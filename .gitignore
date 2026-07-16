@@ -1,6 +1,7 @@
 node_modules/
 dist/
 *.zip
+*.tar.gz
 .env
 .env.local
 *.log
