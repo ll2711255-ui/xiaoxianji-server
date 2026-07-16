@@ -134,6 +134,10 @@ async function updateProduct(id, data) {
   return db.execute(`UPDATE products SET ${fields.join(', ')} WHERE id = ?`, params);
 }
 
+async function deleteProduct(id) {
+  return db.execute('DELETE FROM products WHERE id = ?', [id]);
+}
+
 async function updateProductStatus(id, { status, outOfStock } = {}) {
   const fields = [];
   const params = [];
@@ -171,6 +175,6 @@ async function updateCategorySort(sorts) {
 }
 
 module.exports = {
-  getProducts, getProductById, createProduct, updateProduct, updateProductStatus,
+  getProducts, getProductById, createProduct, updateProduct, deleteProduct, updateProductStatus,
   getCategories, createCategory, deleteCategory, updateCategorySort,
 };

@@ -103,9 +103,19 @@
               />
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="100" align="center" fixed="right">
+          <el-table-column label="操作" width="140" align="center" fixed="right">
             <template #default="{ row }">
               <el-button link type="primary" class="op-btn" @click="$router.push('/products/' + row._id + '/edit')">编辑</el-button>
+              <el-popconfirm
+                title="确定删除该商品吗？此操作不可恢复"
+                confirm-button-text="删除"
+                cancel-button-text="取消"
+                @confirm="onDelete(row)"
+              >
+                <template #reference>
+                  <el-button link type="danger" class="op-btn">删除</el-button>
+                </template>
+              </el-popconfirm>
             </template>
           </el-table-column>
         </el-table>
@@ -264,6 +274,20 @@ async function onToggleStock(row) {
     ElMessage.success(newVal ? '已标记缺货' : '已取消缺货')
     loadProducts()
   } catch { ElMessage.error('操作失败'); loadProducts() }
+}
+
+async function onDelete(row) {
+  try {
+    const res = await api.del('/products/' + row._id)
+    if (res && res.success) {
+      ElMessage.success(`已删除「${row.name}」`)
+      loadProducts()
+    } else {
+      ElMessage.error((res && res.message) || '删除失败')
+    }
+  } catch (err) {
+    ElMessage.error(err.response?.data?.message || err.message || '删除失败')
+  }
 }
 
 function moveCat(index, dir) {

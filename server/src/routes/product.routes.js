@@ -66,13 +66,31 @@ router.put('/:productId', verifyToken, requireMerchant, async (req, res) => {
   }
 });
 
-/** PATCH /api/products/:productId/status — 上下架 */
+/** PATCH /api/products/:productId/status — 上下架/缺货 */
 router.patch('/:productId/status', verifyToken, requireMerchant, async (req, res) => {
   try {
     await productService.updateProductStatus(req.params.productId, req.body);
     res.json({ success: true, code: 200, message: '状态更新成功' });
   } catch (err) {
     logger.error('[products] 状态更新失败:', err.message);
+    res.status(500).json({ success: false, code: 500, message: err.message });
+  }
+});
+
+/** DELETE /api/products/:productId — 删除商品 */
+router.delete('/:productId', verifyToken, requireMerchant, async (req, res) => {
+  try {
+    const { productId } = req.params;
+    // 先检查商品是否存在
+    const product = await productService.getProductById(productId);
+    if (!product) {
+      return res.status(404).json({ success: false, code: 404, message: '商品不存在' });
+    }
+    await productService.deleteProduct(productId);
+    logger.info(`[products] 商品已删除: ${productId} (${product.name})`);
+    res.json({ success: true, code: 200, message: '商品已删除' });
+  } catch (err) {
+    logger.error('[products] 删除失败:', err.message);
     res.status(500).json({ success: false, code: 500, message: err.message });
   }
 });
