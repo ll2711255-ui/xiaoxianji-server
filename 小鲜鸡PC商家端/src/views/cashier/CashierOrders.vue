@@ -126,12 +126,14 @@ function getActions(order) {
 
   if (t === 'online') {
     if (s === 'paid') actions.push({ action: 'accept', label: '接单', type: 'primary' })
-    if (s === 'accepted') actions.push({ action: 'process', label: '开始处理', type: 'warning' })
+    if (s === 'accepted' || s === 'weighed') actions.push({ action: 'process', label: '开始处理', type: 'warning' })
     if (s === 'weighed' || s === 'processing') {
-      if (order.type === 'delivery') actions.push({ action: 'deliver', label: '开始配送', type: 'success' })
-      else actions.push({ action: 'ready', label: '待取货', type: 'success' })
+      actions.push({ action: 'ready', label: '备货完成', type: 'success' })
     }
-    if (s === 'ready') actions.push({ action: 'complete', label: '完成', type: 'success' })
+    if (s === 'ready') {
+      if (order.type === 'delivery') actions.push({ action: 'deliver', label: '开始配送', type: 'success' })
+      else actions.push({ action: 'complete', label: '完成', type: 'success' })
+    }
     if (s === 'delivering') actions.push({ action: 'complete', label: '确认送达', type: 'success' })
     if (s === 'pending') actions.push({ action: 'mark-paid', label: '标记已付', type: 'warning' })
   } else {
@@ -189,12 +191,12 @@ async function loadOrders() {
 async function loadStats() {
   try {
     const results = await Promise.all([
-      api.get('/merchant/orders', { status: 'paid', pageSize: 200, type: 'online' }),
-      api.get('/merchant/orders', { status: 'accepted', pageSize: 200, type: 'online' }),
-      api.get('/merchant/orders', { status: 'weighed,processing', pageSize: 200, type: 'online' }),
-      api.get('/merchant/orders', { status: 'ready,delivering', pageSize: 200, type: 'online' }),
-      api.get('/merchant/orders', { status: 'completed', pageSize: 200, type: 'online' }),
-      api.get('/merchant/orders', { status: 'refundFailed', pageSize: 200, type: 'online' })
+      api.get('/merchant/orders', { status: 'paid', pageSize: 100, type: 'online' }),
+      api.get('/merchant/orders', { status: 'accepted', pageSize: 100, type: 'online' }),
+      api.get('/merchant/orders', { status: 'weighed,processing', pageSize: 100, type: 'online' }),
+      api.get('/merchant/orders', { status: 'ready,delivering', pageSize: 100, type: 'online' }),
+      api.get('/merchant/orders', { status: 'completed', pageSize: 100, type: 'online' }),
+      api.get('/merchant/orders', { status: 'refundFailed', pageSize: 100, type: 'online' })
     ])
     onlineStats[0].count = ((results[0] && results[0].data && results[0].data.orders) || []).length
     onlineStats[1].count = ((results[1] && results[1].data && results[1].data.orders) || []).length

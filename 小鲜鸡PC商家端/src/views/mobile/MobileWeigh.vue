@@ -71,11 +71,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import api from '@/utils/api'
 import { useScanner } from '@/composables/useScanner'
 
+const route = useRoute()
 const { scan } = useScanner()
 
 const orderNo = ref('')
@@ -83,6 +85,15 @@ const order = ref(null)
 const items = ref([])
 const searching = ref(false)
 const submitting = ref(false)
+
+// 从 URL 参数读取订单号，自动查询
+onMounted(() => {
+  const q = route.query.orderNo
+  if (q) {
+    orderNo.value = q
+    onSearch()
+  }
+})
 
 const computedTotal = computed(() => {
   if (!items.value.length) return '0.00'

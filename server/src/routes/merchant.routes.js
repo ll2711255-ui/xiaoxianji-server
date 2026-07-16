@@ -20,11 +20,11 @@ router.use(verifyToken, requireMerchant);
 // 每个 action 的前置条件：订单必须在对应状态才能执行
 const STATE_RULES = {
   accept:   { require: ['paid'],       nextLabel: 'accepted' },
-  process:  { require: ['accepted', 'weighed'], nextLabel: 'processing' },
-  ready:    { require: ['processing'], nextLabel: 'ready' },
+  process:  { require: ['accepted', 'weighed', 'pending'], nextLabel: 'processing' },
+  ready:    { require: ['processing', 'weighed'], nextLabel: 'ready' },
   deliver:  { require: ['ready'],      nextLabel: 'delivering', requireType: 'delivery' },
   complete: { require: ['delivering', 'ready'], nextLabel: 'completed', nextStatus: 3 },
-  markPaid: { require: ['ready'],      nextLabel: 'paid',      nextStatus: 1 },
+  'mark-paid': { require: ['ready'],      nextLabel: 'paid',      nextStatus: 1 },
 };
 
 /**

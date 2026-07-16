@@ -133,10 +133,12 @@ const actions = computed(() => {
     if (s === 'paid') list.push({ action: 'accept', label: '📋 接单', type: 'primary' })
     if (s === 'accepted') list.push({ action: 'process', label: '🔪 开始处理', type: 'warning' })
     if (s === 'weighed' || s === 'processing') {
-      if (d === 'delivery') list.push({ action: 'deliver', label: '🛵 开始配送', type: 'success' })
-      else list.push({ action: 'ready', label: '📦 标记待取货', type: 'success' })
+      list.push({ action: 'ready', label: '📦 备货完成', type: 'success' })
     }
-    if (s === 'ready') list.push({ action: 'complete', label: '✅ 确认完成', type: 'success' })
+    if (s === 'ready') {
+      if (d === 'delivery') list.push({ action: 'deliver', label: '🛵 开始配送', type: 'success' })
+      else list.push({ action: 'complete', label: '✅ 确认完成', type: 'success' })
+    }
     if (s === 'delivering') list.push({ action: 'complete', label: '✅ 确认送达', type: 'success' })
     if (s === 'pending') list.push({ action: 'mark-paid', label: '💰 标记已支付', type: 'warning' })
   } else {

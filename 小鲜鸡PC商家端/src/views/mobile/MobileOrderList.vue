@@ -71,8 +71,7 @@ let _lastPaidCount = 0
 
 const ORDER_ACTIONS = {
   paid: [
-    { label: '接单', action: 'accept', type: 'primary' },
-    { label: '拒单', action: 'reject', type: 'danger' }
+    { label: '接单', action: 'accept', type: 'primary' }
   ],
   accepted: [
     { label: '称重', action: 'weigh', type: 'warning' }
@@ -126,20 +125,22 @@ function onOrderClick(order) {
 }
 
 async function onAction({ order, action }) {
-  if (action === 'reject') {
-    try {
-      await ElMessageBox.confirm(`确认拒单 ${order.orderNo}？`, '拒单确认', { confirmButtonText: '确认', cancelButtonText: '取消', type: 'warning' })
-    } catch { return }
+  // 称重：跳转到称重页面（需要输入实际重量，不能简单发 POST）
+  if (action === 'weigh') {
+    router.push('/mobile/weigh?orderNo=' + order.orderNo)
+    return
   }
 
   try {
     const res = await api.post(`/merchant/orders/${order.orderNo}/${action}`)
     if (res && res.success) {
-      ElMessage.success(action === 'accept' ? '已接单' : action === 'reject' ? '已拒单' : '操作成功')
+      ElMessage.success(action === 'accept' ? '已接单' : '操作成功')
       loadOrders()
+    } else {
+      ElMessage.error((res && res.message) || '操作失败')
     }
   } catch (err) {
-    ElMessage.error(err.message || '操作失败')
+    ElMessage.error(err.response?.data?.message || err.message || '操作失败')
   }
 }
 
