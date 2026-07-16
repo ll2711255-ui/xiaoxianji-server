@@ -135,6 +135,63 @@ router.post('/offline-orders', async (req, res) => {
 });
 
 /**
+ * POST /api/merchant/orders/:orderNo/weigh — 称重提交
+ */
+router.post('/orders/:orderNo/weigh', async (req, res) => {
+  try {
+    const { orderNo } = req.params;
+    const { actualWeight, weighPhoto, cardNumber } = req.body;
+
+    if (!actualWeight || actualWeight <= 0) {
+      return res.status(400).json({ success: false, code: 400, message: '缺少实际重量' });
+    }
+
+    const result = await weighService.handleWeigh({
+      orderNo,
+      actualWeight,
+      weighPhoto,
+      cardNumber,
+      staffId: req.user.openid,
+    });
+
+    if (result.success) {
+      res.json({ success: true, code: 200, data: result });
+    } else {
+      res.status(400).json({ success: false, code: 400, message: result.error });
+    }
+  } catch (err) {
+    logger.error('[merchant] 称重失败:', err.message);
+    res.status(500).json({ success: false, code: 500, message: err.message || '称重失败' });
+  }
+});
+
+/**
+ * POST /api/merchant/orders/:orderNo/refund — 商家退款（重试失败退款）
+ */
+router.post('/orders/:orderNo/refund', async (req, res) => {
+  try {
+    const { orderNo } = req.params;
+    const { actualWeight } = req.body;
+
+    const result = await weighService.handleWeigh({
+      orderNo,
+      actualWeight,
+      staffId: req.user.openid,
+      isRetry: true,
+    });
+
+    if (result.success) {
+      res.json({ success: true, code: 200, data: result });
+    } else {
+      res.status(400).json({ success: false, code: 400, message: result.error });
+    }
+  } catch (err) {
+    logger.error('[merchant] 退款重试失败:', err.message);
+    res.status(500).json({ success: false, code: 500, message: err.message || '退款失败' });
+  }
+});
+
+/**
  * POST /api/merchant/orders/:orderNo/:action — 商家操作
  * action: accept | process | ready | deliver | complete | markPaid
  *
@@ -207,12 +264,12 @@ router.post('/orders/:orderNo/:action', async (req, res) => {
     params.push(orderNo);              // WHERE order_no = ?
     params.push(rule.require[0]);      // WHERE status_label = ?
 
-    const [updateResult] = await db.execute(
+    const affectedRows = await db.execute(
       `UPDATE order_info SET ${updates.join(', ')} WHERE order_no = ? AND status_label = ?`,
       params
     );
 
-    if (updateResult.affectedRows === 0) {
+    if (affectedRows === 0) {
       return res.status(409).json({
         success: false, code: 409,
         message: '订单状态已变更，请刷新页面后重试',
@@ -225,63 +282,6 @@ router.post('/orders/:orderNo/:action', async (req, res) => {
   } catch (err) {
     logger.error(`[merchant] 操作失败:`, err.message);
     res.status(500).json({ success: false, code: 500, message: err.message });
-  }
-});
-
-/**
- * POST /api/merchant/orders/:orderNo/weigh — 称重提交
- */
-router.post('/orders/:orderNo/weigh', async (req, res) => {
-  try {
-    const { orderNo } = req.params;
-    const { actualWeight, weighPhoto, cardNumber } = req.body;
-
-    if (!actualWeight || actualWeight <= 0) {
-      return res.status(400).json({ success: false, code: 400, message: '缺少实际重量' });
-    }
-
-    const result = await weighService.handleWeigh({
-      orderNo,
-      actualWeight,
-      weighPhoto,
-      cardNumber,
-      staffId: req.user.openid,
-    });
-
-    if (result.success) {
-      res.json({ success: true, code: 200, data: result });
-    } else {
-      res.status(400).json({ success: false, code: 400, message: result.error });
-    }
-  } catch (err) {
-    logger.error('[merchant] 称重失败:', err.message);
-    res.status(500).json({ success: false, code: 500, message: err.message || '称重失败' });
-  }
-});
-
-/**
- * POST /api/merchant/orders/:orderNo/refund — 商家退款（重试失败退款）
- */
-router.post('/orders/:orderNo/refund', async (req, res) => {
-  try {
-    const { orderNo } = req.params;
-    const { actualWeight } = req.body;
-
-    const result = await weighService.handleWeigh({
-      orderNo,
-      actualWeight,
-      staffId: req.user.openid,
-      isRetry: true,
-    });
-
-    if (result.success) {
-      res.json({ success: true, code: 200, data: result });
-    } else {
-      res.status(400).json({ success: false, code: 400, message: result.error });
-    }
-  } catch (err) {
-    logger.error('[merchant] 退款重试失败:', err.message);
-    res.status(500).json({ success: false, code: 500, message: err.message || '退款失败' });
   }
 });
 
