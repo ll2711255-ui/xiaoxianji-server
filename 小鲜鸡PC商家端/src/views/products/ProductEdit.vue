@@ -33,6 +33,29 @@
             <el-checkbox label="pickup">到店自取</el-checkbox>
           </el-checkbox-group>
         </el-form-item>
+        <el-form-item label="商品图片">
+          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start">
+            <div v-for="(img, i) in images" :key="i" style="position:relative;width:100px;height:100px;border-radius:6px;overflow:hidden;border:1px solid #ebeef5">
+              <img :src="img" style="width:100%;height:100%;object-fit:cover" />
+              <span
+                style="position:absolute;top:0;right:0;width:22px;height:22px;background:rgba(0,0,0,0.55);color:#fff;font-size:14px;line-height:22px;text-align:center;cursor:pointer;border-radius:0 0 0 6px"
+                @click="onRemoveImage(i)"
+              >×</span>
+            </div>
+            <el-upload
+              :show-file-list="false"
+              :http-request="onUploadImage"
+              :before-upload="beforeImageUpload"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+            >
+              <div class="upload-trigger">
+                <el-icon :size="24"><Plus /></el-icon>
+                <span style="font-size:12px;color:#999;margin-top:4px">上传</span>
+              </div>
+            </el-upload>
+          </div>
+          <div style="color:#999;font-size:12px;margin-top:4px">支持 jpg/png/gif/webp，单张不超过 5MB，建议尺寸 750×750</div>
+        </el-form-item>
 
         <!-- 按斤计价 -->
         <template v-if="form.pricingType === 'exact_weight'">
@@ -134,7 +157,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Delete } from '@element-plus/icons-vue'
+import { Delete, Plus } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 
 const route = useRoute()
@@ -151,6 +174,8 @@ const showAddWeight = ref(false)
 const newWeightGrams = ref(500)
 const showAddProc = ref(false)
 const newProcName = ref('')
+const images = ref([])
+const uploading = ref(false)
 
 const form = reactive({
   name: '', categoryId: '', pricingType: 'exact_weight', sellingPoint: '', description: '',
@@ -234,6 +259,35 @@ function generateSpecs() {
   return specs
 }
 
+// ========== 图片上传 ==========
+function beforeImageUpload(file) {
+  const isImage = file.type.startsWith('image/')
+  const isLt5M = file.size / 1024 / 1024 < 5
+  if (!isImage) { ElMessage.error('只能上传图片文件'); return false }
+  if (!isLt5M) { ElMessage.error('图片大小不能超过 5MB'); return false }
+  return true
+}
+
+async function onUploadImage(options) {
+  uploading.value = true
+  try {
+    const res = await api.upload('/upload/image', options.file)
+    if (res && res.success && res.data && res.data.url) {
+      images.value.push(res.data.url)
+      ElMessage.success('上传成功')
+    } else {
+      ElMessage.error((res && res.message) || '上传失败')
+    }
+  } catch (err) {
+    ElMessage.error(err.message || '上传失败')
+  }
+  uploading.value = false
+}
+
+function onRemoveImage(index) {
+  images.value.splice(index, 1)
+}
+
 async function loadCategories() {
   try {
     const res = await api.get('/categories')
@@ -260,6 +314,7 @@ async function loadProduct() {
     form.sellingPoint = p.sellingPoint || ''
     form.description = p.description || ''
     form.deliveryModes = p.deliveryModes || ['delivery', 'pickup']
+    images.value = Array.isArray(p.images) ? [...p.images] : []
     if (p.pricingType === 'exact_weight') {
       form.pricePerJin = (p.pricePerJin || 0) / 100
       form.weightOptions = p.weightOptions || [500]
@@ -299,7 +354,7 @@ async function onSave() {
     sellingPoint: form.sellingPoint.trim(),
     description: form.description.trim(),
     deliveryModes: form.deliveryModes,
-    images: []
+    images: images.value
   }
 
   if (form.pricingType === 'exact_weight') {
@@ -346,4 +401,10 @@ onMounted(async () => {
 
 <style scoped>
 .text-muted { color: #999; font-size: 12px; }
+.upload-trigger {
+  width:100px; height:100px; border:1px dashed #d9d9d9; border-radius:6px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  cursor:pointer; transition:border-color 0.2s; background:#fafafa;
+}
+.upload-trigger:hover { border-color: #D4420A; }
 </style>

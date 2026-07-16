@@ -71,6 +71,12 @@
           row-class-name="product-row"
         >
           <el-table-column prop="name" label="商品名称" min-width="160" align="left" />
+          <el-table-column label="图片" width="70" align="center">
+            <template #default="{ row }">
+              <img v-if="row.images && row.images.length" :src="row.images[0]" style="width:44px;height:44px;object-fit:cover;border-radius:4px" />
+              <span v-else class="col-no-img">—</span>
+            </template>
+          </el-table-column>
           <el-table-column label="分类" width="90" align="center">
             <template #default="{ row }">{{ getCatName(row.categoryId) }}</template>
           </el-table-column>

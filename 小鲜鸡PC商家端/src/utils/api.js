@@ -176,7 +176,7 @@ const api = {
     }
 
     const doUpload = async (token) => {
-      const headers = { 'Content-Type': 'multipart/form-data' }
+      const headers = {}
       if (token) {
         headers.Authorization = 'Bearer ' + token
       }
