@@ -20,7 +20,7 @@ router.use(verifyToken, requireMerchant);
 // 每个 action 的前置条件：订单必须在对应状态才能执行
 const STATE_RULES = {
   accept:   { require: ['paid'],       nextLabel: 'accepted' },
-  process:  { require: ['weighed'],    nextLabel: 'processing' },
+  process:  { require: ['accepted', 'weighed'], nextLabel: 'processing' },
   ready:    { require: ['processing'], nextLabel: 'ready' },
   deliver:  { require: ['ready'],      nextLabel: 'delivering', requireType: 'delivery' },
   complete: { require: ['delivering', 'ready'], nextLabel: 'completed', nextStatus: 3 },
@@ -261,11 +261,13 @@ router.post('/orders/:orderNo/:action', async (req, res) => {
     }
 
     // 状态前置条件：UPDATE 带 status_label 防 TOCTOU 竞态
+    // 支持多个前置状态（如 complete 可在 delivering 或 ready 状态执行）
     params.push(orderNo);              // WHERE order_no = ?
-    params.push(rule.require[0]);      // WHERE status_label = ?
+    const whereStatusPlaceholders = rule.require.map(() => '?').join(', ');
+    params.push(...rule.require);      // WHERE status_label IN (...)
 
     const affectedRows = await db.execute(
-      `UPDATE order_info SET ${updates.join(', ')} WHERE order_no = ? AND status_label = ?`,
+      `UPDATE order_info SET ${updates.join(', ')} WHERE order_no = ? AND status_label IN (${whereStatusPlaceholders})`,
       params
     );
 
