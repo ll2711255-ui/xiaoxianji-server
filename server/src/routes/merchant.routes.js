@@ -160,8 +160,8 @@ router.post('/orders/:orderNo/weigh', async (req, res) => {
       res.status(400).json({ success: false, code: 400, message: result.error });
     }
   } catch (err) {
-    logger.error('[merchant] 称重失败:', err.message);
-    res.status(500).json({ success: false, code: 500, message: err.message || '称重失败' });
+    logger.error('[merchant] 称重失败:', err.message || err, err);
+    res.status(500).json({ success: false, code: 500, message: err.message || err.sqlMessage || '称重失败' });
   }
 });
 
@@ -186,8 +186,8 @@ router.post('/orders/:orderNo/refund', async (req, res) => {
       res.status(400).json({ success: false, code: 400, message: result.error });
     }
   } catch (err) {
-    logger.error('[merchant] 退款重试失败:', err.message);
-    res.status(500).json({ success: false, code: 500, message: err.message || '退款失败' });
+    logger.error('[merchant] 退款重试失败:', err.message || err, err);
+    res.status(500).json({ success: false, code: 500, message: err.message || err.sqlMessage || '退款失败' });
   }
 });
 
@@ -280,8 +280,8 @@ router.post('/orders/:orderNo/:action', async (req, res) => {
 
     res.json({ success: true, code: 200, message: '操作成功' });
   } catch (err) {
-    logger.error(`[merchant] 操作失败:`, err.message);
-    res.status(500).json({ success: false, code: 500, message: err.message });
+    logger.error(`[merchant] 操作失败: ${err.message || '(无错误信息)'}`, err);
+    res.status(500).json({ success: false, code: 500, message: err.message || err.sqlMessage || '服务器内部错误' });
   }
 });
 
