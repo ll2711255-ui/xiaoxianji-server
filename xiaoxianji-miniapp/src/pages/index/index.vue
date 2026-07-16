@@ -319,7 +319,7 @@ async function loadCategories() {
 // ========== 加载全部商品 ==========
 async function loadAllProducts() {
   try {
-    const res = await get('/products', { pageSize: 50 })
+    const res = await get('/products', { pageSize: 100 })
     const products = ((res && res.data && res.data.products) || []).map(p => ({
       ...p,
       // 归一化 images 为字符串数组，防止对象/布尔值被用作 <image> src

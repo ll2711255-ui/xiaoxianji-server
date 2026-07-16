@@ -313,10 +313,12 @@ function onChooseAvatar(e) {
 
   // 上传至后端 + 同步到用户资料
   // #ifdef MP-WEIXIN
+  const token = uni.getStorageSync('access_token') || ''
   uni.uploadFile({
     url: (import.meta.env.VITE_API_BASE_URL || 'http://159.75.0.194') + '/api/upload/image',
     filePath: url,
     name: 'file',
+    header: { 'Authorization': 'Bearer ' + token },
     success: (res) => {
       try {
         const data = JSON.parse(res.data)
@@ -364,10 +366,12 @@ function onPickAvatarFromCamera() {
 }
 
 function uploadProfileAvatar(filePath) {
+  const token = uni.getStorageSync('access_token') || ''
   uni.uploadFile({
     url: (import.meta.env.VITE_API_BASE_URL || 'http://159.75.0.194') + '/api/upload/image',
     filePath,
     name: 'file',
+    header: { 'Authorization': 'Bearer ' + token },
     success: (res) => {
       try {
         const data = JSON.parse(res.data)

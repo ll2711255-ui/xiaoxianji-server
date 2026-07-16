@@ -7,8 +7,8 @@
         :key="addr._id"
         class="address-card"
       >
-        <!-- 地址信息（点击编辑） -->
-        <view class="addr-body" @click="onEdit(addr)">
+        <!-- 地址信息（点击编辑或选择） -->
+        <view class="addr-body" @click="isSelectMode ? onSelect(addr) : onEdit(addr)">
           <view class="addr-header">
             <text class="addr-name">{{ addr.name }}</text>
             <text class="addr-phone">{{ addr.phone }}</text>
@@ -57,14 +57,20 @@
 
 <script setup>
 import { ref } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onShow, onLoad } from '@dcloudio/uni-app'
 import { get, put, del } from '@/utils/request'
 
 // ========== State ==========
 const addresses = ref([])
 const loading = ref(true)
+const isSelectMode = ref(false)
 
 // ========== Lifecycle ==========
+onLoad((options) => {
+  // checkout 页面跳转时带 ?select=true，点击地址后回传选中地址
+  isSelectMode.value = options && options.select === 'true'
+})
+
 onShow(() => {
   loadAddresses()
 })
@@ -91,6 +97,12 @@ function formatFullAddress(addr) {
 // ========== 操作 ==========
 function onAdd() {
   uni.navigateTo({ url: '/pages/mine/address/form' })
+}
+
+function onSelect(addr) {
+  // 选择模式：将地址通过临时 Storage 回传给 checkout 页面
+  uni.setStorageSync('_tmp_selected_address', addr)
+  uni.navigateBack()
 }
 
 function onEdit(addr) {

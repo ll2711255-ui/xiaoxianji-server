@@ -145,7 +145,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { get, post } from '@/utils/request'
 import { formatMoney, calcDistance } from '@/utils/util'
 import { callPay } from '@/utils/pay'
@@ -233,6 +233,16 @@ onLoad((options) => {
   if (currentTab.value === 'delivery') loadDefaultAddress()
 })
 
+// 从地址选择页返回时，读取临时选中的地址
+onShow(() => {
+  const selected = uni.getStorageSync('_tmp_selected_address')
+  if (selected) {
+    uni.removeStorageSync('_tmp_selected_address')
+    address.value = selected
+    fetchAddressCoordinates(selected)
+  }
+})
+
 // ========== 门店信息 ==========
 async function loadStoreInfo() {
   try {
@@ -309,7 +319,9 @@ function onSelectAddress() {
         isDefault: false
       }
       address.value = addr
-      post('/addresses', addr).catch(() => {})
+      post('/addresses', addr).catch(err => {
+        console.error('[checkout] 保存地址失败:', err)
+      })
       fetchAddressCoordinates(addr)
     },
     fail: () => {

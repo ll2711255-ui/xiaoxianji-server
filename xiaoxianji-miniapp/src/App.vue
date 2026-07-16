@@ -26,28 +26,29 @@ onHide(() => {
 async function healthCheck() {
   try {
     const { request } = await import('@/utils/request')
-    const res = await request('GET', '/health')
-    if (res && res.statusCode === 200 && res.data) {
-      const h = res.data
-      console.log('[健康检查] 服务状态:', h.status)
-      if (h.status === 'degraded') {
-        const failed = Object.entries(h.services || {})
+    const res = await request('GET', '/health', {}, { skipAuth: true })
+    // request() 返回解析后的 JSON body，不含 statusCode/data 包装
+    if (res && res.status === 'ok') {
+      console.log('[健康检查] 服务状态:', res.status)
+      if (res.status === 'degraded') {
+        const failed = Object.entries(res.services || {})
           .filter(([, v]) => v === 'error')
           .map(([k]) => k)
           .join('、')
         console.warn('[健康检查] ⚠️ 服务降级，不可用组件:', failed)
       }
+    } else {
+      console.warn('[健康检查] 响应异常:', JSON.stringify(res))
     }
-  } catch (_) {
-    console.warn('[健康检查] 服务器不可达，请检查网络')
+  } catch (e) {
+    console.warn('[健康检查] 服务器不可达，请检查网络:', e.message)
   }
 }
 </script>
 
 <style lang="scss">
 /* ========== 全局设计系统 v2 ========== */
-/* 引入视觉 Token 系统 */
-@import '@/styles/tokens.scss';
+/* Token 系统已通过 vite.config.js additionalData 全局注入 */
 
 /* ---------- 页面基础样式 ---------- */
 page {

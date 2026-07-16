@@ -271,7 +271,7 @@ function initExactWeightSpecs(p, pOpts, dOpts, defaultP, defaultD) {
 }
 
 function initPerPieceSpecs(p, pOpts, dOpts, defaultP, defaultD) {
-  const unitPrice = p.unitPrice || 25
+  const unitPrice = p.unitPrice || 0
   const initPrice = computePiecePrice(p, defaultP)
   const wOpts = [{ label: formatMoney(unitPrice) + '元/只', value: 'per_piece', unitPrice }]
 
@@ -311,7 +311,7 @@ function computeExactPrice(p, weight, processing) {
 
 function computePiecePrice(p, processing) {
   if (!p) return 0
-  const unitPrice = p.unitPrice || 25
+  const unitPrice = p.unitPrice || 0
   let price = unitPrice
   if (processing === '切块' && p.processingFee) price += p.processingFee
   return Math.round(price)

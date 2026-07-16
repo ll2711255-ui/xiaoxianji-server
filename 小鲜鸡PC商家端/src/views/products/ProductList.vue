@@ -97,7 +97,7 @@
           <el-table-column label="缺货" width="80" align="center">
             <template #default="{ row }">
               <el-switch
-                :model-value="!!row.out_of_stock"
+                :model-value="!!row.outOfStock"
                 @change="onToggleStock(row)"
                 class="prod-switch"
               />
@@ -173,7 +173,7 @@ const filteredProducts = computed(() => {
   }
   if (keyword.value) {
     const kw = keyword.value.toLowerCase()
-    list = list.filter(p => (p.name || '').toLowerCase().includes(kw) || (p.selling_point || '').toLowerCase().includes(kw))
+    list = list.filter(p => (p.name || '').toLowerCase().includes(kw) || (p.sellingPoint || '').toLowerCase().includes(kw))
   }
   return list
 })
@@ -257,7 +257,7 @@ async function onToggleStatus(row) {
 }
 
 async function onToggleStock(row) {
-  const newVal = !row.out_of_stock
+  const newVal = !row.outOfStock
   try { await ElMessageBox.confirm(newVal ? '确定标记为缺货吗？' : '确定取消缺货标记吗？') } catch { return }
   try {
     await api.patch('/products/' + row._id + '/status', { outOfStock: newVal })

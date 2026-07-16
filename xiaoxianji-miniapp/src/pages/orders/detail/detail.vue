@@ -196,7 +196,8 @@ async function loadOrder(silent = false) {
   if (!orderNo.value) return
   try {
     const res = await get('/orders/' + orderNo.value)
-    const o = (res && res.data) || res || {}
+    // 后端返回 { success: true, data: { order: {...} } }
+    const o = (res && res.data && res.data.order) || (res && res.data) || {}
     if (!o || !o.orderNo) return
 
     pollFailCount = 0
