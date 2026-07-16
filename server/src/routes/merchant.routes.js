@@ -253,7 +253,7 @@ router.post('/orders/:orderNo/:action', async (req, res) => {
     // 时间戳字段（标记操作时间）
     const timeFieldMap = {
       accept: 'accept_time', process: 'process_time', ready: 'ready_time',
-      deliver: 'deliver_time', complete: 'complete_time', markPaid: 'pay_time',
+      deliver: 'deliver_time', complete: 'complete_time', 'mark-paid': 'pay_time',
     };
     const timeField = timeFieldMap[action];
     if (timeField) {
