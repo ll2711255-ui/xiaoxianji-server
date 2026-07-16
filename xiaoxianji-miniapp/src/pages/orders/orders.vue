@@ -94,7 +94,17 @@ onLoad((options) => {
   }
 })
 
-onShow(() => { loadOrders(true) })
+onShow(() => {
+  // 来自 mine 页通过 storage 传递的 tab 筛选参数（switchTab 不支持 URL 参数）
+  const pendingTab = uni.getStorageSync('pendingOrderTab')
+  if (pendingTab) {
+    const tabMap = { pending: 0, active: 1, completed: 2, all: 0 }
+    const idx = tabMap[pendingTab]
+    if (idx !== undefined) tabIndex.value = idx
+    uni.removeStorageSync('pendingOrderTab')
+  }
+  loadOrders(true)
+})
 onPullDownRefresh(() => { loadOrders(true).then(() => uni.stopPullDownRefresh()) })
 onReachBottom(() => { loadOrders() })
 

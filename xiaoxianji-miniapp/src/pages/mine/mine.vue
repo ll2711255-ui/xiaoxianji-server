@@ -282,7 +282,7 @@ function onLoginSuccess(result) {
     setTimeout(() => { uni.navigateTo({ url: '/pages/mine/address/address' }) }, 900)
   } else if (action === 'orders') {
     uni.showToast({ title: '登录成功', icon: 'success', duration: 800 })
-    setTimeout(() => { uni.navigateTo({ url: '/pages/orders/orders' }) }, 900)
+    setTimeout(() => { uni.switchTab({ url: '/pages/orders/orders' }) }, 900)
   } else {
     uni.showToast({ title: '登录成功', icon: 'success' })
   }
@@ -438,7 +438,8 @@ function onOrderTap(tab) {
     showLoginModalFn()
     return
   }
-  uni.navigateTo({ url: '/pages/orders/orders?tab=' + tab })
+  uni.setStorageSync('pendingOrderTab', tab)
+  uni.switchTab({ url: '/pages/orders/orders' })
 }
 
 function onAddressManage() {
