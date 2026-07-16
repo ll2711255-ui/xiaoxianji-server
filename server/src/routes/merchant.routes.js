@@ -67,15 +67,49 @@ router.get('/orders', async (req, res) => {
 });
 
 /**
+ * GET /api/merchant/orders/:orderNo — 商家端订单详情
+ * 返回单个订单完整信息（商品明细、配送地址、支付信息等）
+ */
+router.get('/orders/:orderNo', async (req, res) => {
+  try {
+    const { orderNo } = req.params;
+    const v = validateOrderNo(orderNo);
+    if (!v.valid) return res.status(400).json({ success: false, code: 400, message: v.error });
+
+    const order = await db.queryOne(
+      'SELECT * FROM order_info WHERE order_no = ? AND is_deleted = 0',
+      [orderNo]
+    );
+    if (!order) {
+      return res.status(404).json({ success: false, code: 404, message: '订单不存在' });
+    }
+
+    res.json({ success: true, code: 200, data: { order } });
+  } catch (err) {
+    logger.error('[merchant] 订单详情失败:', err.message);
+    res.status(500).json({ success: false, code: 500, message: err.message });
+  }
+});
+
+/**
  * POST /api/merchant/offline-orders — 创建线下订单
  */
 router.post('/offline-orders', async (req, res) => {
   try {
-    const { items, type, cardNumber, paymentType, deliveryAddress } = req.body;
+    const { items, type, cardNumber, paymentType, deliveryAddress, amount } = req.body;
     const { generateOrderNo } = require('../utils/idGenerator');
     const { calculatePrice } = require('../services/pricing.service');
 
-    const { totalFen, validatedItems } = await calculatePrice(items || []);
+    let totalFen, validatedItems;
+    if (amount && (!items || items.length === 0)) {
+      // 收银台手动输入金额模式（无商品明细，直接使用传入金额）
+      totalFen = parseInt(amount, 10);
+      validatedItems = [];
+    } else {
+      const result = await calculatePrice(items || []);
+      totalFen = result.totalFen;
+      validatedItems = result.validatedItems;
+    }
     const orderNo = await generateOrderNo();
 
     await db.insert(

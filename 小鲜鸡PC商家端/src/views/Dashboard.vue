@@ -154,6 +154,22 @@ async function loadDashboard() {
     console.error('加载最近订单失败:', err)
     ElMessage.error('加载最近订单失败')
   }
+
+  // 加载今日数据
+  try {
+    const now = new Date()
+    const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0')
+    const todayRes = await api.get('/merchant/orders', {
+      status: 'paid,accepted,weighed,processing,ready,delivering,completed',
+      dateFrom: todayStr,
+      pageSize: 500
+    })
+    const todayOrders = (todayRes && todayRes.data && todayRes.data.orders) || []
+    stats.todayOrders = todayOrders.length
+    stats.todayRevenue = (todayOrders.reduce((sum, o) => sum + (o.actualAmount || o.payAmount || 0), 0) / 100).toFixed(2)
+  } catch (err) {
+    console.error('加载今日数据失败:', err)
+  }
 }
 
 onMounted(async () => {

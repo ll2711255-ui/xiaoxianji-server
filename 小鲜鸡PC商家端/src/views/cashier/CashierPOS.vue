@@ -457,9 +457,7 @@ async function onSubmitOrder() {
       ElMessage.error('创建订单超时，请重试')
       return
     }
-    // 自动进入处理中
-    await api.post('/merchant/orders/' + d.orderNo + '/process')
-
+    // 线下订单创建后状态已是 processing，无需再调 /process
     resultData.value = {
       orderNo: d.orderNo,
       cardNumber: selectedCard.value,
@@ -672,7 +670,7 @@ async function onLoadWeighOrder() {
   }
   weighLoading.value = true
   try {
-    const res = await api.get('/orders/' + weighOrderNo.value.trim())
+    const res = await api.get('/merchant/orders/' + weighOrderNo.value.trim())
     const d = (res && res.data) || res || {}
     const order = d.order
     if (!order) { ElMessage.error('订单不存在'); weighLoading.value = false; return }

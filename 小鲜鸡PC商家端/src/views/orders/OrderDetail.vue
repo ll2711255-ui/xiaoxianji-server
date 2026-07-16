@@ -157,7 +157,7 @@ function formatTime(t) {
 async function loadOrder() {
   loading.value = true
   try {
-    const res = await api.get('/orders/' + route.params.orderNo)
+    const res = await api.get('/merchant/orders/' + route.params.orderNo)
     order.value = (res && res.data && res.data.order) || (res && res.data) || {}
     // 从订单 items 读取参考单价
     const firstItem = (order.value.items && order.value.items[0]) || {}

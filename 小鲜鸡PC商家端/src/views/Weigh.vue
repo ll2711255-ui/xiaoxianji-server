@@ -215,7 +215,7 @@ onMounted(async () => {
 
 async function loadOrder() {
   try {
-    const res = await api.get('/orders/' + orderNo.value)
+    const res = await api.get('/merchant/orders/' + orderNo.value)
     const d = (res && res.data) || res || {}
     const ord = d.order
     if (!ord) { message.error('订单不存在'); router.push('/'); return }
