@@ -131,6 +131,10 @@
       <el-main class="main">
         <router-view />
       </el-main>
+
+      <el-footer class="footer">
+        <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">粤ICP备2026099394号</a>
+      </el-footer>
     </el-container>
   </el-container>
 </template>
@@ -226,4 +230,7 @@ function onLogout() {
 .header-right { display: flex; align-items: center; gap: 12px; }
 .merchant-name { color: #666; font-size: 14px; font-weight: 500; }
 .main { background: #f5f6fa; padding: 20px; overflow-y: auto; }
+.footer { display: flex; align-items: center; justify-content: center; height: 40px; background: #fff; border-top: 1px solid #eee; }
+.footer a { color: #999; font-size: 12px; text-decoration: none; }
+.footer a:hover { color: #666; }
 </style>

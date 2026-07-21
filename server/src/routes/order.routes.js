@@ -164,6 +164,15 @@ router.post('/:orderNo/pay', async (req, res) => {
     }
 
     // ========== 真实重试支付：重新获取 prepay_id ==========
+    // 前置检查：微信支付是否已配置
+    const payConfigured = await wxpay.checkConfig();
+    if (!payConfigured) {
+      return res.status(503).json({
+        success: false, code: 503,
+        message: '微信支付尚未配置，请联系管理员在商家端「支付设置」中配置微信支付商户信息'
+      });
+    }
+
     const order = await orderService.getOrderByNo(orderNo);
     if (!order) {
       return res.status(404).json({ success: false, code: 404, message: '订单不存在' });

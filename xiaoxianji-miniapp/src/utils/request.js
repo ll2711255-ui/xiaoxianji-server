@@ -117,7 +117,18 @@ async function ensureFreshToken() {
   const token = getAccessToken()
   if (!token) return token
 
-  const expMs = getTokenExpiry()
+  let expMs = getTokenExpiry()
+
+  // 自愈：旧代码存的 token_expires_at 可能为 0（base64 解码 bug 导致），
+  //       此时直接从 JWT 重新解码，避免不必要的刷新触发微信「请求重入检测」
+  if (!expMs || expMs <= 0) {
+    const decodedExp = decodeJwtExp(token)
+    if (decodedExp > 0) {
+      uni.setStorageSync(STORAGE_KEYS.TOKEN_EXPIRES_AT, decodedExp)
+      expMs = decodedExp
+    }
+  }
+
   // token 有效且距过期 > 5 分钟，直接返回
   if (expMs > 0 && Date.now() < expMs - 5 * 60 * 1000) {
     return token
