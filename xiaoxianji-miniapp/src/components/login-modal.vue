@@ -64,6 +64,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { getLoginCode, getLoginEndpoint, saveLoginInfo } from '@/utils/auth'
+import { post } from '@/utils/request'
 
 // ========== Props ==========
 const props = defineProps({
@@ -97,7 +98,6 @@ async function onLogin() {
     }
 
     // 步骤2: 调用后端登录接口
-    const { post } = await import('@/utils/request')
     const loginRes = await post(getLoginEndpoint(), { code }, { skipAuth: true })
 
     if (!loginRes || !loginRes.success) {
