@@ -20,11 +20,22 @@
 
 import { post } from './request'
 
+/** 防并发：是否正在调起支付（无论哪个订单），防止短时间内多次调用 uni.requestPayment */
+let _paying = false
+
 /**
  * 发起支付（自动适配平台）
  * 小程序端直接传平台参数，不传 provider（避免 uni-app 路由到 App 端支付通道）
  */
 export async function callPay({ orderNo, payment, amountDisplay, onSuccess, onCancel, clearItems }) {
+  // 防并发：如果已有支付流程在进行中，忽略重复调用
+  if (_paying) {
+    console.warn('[pay] 支付流程进行中，忽略重复调用:', orderNo)
+    return
+  }
+  _paying = true
+
+  const done = () => { _paying = false }
   const systemInfo = uni.getSystemInfoSync()
   const isSimulator = systemInfo.platform === 'devtools'
 
@@ -43,16 +54,19 @@ export async function callPay({ orderNo, payment, amountDisplay, onSuccess, onCa
             uni.hideLoading()
             if (clearItems) clearItems()
             uni.showToast({ title: '支付成功', icon: 'success' })
+            done()
             if (onSuccess) setTimeout(onSuccess, 1200)
           } catch (err) {
             uni.hideLoading()
             console.error('模拟支付失败:', err)
             if (clearItems) clearItems()
             uni.showToast({ title: '支付成功', icon: 'success' })
+            done()
             if (onSuccess) setTimeout(onSuccess, 1200)
           }
         } else {
           uni.showToast({ title: '模拟支付取消', icon: 'none' })
+          done()
           if (onCancel) onCancel()
         }
       }
@@ -62,6 +76,7 @@ export async function callPay({ orderNo, payment, amountDisplay, onSuccess, onCa
 
   // ========== 真机：直接调起支付（微信原生对话框即最终确认） ==========
   if (!payment) {
+    done()
     uni.showToast({ title: '支付参数无效', icon: 'none' })
     return
   }
@@ -92,9 +107,11 @@ export async function callPay({ orderNo, payment, amountDisplay, onSuccess, onCa
     })
 
     if (clearItems) clearItems()
+    done()
     uni.showToast({ title: '支付成功', icon: 'success' })
     if (onSuccess) setTimeout(onSuccess, 1500)
   } catch (err) {
+    done()
     const errMsg = err.errMsg || err.message || '未知错误'
     console.error('[pay] 支付失败:', errMsg)
 

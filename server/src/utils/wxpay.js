@@ -234,9 +234,8 @@ async function jsapiPrepay({ appid, out_trade_no, total, openid, description, no
     payer: { openid },
   };
 
-  logger.info('[wxpay] JSAPI 预下单:', JSON.stringify({
-    appid, mchid: cfg.mchId, out_trade_no, total, openid,
-  }));
+  // ===== 打印完整请求 JSON（方便对比首次/重入参数差异）=====
+  logger.info('[wxpay] JSAPI 预下单 完整请求:', JSON.stringify(apiBody, null, 2));
 
   const result = await _doRequest(cfg, 'POST', '/v3/pay/transactions/jsapi', apiBody);
 

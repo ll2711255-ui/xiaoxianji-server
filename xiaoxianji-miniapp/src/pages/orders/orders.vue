@@ -84,6 +84,7 @@ const hasMore = ref(true)
 const loading = ref(false)
 const showPhoneAuth = ref(false)
 const pendingPayOrderNo = ref('')
+const payingOrderNo = ref('')  // 防并发：正在支付的订单号，非空时禁止再次发起支付
 
 // ========== Lifecycle ==========
 onLoad((options) => {
@@ -181,6 +182,11 @@ function onOrderTap(orderNo) {
 }
 
 function onPayOrder(orderNo) {
+  // 防并发：如果已有支付正在进行中，忽略重复点击
+  if (payingOrderNo.value) {
+    console.warn('[orders] 支付进行中，忽略重复点击:', payingOrderNo.value)
+    return
+  }
   const phone = uni.getStorageSync('phone') || ''
   if (!phone) {
     showPhoneAuth.value = true
@@ -191,16 +197,22 @@ function onPayOrder(orderNo) {
 }
 
 function doPayOrder(orderNo) {
+  // 二次防护：设置支付锁
+  if (payingOrderNo.value) return
+  payingOrderNo.value = orderNo
+
   uni.showLoading({ title: '获取支付参数...' })
   post('/orders/' + orderNo + '/pay').then(res => {
     uni.hideLoading()
     const d = (res && res.data) || res || {}
     if (!d.success && d.message) {
+      payingOrderNo.value = ''
       uni.showToast({ title: d.message, icon: 'none' })
       return
     }
     const payment = d.payment
     if (!payment) {
+      payingOrderNo.value = ''
       uni.showToast({ title: '支付暂不可用', icon: 'none' })
       return
     }
@@ -209,10 +221,11 @@ function doPayOrder(orderNo) {
 
     callPay({
       orderNo, payment, amountDisplay,
-      onSuccess: () => loadOrders(true),
-      onCancel: () => loadOrders(true)
+      onSuccess: () => { payingOrderNo.value = ''; loadOrders(true) },
+      onCancel: () => { payingOrderNo.value = ''; loadOrders(true) }
     })
   }).catch(err => {
+    payingOrderNo.value = ''
     uni.hideLoading()
     console.error('获取支付参数失败:', err)
     uni.showToast({ title: '网络异常，请重试', icon: 'none' })

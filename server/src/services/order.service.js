@@ -94,7 +94,8 @@ async function createOrder({ openid, items, type, deliveryAddress, isScheduled, 
       }
     }
 
-    // 6. 微信支付 V3 JSAPI 预下单
+    // 6. 微信支付 V3 JSAPI 预下单（首次）
+    logger.info(`[order] ===== 首次统一下单：创建订单 ${orderNo}，调用微信JSAPI =====`);
     const notifyUrl = config.notify.pay;
     const payResult = await wxpay.jsapiPrepay({
       appid: effectiveAppId,

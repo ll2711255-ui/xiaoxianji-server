@@ -186,12 +186,15 @@ router.post('/:orderNo/pay', async (req, res) => {
     // ===== 优先复用缓存的 prepay_id（不调微信统一下单！）=====
     const cachedPrepayId = order.paymentRecord?.prepayId || order.prepayId;
     if (cachedPrepayId) {
-      logger.info(`[orders] 复用缓存 prepay_id: ${orderNo}`);
+      logger.info(`[orders] ===== 二次重入：缓存复用 prepay_id，不调用微信API =====`);
+      logger.info(`[orders] 缓存 prepay_id: ${cachedPrepayId}, 订单: ${orderNo}, 金额: ${order.payAmount}分`);
       const payment = await wxpay.buildPayParams(cachedPrepayId, effectiveAppId);
+      logger.info(`[orders] 本地签名完成 paySign: ${payment.paySign.substring(0, 20)}...`);
       return res.json({ success: true, code: 200, data: { orderNo, payment, cached: true } });
     }
 
     // ===== 无缓存 → 首次调用微信统一下单 =====
+    logger.info(`[orders] ===== 首次支付：无缓存，调用微信统一下单 =====`);
     const payConfigured = await wxpay.checkConfig();
     if (!payConfigured) {
       return res.status(503).json({
