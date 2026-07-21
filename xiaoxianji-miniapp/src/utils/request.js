@@ -161,11 +161,12 @@ export function request(method, path, data = {}, options = {}) {
         timeout: TIMEOUT,
         success: async (res) => {
           // 401 → 尝试刷新 token 后重试（仅一次）
+          // 用 setTimeout 延迟重试，避免微信运行时「请求重入检测」误判拦截
           if (res.statusCode === 401 && !skipAuth && !options._retried) {
             options._retried = true
             try {
               const newToken = await refreshAccessToken()
-              doRequest(newToken)
+              setTimeout(() => doRequest(newToken), 50)
             } catch (refreshErr) {
               // 刷新失败（token 过期 / refresh_token 缺失）→ 清空登录态，引导重新登录
               console.warn('[request] token 刷新失败，已清除登录态，请重新登录')
@@ -260,7 +261,7 @@ export function upload(path, filePath, formData = {}) {
           }
         } else if (res.statusCode === 401) {
           refreshAccessToken().then(() => {
-            upload(path, filePath, formData).then(resolve).catch(reject)
+            setTimeout(() => upload(path, filePath, formData).then(resolve).catch(reject), 50)
           }).catch(() => {
             clearTokens()
             reject(new Error('登录已过期，请重新登录'))
