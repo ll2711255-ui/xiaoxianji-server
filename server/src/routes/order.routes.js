@@ -163,27 +163,13 @@ router.post('/:orderNo/pay', async (req, res) => {
       return res.json({ success: true, code: 200, data: { orderNo, status: 'paid' } });
     }
 
-    // ========== 真实重试支付：重新获取 prepay_id ==========
-    // 前置检查：微信支付是否已配置
-    const payConfigured = await wxpay.checkConfig();
-    if (!payConfigured) {
-      return res.status(503).json({
-        success: false, code: 503,
-        message: '微信支付尚未配置，请联系管理员在商家端「支付设置」中配置微信支付商户信息'
-      });
-    }
-
+    // ========== 真实支付：优先复用缓存的 prepay_id，无缓存才调微信统一下单 ==========
     const order = await orderService.getOrderByNo(orderNo);
     if (!order) {
       return res.status(404).json({ success: false, code: 404, message: '订单不存在' });
     }
     if (order.orderStatus !== 0) {
       return res.status(400).json({ success: false, code: 400, message: '订单已处理，不可重试支付' });
-    }
-
-    // 关闭旧的 prepay（如有）
-    if (order.prepayId) {
-      await wxpay.closeOrder(orderNo).catch(() => {});
     }
 
     // 获取有效 appId（.env 优先，DB 兜底）
@@ -195,6 +181,23 @@ router.post('/:orderNo/pay', async (req, res) => {
       } catch (e) {
         logger.error('[orders] 重试支付获取 appId 失败:', e.message);
       }
+    }
+
+    // ===== 优先复用缓存的 prepay_id（不调微信统一下单！）=====
+    const cachedPrepayId = order.paymentRecord?.prepayId || order.prepayId;
+    if (cachedPrepayId) {
+      logger.info(`[orders] 复用缓存 prepay_id: ${orderNo}`);
+      const payment = await wxpay.buildPayParams(cachedPrepayId, effectiveAppId);
+      return res.json({ success: true, code: 200, data: { orderNo, payment, cached: true } });
+    }
+
+    // ===== 无缓存 → 首次调用微信统一下单 =====
+    const payConfigured = await wxpay.checkConfig();
+    if (!payConfigured) {
+      return res.status(503).json({
+        success: false, code: 503,
+        message: '微信支付尚未配置，请联系管理员在商家端「支付设置」中配置微信支付商户信息'
+      });
     }
 
     const result = await wxpay.jsapiPrepay({
@@ -210,16 +213,13 @@ router.post('/:orderNo/pay', async (req, res) => {
       return res.status(500).json({ success: false, code: 500, message: result.error });
     }
 
-    const payment = await wxpay.buildPayParams(result.prepay_id, effectiveAppId);
+    // 持久化 prepay_id，下次支付直接复用
+    await require('../config/db').execute(
+      'INSERT INTO payment_record (order_no, prepay_id, pay_amount, pay_status, pay_type) VALUES (?, ?, ?, 0, 1)',
+      [orderNo, result.prepay_id, order.payAmount]
+    );
 
-    await require('../config/db').execute(
-      'UPDATE order_info SET prepay_id = ? WHERE order_no = ?',
-      [result.prepay_id, orderNo]
-    );
-    await require('../config/db').execute(
-      'UPDATE payment_record SET prepay_id = ? WHERE order_no = ?',
-      [result.prepay_id, orderNo]
-    );
+    const payment = await wxpay.buildPayParams(result.prepay_id, effectiveAppId);
 
     res.json({ success: true, code: 200, data: { orderNo, payment } });
   } catch (err) {
