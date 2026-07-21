@@ -234,10 +234,14 @@ export function request(method, path, data = {}, options = {}) {
         if (query) url += '?' + query
       }
 
-      // 401 重试时加随机参数，让微信运行时认为这是不同的请求
-      // 避免「请求重入时，参数与首次请求时不一致」误判拦截
+      // 所有写请求加 _t 时间戳，确保每次请求 URL 唯一
+      // 微信运行时会缓存「首次请求」的 URL+参数，后续同 URL 换了 token
+      // 就会触发「请求重入时，参数与首次请求时不一致」拦截
+      // 加上时间戳后每次 URL 都不同，彻底绕过此检测
       if (options._isRetry) {
         url += (url.includes('?') ? '&' : '?') + '_retry=' + Date.now()
+      } else if (method === 'POST' || method === 'PUT' || method === 'DELETE' || method === 'PATCH') {
+        url += (url.includes('?') ? '&' : '?') + '_t=' + Date.now()
       }
 
       uni.request({
@@ -332,10 +336,8 @@ export function upload(path, filePath, formData = {}, _isRetry = false) {
     // 上传前也做 token 新鲜度检查
     const doUpload = (token) => {
       let url = BASE_URL + '/api' + path
-      // 401 重试时加随机参数，避免微信「请求重入检测」拦截
-      if (_isRetry) {
-        url += (url.includes('?') ? '&' : '?') + '_retry=' + Date.now()
-      }
+      // 每次上传加 _t 时间戳，避免微信「请求重入检测」拦截
+      url += (url.includes('?') ? '&' : '?') + '_t=' + Date.now()
 
       uni.uploadFile({
         url,
