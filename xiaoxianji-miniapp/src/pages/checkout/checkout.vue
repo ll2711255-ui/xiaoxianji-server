@@ -111,8 +111,8 @@
         <text class="bottom-total-label">合计：</text>
         <text class="bottom-total-value">¥{{ totalDisplay }}</text>
       </view>
-      <view class="bottom-submit-btn" @click="onSubmit">
-        <text>提交订单</text>
+      <view class="bottom-submit-btn" :class="{ 'btn-disabled': submitting }" @click="onSubmit">
+        <text>{{ submitting ? '提交中...' : '提交订单' }}</text>
       </view>
     </view>
 
@@ -176,6 +176,7 @@ const showRangeModal = ref(false)
 const rangeModalMsg = ref('')
 const rangeModalDistance = ref('')
 const rangeModalRadius = ref('')
+const submitting = ref(false)  // 防重复提交
 
 const tabs = computed(() => {
   const list = []
@@ -424,6 +425,7 @@ function onCloseRangeModal() {
 
 // ========== 提交订单 ==========
 function onSubmit() {
+  if (submitting.value) return  // 防重复点击
   const phone = uni.getStorageSync('phone') || ''
   if (!phone) {
     showPhoneAuth.value = true
@@ -433,22 +435,28 @@ function onSubmit() {
 }
 
 async function doSubmit() {
+  if (submitting.value) return  // 二次防护
+  submitting.value = true
+
   if (currentTab.value === 'delivery' && !address.value) {
     uni.showToast({ title: '请添加收货地址', icon: 'none' })
+    submitting.value = false
     return
   }
 
   if (currentTab.value === 'delivery') {
     const rangeOk = await checkDeliveryRange()
-    if (!rangeOk) return
+    if (!rangeOk) { submitting.value = false; return }
   }
 
   if (isScheduled.value && !scheduleDate.value) {
     uni.showToast({ title: '请选择预约日期', icon: 'none' })
+    submitting.value = false
     return
   }
   if (isScheduled.value && !scheduleTime.value) {
     uni.showToast({ title: '请选择预约时段', icon: 'none' })
+    submitting.value = false
     return
   }
 
@@ -476,8 +484,10 @@ async function doSubmit() {
 
     const d = (res && res.data) || res || {}
     if (d.orderNo && d.payment) {
+      // 支付成功后 callPay 的 onSuccess/onCancel 回调里重置 submitting
       callWxPay([{ orderNo: d.orderNo, payment: d.payment }])
     } else if (d.orderNo && !d.payment) {
+      submitting.value = false
       const errorMsg = d.payError || '支付暂不可用，请在订单列表重试'
       uni.showModal({
         title: '支付失败',
@@ -487,9 +497,11 @@ async function doSubmit() {
         success: () => uni.switchTab({ url: '/pages/orders/orders' })
       })
     } else {
+      submitting.value = false
       uni.showToast({ title: '创建订单失败', icon: 'none' })
     }
   } catch (err) {
+    submitting.value = false
     uni.hideLoading()
     console.error('创建订单失败:', err)
     uni.showToast({ title: err.message || '创建订单失败', icon: 'none' })
@@ -512,8 +524,8 @@ function callWxPay(orders) {
     payment: order.payment,
     amountDisplay: totalDisplay.value,
     clearItems: clearCartAndGoOrders,
-    onSuccess: () => { uni.switchTab({ url: '/pages/orders/orders' }) },
-    onCancel: () => { uni.switchTab({ url: '/pages/orders/orders' }) }
+    onSuccess: () => { submitting.value = false; uni.switchTab({ url: '/pages/orders/orders' }) },
+    onCancel: () => { submitting.value = false; uni.switchTab({ url: '/pages/orders/orders' }) }
   })
 }
 
@@ -617,6 +629,7 @@ function formatSpec(spec) {
 .bottom-total-label { font-size:var(--font-md); color:var(--color-text-2); }
 .bottom-total-value { font-size:var(--font-xl); color:var(--color-primary); font-weight:var(--weight-bold); }
 .bottom-submit-btn { background:var(--color-primary); color:#fff; padding:16rpx 48rpx; border-radius:var(--radius-xl); font-size:var(--font-base); font-weight:var(--weight-bold); }
+.btn-disabled { opacity:0.6; pointer-events:none; }
 
 /* 弹窗 */
 .modal-mask { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:200; }
