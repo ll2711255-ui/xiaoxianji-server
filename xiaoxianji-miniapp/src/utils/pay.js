@@ -27,7 +27,7 @@ import { currentProvider } from './platform'
  * provider 统一从 platform.js 的 currentProvider 获取，
  * 平台特有的支付参数仍通过条件编译填充
  */
-export function callPay({ orderNo, payment, amountDisplay, onSuccess, onCancel, clearItems }) {
+export async function callPay({ orderNo, payment, amountDisplay, onSuccess, onCancel, clearItems }) {
   const systemInfo = uni.getSystemInfoSync()
   const isSimulator = systemInfo.platform === 'devtools'
 
@@ -63,71 +63,57 @@ export function callPay({ orderNo, payment, amountDisplay, onSuccess, onCancel, 
     return
   }
 
-  // ========== 真机：统一支付 ==========
+  // ========== 真机：直接调起支付（微信原生对话框即最终确认） ==========
   if (!payment) {
     uni.showToast({ title: '支付参数无效', icon: 'none' })
     return
   }
 
-  uni.showModal({
-    title: '确认支付',
-    content: `确认支付 ¥${amountDisplay || '0.00'}`,
-    confirmText: '开始支付',
-    cancelText: '暂不支付',
-    success: async modalRes => {
-      if (!modalRes.confirm) {
-        uni.showToast({ title: '订单已保留', icon: 'none' })
-        if (onCancel) setTimeout(onCancel, 1000)
-        return
-      }
+  // provider 统一来自 platform.js，平台特有字段通过条件编译注入
+  const payParams = {
+    provider: currentProvider,
+    // #ifdef MP-WEIXIN
+    timeStamp: String(payment.timeStamp || ''),
+    nonceStr: payment.nonceStr || '',
+    package: payment.package || '',
+    signType: payment.signType || 'RSA',
+    paySign: payment.paySign || '',
+    // #endif
+    // #ifdef MP-ALIPAY
+    tradeNO: payment.tradeNo || payment.trade_no || '',
+    // #endif
+    // #ifdef MP-TOUTIAO
+    orderId: payment.orderId || '',
+    orderToken: payment.orderToken || '',
+    // #endif
+  }
 
-      // provider 统一来自 platform.js，平台特有字段通过条件编译注入
-      const payParams = {
-        provider: currentProvider,
-        // #ifdef MP-WEIXIN
-        timeStamp: String(payment.timeStamp || ''),
-        nonceStr: payment.nonceStr || '',
-        package: payment.package || '',
-        signType: payment.signType || 'RSA',
-        paySign: payment.paySign || '',
-        // #endif
-        // #ifdef MP-ALIPAY
-        tradeNO: payment.tradeNo || payment.trade_no || '',
-        // #endif
-        // #ifdef MP-TOUTIAO
-        orderId: payment.orderId || '',
-        orderToken: payment.orderToken || '',
-        // #endif
-      }
+  try {
+    await new Promise((resolve, reject) => {
+      uni.requestPayment({
+        ...payParams,
+        success: resolve,
+        fail: reject
+      })
+    })
 
-      try {
-        await new Promise((resolve, reject) => {
-          uni.requestPayment({
-            ...payParams,
-            success: resolve,
-            fail: reject
-          })
-        })
+    if (clearItems) clearItems()
+    uni.showToast({ title: '支付成功', icon: 'success' })
+    if (onSuccess) setTimeout(onSuccess, 1500)
+  } catch (err) {
+    const errMsg = err.errMsg || err.message || '未知错误'
+    console.error('[pay] 支付失败:', errMsg)
 
-        if (clearItems) clearItems()
-        uni.showToast({ title: '支付成功', icon: 'success' })
-        if (onSuccess) setTimeout(onSuccess, 1500)
-      } catch (err) {
-        const errMsg = err.errMsg || err.message || '未知错误'
-        console.error('[pay] 支付失败:', errMsg)
-
-        if (errMsg.indexOf('cancel') !== -1) {
-          uni.showToast({ title: '支付已取消', icon: 'none', duration: 2500 })
-        } else {
-          uni.showModal({
-            title: '支付失败',
-            content: errMsg,
-            showCancel: false,
-            confirmText: '查看订单',
-            success: () => { if (onCancel) onCancel() }
-          })
-        }
-      }
+    if (errMsg.indexOf('cancel') !== -1) {
+      uni.showToast({ title: '支付已取消', icon: 'none', duration: 2500 })
+    } else {
+      uni.showModal({
+        title: '支付失败',
+        content: errMsg,
+        showCancel: false,
+        confirmText: '查看订单',
+        success: () => { if (onCancel) onCancel() }
+      })
     }
-  })
+  }
 }

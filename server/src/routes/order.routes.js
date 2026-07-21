@@ -177,8 +177,19 @@ router.post('/:orderNo/pay', async (req, res) => {
       await wxpay.closeOrder(orderNo).catch(() => {});
     }
 
+    // 获取有效 appId（.env 优先，DB 兜底）
+    let effectiveAppId = config.wx.appId;
+    if (!effectiveAppId) {
+      try {
+        const payConfig = await wxpay.getPayConfig();
+        effectiveAppId = payConfig.appId || '';
+      } catch (e) {
+        logger.error('[orders] 重试支付获取 appId 失败:', e.message);
+      }
+    }
+
     const result = await wxpay.jsapiPrepay({
-      appid: config.wx.appId,
+      appid: effectiveAppId,
       out_trade_no: orderNo,
       total: order.payAmount,
       openid: order.userId,
@@ -190,7 +201,7 @@ router.post('/:orderNo/pay', async (req, res) => {
       return res.status(500).json({ success: false, code: 500, message: result.error });
     }
 
-    const payment = await wxpay.buildPayParams(result.prepay_id, config.wx.appId);
+    const payment = await wxpay.buildPayParams(result.prepay_id, effectiveAppId);
 
     await require('../config/db').execute(
       'UPDATE order_info SET prepay_id = ? WHERE order_no = ?',
