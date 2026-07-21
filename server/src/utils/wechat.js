@@ -2,19 +2,46 @@
  * 微信小程序 API 工具
  * - code2session (wx.login → openid)
  * - getPhoneNumber (手机号授权)
+ *
+ * 凭证获取优先级：.env → DB payment_methods 表（getPayConfig）
  */
 const axios = require('axios');
 const config = require('../config');
 const logger = require('./logger');
+const { getPayConfig } = require('./wxpay');
+
+/**
+ * 获取微信小程序 appId/appSecret
+ * 优先读 .env，为空时从 DB getPayConfig() 获取（含 5 分钟缓存）
+ * @returns {Promise<{appId: string, appSecret: string}>}
+ */
+async function getWxConfig() {
+  // .env 有值直接返回
+  if (config.wx.appId && config.wx.appSecret) {
+    return { appId: config.wx.appId, appSecret: config.wx.appSecret };
+  }
+  // fallback 到 DB
+  try {
+    const payConfig = await getPayConfig();
+    if (payConfig.appId && payConfig.appSecret) {
+      logger.info('[wechat] 凭证来源: DB payment_methods 表');
+      return { appId: payConfig.appId, appSecret: payConfig.appSecret };
+    }
+  } catch (e) {
+    logger.error('[wechat] 从 DB 获取微信配置失败:', e.message);
+  }
+  return { appId: config.wx.appId || '', appSecret: config.wx.appSecret || '' };
+}
 
 /**
  * wx.login code 换取 openid 和 session_key
  */
 async function code2session(code) {
+  const wxConfig = await getWxConfig();
   const url = 'https://api.weixin.qq.com/sns/jscode2session';
   const params = {
-    appid: config.wx.appId,
-    secret: config.wx.appSecret,
+    appid: wxConfig.appId,
+    secret: wxConfig.appSecret,
     js_code: code,
     grant_type: 'authorization_code',
   };
@@ -39,10 +66,11 @@ async function code2session(code) {
  * 生产环境应缓存到 Redis（7200秒有效期）
  */
 async function getAccessToken() {
+  const wxConfig = await getWxConfig();
   const url = 'https://api.weixin.qq.com/cgi-bin/token';
   const params = {
-    appid: config.wx.appId,
-    secret: config.wx.appSecret,
+    appid: wxConfig.appId,
+    secret: wxConfig.appSecret,
     grant_type: 'client_credential',
   };
 

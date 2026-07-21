@@ -19,8 +19,7 @@
 // ========== 基础配置 ==========
 
 /** API 基础地址（从环境变量读取） */
-// TODO: 备案+SSL 证书下来后改回 https://www.xuaioxianji.top
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://159.75.0.194'
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://www.xuaioxianji.top'
 
 /** 请求超时（毫秒） */
 const TIMEOUT = 15000

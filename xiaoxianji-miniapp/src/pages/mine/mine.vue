@@ -315,7 +315,7 @@ function onChooseAvatar(e) {
   // #ifdef MP-WEIXIN
   const token = uni.getStorageSync('access_token') || ''
   uni.uploadFile({
-    url: (import.meta.env.VITE_API_BASE_URL || 'http://159.75.0.194') + '/api/upload/image',
+    url: (import.meta.env.VITE_API_BASE_URL || 'https://www.xuaioxianji.top') + '/api/upload/image',
     filePath: url,
     name: 'file',
     header: { 'Authorization': 'Bearer ' + token },
@@ -368,7 +368,7 @@ function onPickAvatarFromCamera() {
 function uploadProfileAvatar(filePath) {
   const token = uni.getStorageSync('access_token') || ''
   uni.uploadFile({
-    url: (import.meta.env.VITE_API_BASE_URL || 'http://159.75.0.194') + '/api/upload/image',
+    url: (import.meta.env.VITE_API_BASE_URL || 'https://www.xuaioxianji.top') + '/api/upload/image',
     filePath,
     name: 'file',
     header: { 'Authorization': 'Bearer ' + token },

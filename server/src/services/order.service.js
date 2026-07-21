@@ -42,7 +42,7 @@ async function createOrder({ openid, items, type, deliveryAddress, isScheduled, 
     throw new Error(batchLockResult.message || '库存不足');
   }
 
-  // 4-8. MySQL + 微信预下单（失败时释放 Redis 库存，防止幽灵库存泄漏）
+  // 4-9. MySQL + 微信预下单（失败时释放 Redis 库存，防止幽灵库存泄漏）
   try {
     // 4. 写入 MySQL 事务（order_info + order_item + stock_lock_record + payment_record）
     const expireMinutes = config.business.payTimeoutMinute;
@@ -82,10 +82,22 @@ async function createOrder({ openid, items, type, deliveryAddress, isScheduled, 
       // 注：此时还没有 prepay_id，prepay_id 在预下单后更新
     });
 
-    // 5. 微信支付 V3 JSAPI 预下单
+    // 5. 获取有效 appId（.env 优先，DB 兜底）
+    let effectiveAppId = config.wx.appId;
+    if (!effectiveAppId) {
+      try {
+        const payConfig = await wxpay.getPayConfig();
+        effectiveAppId = payConfig.appId || '';
+        logger.info('[order] appId 来源: DB payment_methods 表');
+      } catch (e) {
+        logger.error('[order] 获取 appId 失败:', e.message);
+      }
+    }
+
+    // 6. 微信支付 V3 JSAPI 预下单
     const notifyUrl = config.notify.pay;
     const payResult = await wxpay.jsapiPrepay({
-      appid: config.wx.appId,
+      appid: effectiveAppId,
       out_trade_no: orderNo,
       total: totalFen,
       openid,
@@ -103,16 +115,16 @@ async function createOrder({ openid, items, type, deliveryAddress, isScheduled, 
       };
     }
 
-    // 6. 生成 wx.requestPayment 参数（二次签名）
-    const payment = await wxpay.buildPayParams(payResult.prepay_id, config.wx.appId);
+    // 7. 生成 wx.requestPayment 参数（二次签名）
+    const payment = await wxpay.buildPayParams(payResult.prepay_id, effectiveAppId);
 
-    // 7. 更新 payment_record 的 prepay_id
+    // 8. 更新 payment_record 的 prepay_id
     await db.execute(
       'INSERT INTO payment_record (order_no, prepay_id, pay_amount, pay_status, pay_type) VALUES (?, ?, ?, 0, 1)',
       [orderNo, payResult.prepay_id, totalFen]
     );
 
-    // 8. 加入 Redis 延时队列（超时关单用）
+    // 9. 加入 Redis 延时队列（超时关单用）
     const timeoutScore = Date.now() + expireMinutes * 60 * 1000;
     await redis.zadd('order:timeout:queue', timeoutScore, orderNo);
 

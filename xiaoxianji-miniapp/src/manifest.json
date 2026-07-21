@@ -6,7 +6,7 @@
   "versionCode": "100",
   "transformPx": false,
   "mp-weixin": {
-    "appid": "",
+    "appid": "wx178d0ae59d576ce1",
     "setting": {
       "urlCheck": false,
       "es6": true,
