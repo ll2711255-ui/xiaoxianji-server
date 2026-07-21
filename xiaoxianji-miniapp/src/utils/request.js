@@ -69,8 +69,9 @@ function decodeJwtExp(token) {
 
 /** Mini-program 兼容的 base64 解码（不用 atob，部分旧版不支持） */
 function _b64Decode(str) {
-  // 补齐 padding
-  while (str.length % 4) str += '='
+  // 去掉填充符 '='（它在 charset 里不存在，indexOf 返回 -1 会破坏位运算）
+  // 填充符不携带数据，去掉后按实际字符解码即可
+  str = str.replace(/=+$/, '')
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
   let output = ''
   for (let i = 0; i < str.length; i += 4) {
@@ -79,8 +80,8 @@ function _b64Decode(str) {
     const c = chars.indexOf(str[i + 2] || 'A')
     const d = chars.indexOf(str[i + 3] || 'A')
     output += String.fromCharCode((a << 2) | (b >> 4))
-    if (c !== 64) output += String.fromCharCode(((b & 15) << 4) | (c >> 2))
-    if (d !== 64) output += String.fromCharCode(((c & 3) << 6) | d)
+    if (c !== -1) output += String.fromCharCode(((b & 15) << 4) | (c >> 2))
+    if (d !== -1) output += String.fromCharCode(((c & 3) << 6) | d)
   }
   return decodeURIComponent(escape(output))
 }
@@ -222,6 +223,12 @@ export function request(method, path, data = {}, options = {}) {
         if (query) url += '?' + query
       }
 
+      // 401 重试时加随机参数，让微信运行时认为这是不同的请求
+      // 避免「请求重入时，参数与首次请求时不一致」误判拦截
+      if (options._isRetry) {
+        url += (url.includes('?') ? '&' : '?') + '_retry=' + Date.now()
+      }
+
       uni.request({
         url,
         method,
@@ -229,13 +236,14 @@ export function request(method, path, data = {}, options = {}) {
         data: isGet ? undefined : data,
         timeout: TIMEOUT,
         success: async (res) => {
-          // 401 → 尝试刷新 token 后重试（仅一次）
-          // 用 setTimeout 延迟重试，避免微信运行时「请求重入检测」误判拦截
+          // 401 → 刷新 token 后重试（仅一次）
+          // 重试时 URL 追加 _retry 参数，避免微信运行时「请求重入检测」拦截
           if (res.statusCode === 401 && !skipAuth && !options._retried) {
             options._retried = true
+            options._isRetry = true
             try {
               const newToken = await refreshAccessToken()
-              setTimeout(() => doRequest(newToken), 50)
+              setTimeout(() => doRequest(newToken), 100)
             } catch (refreshErr) {
               // 刷新失败（token 过期 / refresh_token 缺失）→ 清空登录态，引导重新登录
               console.warn('[request] token 刷新失败，已清除登录态，请重新登录')
@@ -308,45 +316,60 @@ export function patch(path, data = {}, options = {}) {
  * @param {object} formData - 额外表单字段
  * @returns {Promise<string>} 上传后的文件 URL
  */
-export function upload(path, filePath, formData = {}) {
+export function upload(path, filePath, formData = {}, _isRetry = false) {
   return new Promise((resolve, reject) => {
-    const token = getAccessToken()
-    uni.uploadFile({
-      url: BASE_URL + '/api' + path,
-      filePath,
-      name: 'file',
-      formData,
-      header: {
-        'Authorization': token ? 'Bearer ' + token : ''
-      },
-      timeout: 30000,
-      success: (res) => {
-        if (res.statusCode === 200) {
-          try {
-            const data = JSON.parse(res.data)
-            if (data.success && data.data) {
-              resolve(data.data.url || data.data)
-            } else {
-              resolve(data)
-            }
-          } catch (e) {
-            resolve(res.data)
-          }
-        } else if (res.statusCode === 401) {
-          refreshAccessToken().then(() => {
-            setTimeout(() => upload(path, filePath, formData).then(resolve).catch(reject), 50)
-          }).catch(() => {
-            clearTokens()
-            reject(new Error('登录已过期，请重新登录'))
-          })
-        } else {
-          reject(new Error('上传失败 (' + res.statusCode + ')'))
-        }
-      },
-      fail: (err) => {
-        console.error('[request] 上传失败:', err)
-        reject(new Error('上传失败，请检查网络'))
+    // 上传前也做 token 新鲜度检查
+    const doUpload = (token) => {
+      let url = BASE_URL + '/api' + path
+      // 401 重试时加随机参数，避免微信「请求重入检测」拦截
+      if (_isRetry) {
+        url += (url.includes('?') ? '&' : '?') + '_retry=' + Date.now()
       }
-    })
+
+      uni.uploadFile({
+        url,
+        filePath,
+        name: 'file',
+        formData,
+        header: {
+          'Authorization': token ? 'Bearer ' + token : ''
+        },
+        timeout: 30000,
+        success: (res) => {
+          if (res.statusCode === 200) {
+            try {
+              const data = JSON.parse(res.data)
+              if (data.success && data.data) {
+                resolve(data.data.url || data.data)
+              } else {
+                resolve(data)
+              }
+            } catch (e) {
+              resolve(res.data)
+            }
+          } else if (res.statusCode === 401 && !_isRetry) {
+            refreshAccessToken().then(() => {
+              setTimeout(() => upload(path, filePath, formData, true).then(resolve).catch(reject), 100)
+            }).catch(() => {
+              clearTokens()
+              reject(new Error('登录已过期，请重新登录'))
+            })
+          } else {
+            reject(new Error('上传失败 (' + res.statusCode + ')'))
+          }
+        },
+        fail: (err) => {
+          console.error('[request] 上传失败:', err)
+          reject(new Error('上传失败，请检查网络'))
+        }
+      })
+    }
+
+    // 提前刷新即将过期的 token
+    if (isLoggedIn()) {
+      ensureFreshToken().then(t => doUpload(t)).catch(() => doUpload(getAccessToken()))
+    } else {
+      doUpload('')
+    }
   })
 }
