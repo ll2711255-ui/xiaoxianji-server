@@ -166,8 +166,11 @@ async function refreshAccessToken() {
   }
 
   return new Promise((resolve, reject) => {
+    // 加 _t 时间戳，避免短时间内多次刷新 token 时
+    // 微信运行时「请求重入检测」拦截同一 URL 的第二次请求
+    const refreshUrl = BASE_URL + '/api/auth/refresh-token?_t=' + Date.now()
     uni.request({
-      url: BASE_URL + '/api/auth/refresh-token',
+      url: refreshUrl,
       method: 'POST',
       data: { refreshToken },
       timeout: TIMEOUT,

@@ -193,8 +193,11 @@ router.post('/:orderNo/pay', async (req, res) => {
       return res.json({ success: true, code: 200, data: { orderNo, payment, cached: true } });
     }
 
-    // ===== 无缓存 → 首次调用微信统一下单 =====
-    logger.info(`[orders] ===== 首次支付：无缓存，调用微信统一下单 =====`);
+    // ===== 无缓存 → 先关闭旧微信预支付单，再重新下单 =====
+    // 说明：旧订单（修复前创建的）没有 payment_record，但微信已记录了 out_trade_no。
+    //       直接调 jsapiPrepay 会触发微信「请求重入检测」报错。
+    //       所以先 closeOrder（best effort），关闭成功后再重新下单。
+    logger.info(`[orders] ===== 首次支付：无缓存，先关闭旧单再重新下单 =====`);
     const payConfigured = await wxpay.checkConfig();
     if (!payConfigured) {
       return res.status(503).json({
@@ -202,6 +205,10 @@ router.post('/:orderNo/pay', async (req, res) => {
         message: '微信支付尚未配置，请联系管理员在商家端「支付设置」中配置微信支付商户信息'
       });
     }
+
+    // 关闭旧微信预支付单（best effort；已关闭/已支付的会返回 success）
+    const closeResult = await wxpay.closeOrder(orderNo);
+    logger.info(`[orders] 关闭旧预支付单结果: ${orderNo}`, JSON.stringify(closeResult));
 
     const result = await wxpay.jsapiPrepay({
       appid: effectiveAppId,
