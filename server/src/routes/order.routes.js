@@ -193,45 +193,24 @@ router.post('/:orderNo/pay', async (req, res) => {
       return res.json({ success: true, code: 200, data: { orderNo, payment, cached: true } });
     }
 
-    // ===== 无缓存 → 先关闭旧微信预支付单，再重新下单 =====
-    // 说明：旧订单（修复前创建的）没有 payment_record，但微信已记录了 out_trade_no。
-    //       直接调 jsapiPrepay 会触发微信「请求重入检测」报错。
-    //       所以先 closeOrder（best effort），关闭成功后再重新下单。
-    logger.info(`[orders] ===== 首次支付：无缓存，先关闭旧单再重新下单 =====`);
+    // ===== 无缓存 → 无法安全支付 =====
+    // 说明：旧订单（修复前创建的）没有 payment_record.prepay_id。
+    //       微信支付 V3 要求：关闭订单后必须「生成新单号」，不能用同一个
+    //       out_trade_no 重新调 jsapiPrepay（会触发「请求重入」错误）。
+    //       所以无缓存时唯一安全做法是提示用户取消旧订单、重新下单。
+    logger.info(`[orders] ===== 无缓存 prepay_id，无法安全支付: ${orderNo} =====`);
+
+    // 尝试关闭微信侧旧预支付单（best effort，避免资源泄漏）
     const payConfigured = await wxpay.checkConfig();
-    if (!payConfigured) {
-      return res.status(503).json({
-        success: false, code: 503,
-        message: '微信支付尚未配置，请联系管理员在商家端「支付设置」中配置微信支付商户信息'
-      });
+    if (payConfigured) {
+      const closeResult = await wxpay.closeOrder(orderNo);
+      logger.info(`[orders] 关闭旧预支付单结果: ${orderNo}`, JSON.stringify(closeResult));
     }
 
-    // 关闭旧微信预支付单（best effort；已关闭/已支付的会返回 success）
-    const closeResult = await wxpay.closeOrder(orderNo);
-    logger.info(`[orders] 关闭旧预支付单结果: ${orderNo}`, JSON.stringify(closeResult));
-
-    const result = await wxpay.jsapiPrepay({
-      appid: effectiveAppId,
-      out_trade_no: orderNo,
-      total: order.payAmount,
-      openid: order.userId,
-      description: '小鲜鸡-新鲜生鲜',
-      notify_url: config.notify.pay,
+    return res.status(400).json({
+      success: false, code: 400,
+      message: '该订单支付信息已过期，请取消后重新下单。给您带来不便敬请谅解。',
     });
-
-    if (!result.success) {
-      return res.status(500).json({ success: false, code: 500, message: result.error });
-    }
-
-    // 持久化 prepay_id，下次支付直接复用
-    await require('../config/db').execute(
-      'INSERT INTO payment_record (order_no, prepay_id, pay_amount, pay_status, pay_type) VALUES (?, ?, ?, 0, 1)',
-      [orderNo, result.prepay_id, order.payAmount]
-    );
-
-    const payment = await wxpay.buildPayParams(result.prepay_id, effectiveAppId);
-
-    res.json({ success: true, code: 200, data: { orderNo, payment } });
   } catch (err) {
     logger.error('[orders] 重试支付失败:', err.message);
     res.status(500).json({ success: false, code: 500, message: err.message || '支付失败' });
