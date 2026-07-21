@@ -46,10 +46,54 @@ function getRefreshToken() {
   return uni.getStorageSync(STORAGE_KEYS.REFRESH_TOKEN) || ''
 }
 
+function getTokenExpiry() {
+  return parseInt(uni.getStorageSync(STORAGE_KEYS.TOKEN_EXPIRES_AT)) || 0
+}
+
+/**
+ * 从 JWT token 中解码过期时间（exp 字段）
+ * JWT: header.payload.signature，每段都是 base64url
+ */
+function decodeJwtExp(token) {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return 0
+    // base64url → base64
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const payload = JSON.parse(_b64Decode(base64))
+    return (payload.exp || 0) * 1000 // 秒 → 毫秒
+  } catch (_) {
+    return 0
+  }
+}
+
+/** Mini-program 兼容的 base64 解码（不用 atob，部分旧版不支持） */
+function _b64Decode(str) {
+  // 补齐 padding
+  while (str.length % 4) str += '='
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+  let output = ''
+  for (let i = 0; i < str.length; i += 4) {
+    const a = chars.indexOf(str[i] || 'A')
+    const b = chars.indexOf(str[i + 1] || 'A')
+    const c = chars.indexOf(str[i + 2] || 'A')
+    const d = chars.indexOf(str[i + 3] || 'A')
+    output += String.fromCharCode((a << 2) | (b >> 4))
+    if (c !== 64) output += String.fromCharCode(((b & 15) << 4) | (c >> 2))
+    if (d !== 64) output += String.fromCharCode(((c & 3) << 6) | d)
+  }
+  return decodeURIComponent(escape(output))
+}
+
 export function saveTokens(accessToken, refreshToken) {
   uni.setStorageSync(STORAGE_KEYS.ACCESS_TOKEN, accessToken)
   if (refreshToken) {
     uni.setStorageSync(STORAGE_KEYS.REFRESH_TOKEN, refreshToken)
+  }
+  // 从 JWT 解码过期时间，存到本地
+  const exp = decodeJwtExp(accessToken)
+  if (exp > 0) {
+    uni.setStorageSync(STORAGE_KEYS.TOKEN_EXPIRES_AT, exp)
   }
 }
 
@@ -61,6 +105,31 @@ export function clearTokens() {
 
 export function isLoggedIn() {
   return !!getAccessToken()
+}
+
+/**
+ * 确保 Token 新鲜：过期前 5 分钟提前刷新，避免发出 401 请求
+ * → 微信运行时的「请求重入检测」不允许在同一 URL 上换 Token 重试，
+ *    所以必须提前刷新，不发会 401 的请求
+ */
+async function ensureFreshToken() {
+  const token = getAccessToken()
+  if (!token) return token
+
+  const expMs = getTokenExpiry()
+  // token 有效且距过期 > 5 分钟，直接返回
+  if (expMs > 0 && Date.now() < expMs - 5 * 60 * 1000) {
+    return token
+  }
+
+  // 接近过期 → 提前刷新
+  try {
+    const newToken = await refreshAccessToken()
+    return newToken
+  } catch (_) {
+    // 刷新失败，返回旧 token 让请求正常发（服务器可能还认）
+    return token
+  }
 }
 
 /**
@@ -196,8 +265,12 @@ export function request(method, path, data = {}, options = {}) {
 
     // 决定是否需要附加 token
     const needAuth = !skipAuth && isLoggedIn()
-    const token = needAuth ? getAccessToken() : null
-    doRequest(token)
+    if (needAuth) {
+      // 提前刷新即将过期的 token，避免 401 触发微信「请求重入检测」
+      ensureFreshToken().then(token => doRequest(token)).catch(() => doRequest(getAccessToken()))
+    } else {
+      doRequest(null)
+    }
   })
 }
 
