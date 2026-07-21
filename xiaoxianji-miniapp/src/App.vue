@@ -1,6 +1,7 @@
 <script setup>
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
 import { useAuthStore } from '@/stores/auth'
+import { request } from '@/utils/request'
 
 const authStore = useAuthStore()
 
@@ -25,7 +26,6 @@ onHide(() => {
 /** 启动时健康检查：验证服务器状态 */
 async function healthCheck() {
   try {
-    const { request } = await import('@/utils/request')
     const res = await request('GET', '/health', {}, { skipAuth: true })
     // request() 返回解析后的 JSON body，不含 statusCode/data 包装
     if (res && res.status === 'ok') {

@@ -5,8 +5,7 @@
  * 主要变更：
  *   - wx.requestPayment → uni.requestPayment（自动适配多平台）
  *   - 开发模式判断改用 uni.getSystemInfoSync
- *   - provider 统一从 platform.js 的 currentProvider 获取
- *   - 平台特有支付参数仍通过条件编译填充
+ *   - 小程序端不用 provider 参数（仅 App 端需要），各平台参数通过条件编译注入
  *
  * 使用方式：
  *   import { callPay } from '@/utils/pay'
@@ -20,12 +19,10 @@
  */
 
 import { post } from './request'
-import { currentProvider } from './platform'
 
 /**
  * 发起支付（自动适配平台）
- * provider 统一从 platform.js 的 currentProvider 获取，
- * 平台特有的支付参数仍通过条件编译填充
+ * 小程序端直接传平台参数，不传 provider（避免 uni-app 路由到 App 端支付通道）
  */
 export async function callPay({ orderNo, payment, amountDisplay, onSuccess, onCancel, clearItems }) {
   const systemInfo = uni.getSystemInfoSync()
@@ -69,29 +66,26 @@ export async function callPay({ orderNo, payment, amountDisplay, onSuccess, onCa
     return
   }
 
-  // provider 统一来自 platform.js，平台特有字段通过条件编译注入
-  const payParams = {
-    provider: currentProvider,
-    // #ifdef MP-WEIXIN
-    timeStamp: String(payment.timeStamp || ''),
-    nonceStr: payment.nonceStr || '',
-    package: payment.package || '',
-    signType: payment.signType || 'RSA',
-    paySign: payment.paySign || '',
-    // #endif
-    // #ifdef MP-ALIPAY
-    tradeNO: payment.tradeNo || payment.trade_no || '',
-    // #endif
-    // #ifdef MP-TOUTIAO
-    orderId: payment.orderId || '',
-    orderToken: payment.orderToken || '',
-    // #endif
-  }
-
+  // ⚠️ 关键：小程序端 uni.requestPayment 不需要 provider 参数！
+  // provider 只在 App 端（iOS/Android 原生）使用，传了反而可能导致路由错误。
+  // 各平台通过条件编译注入各自的支付参数。
   try {
     await new Promise((resolve, reject) => {
       uni.requestPayment({
-        ...payParams,
+        // #ifdef MP-WEIXIN
+        timeStamp: String(payment.timeStamp || ''),
+        nonceStr: payment.nonceStr || '',
+        package: payment.package || '',
+        signType: payment.signType || 'RSA',
+        paySign: payment.paySign || '',
+        // #endif
+        // #ifdef MP-ALIPAY
+        tradeNO: payment.tradeNo || payment.trade_no || '',
+        // #endif
+        // #ifdef MP-TOUTIAO
+        orderId: payment.orderId || '',
+        orderToken: payment.orderToken || '',
+        // #endif
         success: resolve,
         fail: reject
       })
