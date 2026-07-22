@@ -67,22 +67,34 @@ async function getAccessToken() {
  *
  * @param {Buffer} imageBuffer  图片二进制数据
  * @param {string} openid       用户 openid（用于微信追踪违规用户）
+ * @param {object} [opts]       可选参数
+ * @param {string} [opts.mimeType]  文件 MIME 类型（如 'image/png'），默认 'image/jpeg'
+ * @param {string} [opts.filename]  原始文件名，默认 'check.jpg'
  * @returns {{ pass: boolean, reason: string }}
  */
-async function checkImage(imageBuffer, openid) {
+async function checkImage(imageBuffer, openid, opts = {}) {
+  const mimeType = opts.mimeType || 'image/jpeg';
+  const filename = opts.filename || 'check.jpg';
+  const sizeKB = (imageBuffer.length / 1024).toFixed(1);
+
+  // 微信 imgSecCheck 限制 1MB，超过则记录警告（仍尝试送检）
+  if (imageBuffer.length > 1024 * 1024) {
+    logger.warn('[secCheck] 图片过大 (' + sizeKB + 'KB)，可能被微信拒绝');
+  }
+
   try {
     const token = await getAccessToken();
 
     const form = new FormData();
     form.append('media', imageBuffer, {
-      filename: 'check.jpg',
-      contentType: 'image/jpeg',
+      filename,
+      contentType: mimeType,
     });
     form.append('openid', openid || '');
     form.append('scene', '1'); // 1=资料，2=评论，3=论坛，4=社交日志
 
     const res = await axios.post(
-      `https://api.weixin.qq.com/wxa/img_sec_check?access_token=${token}`,
+      'https://api.weixin.qq.com/wxa/img_sec_check?access_token=' + token,
       form,
       {
         headers: form.getHeaders(),
@@ -90,7 +102,7 @@ async function checkImage(imageBuffer, openid) {
       }
     );
 
-    logger.info('[secCheck] imgSecCheck 返回:', JSON.stringify(res.data));
+    logger.info('[secCheck] imgSecCheck 返回 (' + sizeKB + 'KB, ' + mimeType + '):', JSON.stringify(res.data));
 
     if (res.data.errcode === 0) {
       return { pass: true, reason: '' };
@@ -99,6 +111,34 @@ async function checkImage(imageBuffer, openid) {
     // 87014 = 内容违规
     if (res.data.errcode === 87014) {
       return { pass: false, reason: '您上传的内容含违规信息，请重新选择头像' };
+    }
+
+    // access_token 过期/无效 → 清除缓存重试一次
+    if (res.data.errcode === 40001 || res.data.errcode === 41001 || res.data.errcode === 42001) {
+      logger.warn('[secCheck] access_token 过期，清除缓存重试...');
+      cachedToken = null;
+      tokenExpireAt = 0;
+      const newToken = await getAccessToken();
+
+      const form2 = new FormData();
+      form2.append('media', imageBuffer, { filename, contentType: mimeType });
+      form2.append('openid', openid || '');
+      form2.append('scene', '1');
+
+      const res2 = await axios.post(
+        'https://api.weixin.qq.com/wxa/img_sec_check?access_token=' + newToken,
+        form2,
+        { headers: form2.getHeaders(), timeout: 10000 }
+      );
+
+      logger.info('[secCheck] imgSecCheck 重试结果:', JSON.stringify(res2.data));
+
+      if (res2.data.errcode === 0) return { pass: true, reason: '' };
+      if (res2.data.errcode === 87014) return { pass: false, reason: '您上传的内容含违规信息，请重新选择头像' };
+
+      // 重试后仍异常 → 默认放行
+      logger.warn('[secCheck] imgSecCheck 重试后仍异常:', res2.data.errcode, res2.data.errmsg);
+      return { pass: true, reason: '' };
     }
 
     // 其他异常码（如限频等）默认放行

@@ -75,7 +75,10 @@ router.post(
         logger.info('[user] 🧪 测试模式 — 模拟 imgSecCheck 违规拦截');
         checkResult = { pass: false, reason: '您上传的内容含违规信息，请重新选择头像' };
       } else {
-        checkResult = await checkImage(req.file.buffer, openid);
+        checkResult = await checkImage(req.file.buffer, openid, {
+          mimeType: req.file.mimetype,
+          filename: req.file.originalname,
+        });
       }
 
       if (!checkResult.pass) {
