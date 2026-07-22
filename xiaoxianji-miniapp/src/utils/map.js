@@ -164,6 +164,10 @@ export async function reverseGeocode(lat, lng) {
 /**
  * ③ 驾车距离计算 — 两点之间真实驾车路线距离
  *
+ * 三级降级策略：
+ *   ① 小程序直连腾讯地图 API → ② 服务端代理（IP 白名单鉴权）
+ *   → ③ Haversine 直线距离兜底（保证任何情况下都能返回可用距离）
+ *
  * 替代 Haversine 直线距离，考虑道路、河流、单行道等因素。
  * 文档：https://lbs.qq.com/service/webService/webServiceGuide/webServiceRoute
  *
@@ -172,6 +176,7 @@ export async function reverseGeocode(lat, lng) {
  * @returns {Promise<{success: boolean, data?: {
  *   distance: number,    // 驾车距离（公里），保留两位小数
  *   duration: number,    // 预计时长（分钟）
+ *   method: string,      // 'driving'=真实驾车距离 | 'haversine'=直线距离估算
  * }, error?: string}>}
  */
 export async function calcDrivingDistance(from, to) {
@@ -190,14 +195,14 @@ export async function calcDrivingDistance(from, to) {
     const route = result.data && result.data.result && result.data.result.routes
       ? result.data.result.routes[0]
       : null
-    if (!route) {
-      return { success: false, error: '未找到驾车路线' }
-    }
-    return {
-      success: true,
-      data: {
-        distance: Math.round(route.distance / 10) / 100,   // 米 → 公里，保留两位
-        duration: Math.ceil(route.duration / 60),           // 秒 → 分钟，向上取整
+    if (route) {
+      return {
+        success: true,
+        data: {
+          distance: Math.round(route.distance / 10) / 100,   // 米 → 公里，保留两位
+          duration: Math.ceil(route.duration / 60),           // 秒 → 分钟，向上取整
+          method: 'driving',
+        }
       }
     }
   }
@@ -206,41 +211,70 @@ export async function calcDrivingDistance(from, to) {
   console.warn('[map] 小程序直连驾车距离API失败:', result.error, '→ 尝试服务端代理')
   try {
     const apiBase = import.meta.env.VITE_API_BASE_URL || ''
-    if (!apiBase) {
-      console.warn('[map] VITE_API_BASE_URL 未配置，无法使用服务端代理')
-      return result
-    }
-    const proxyResult = await new Promise((resolve) => {
-      wx.request({
-        url: apiBase + '/api/map/distance',
-        data: { from: fromStr, to: toStr },
-        method: 'GET',
-        timeout: 10000,
-        success: (res) => {
-          if (res.statusCode === 200 && res.data && res.data.success) {
-            const d = res.data.data || {}
-            resolve({
-              success: true,
-              data: {
-                distance: d.distance,
-                duration: d.duration,
-              }
-            })
-          } else {
-            resolve({ success: false, error: (res.data && res.data.message) || '服务端代理距离计算失败' })
+    if (apiBase) {
+      const proxyResult = await new Promise((resolve) => {
+        wx.request({
+          url: apiBase + '/api/map/distance',
+          data: { from: fromStr, to: toStr },
+          method: 'GET',
+          timeout: 10000,
+          success: (res) => {
+            if (res.statusCode === 200 && res.data && res.data.success) {
+              const d = res.data.data || {}
+              resolve({
+                success: true,
+                data: {
+                  distance: d.distance,
+                  duration: d.duration,
+                  method: d.method || 'driving',
+                }
+              })
+            } else {
+              resolve({ success: false, error: (res.data && res.data.message) || '服务端代理距离计算失败' })
+            }
+          },
+          fail: (err) => {
+            resolve({ success: false, error: '地图服务代理不可达' })
           }
-        },
-        fail: (err) => {
-          console.error('[map] 服务端代理距离请求失败:', err)
-          resolve({ success: false, error: '地图服务代理不可达' })
-        }
+        })
       })
-    })
-    return proxyResult
+      if (proxyResult.success) return proxyResult
+      console.warn('[map] 服务端代理也失败:', proxyResult.error, '→ 降级为直线距离')
+    } else {
+      console.warn('[map] VITE_API_BASE_URL 未配置，无法使用服务端代理')
+    }
   } catch (e) {
-    console.error('[map] 服务端代理异常:', e.message || e)
-    return result
+    console.warn('[map] 服务端代理异常:', e.message || e, '→ 降级为直线距离')
   }
+
+  // ③ Haversine 直线距离兜底 — 保证任何情况下都能返回距离，不阻塞下单
+  const haversineDist = haversineKm(from.latitude, from.longitude, to.latitude, to.longitude)
+  console.log(`[map] 直线距离兜底: ${haversineDist}km (from ${fromStr} to ${toStr})`)
+  return {
+    success: true,
+    data: {
+      distance: haversineDist,
+      duration: Math.ceil(haversineDist * 3),   // 粗略估算：城市道路约 3分钟/公里
+      method: 'haversine',
+    }
+  }
+}
+
+/**
+ * Haversine 公式计算两点直线距离（公里）
+ * @param {number} lat1
+ * @param {number} lng1
+ * @param {number} lat2
+ * @param {number} lng2
+ * @returns {number} 距离（公里），保留两位小数
+ */
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 100) / 100
 }
 
 /**

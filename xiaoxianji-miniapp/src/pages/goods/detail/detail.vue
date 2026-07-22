@@ -125,8 +125,8 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
-import { get } from '@/utils/request'
+import { onLoad, onShareAppMessage } from '@dcloudio/uni-app'
+import { get, isLoggedIn } from '@/utils/request'
 import { formatMoney } from '@/utils/util'
 
 const CATEGORY_EMOJI = { '整鸡': '🐔', '鸡腿': '🍗', '鸡翅': '🍖', '鸡胸': '🍗', '内脏': '🫀', '鸽子': '🕊' }
@@ -163,6 +163,16 @@ onLoad((options) => {
     return
   }
   loadProduct(id)
+})
+
+// ========== 分享 ==========
+onShareAppMessage(() => {
+  const p = product.value
+  return {
+    title: p ? p.name : '小鲜鸡 · 新鲜鸡肉每日直达',
+    path: product.value ? '/pages/goods/detail/detail?id=' + product.value._id : '/pages/index/index',
+    imageUrl: (images.value && images.value.length > 0) ? images.value[0] : ''
+  }
 })
 
 // ========== 加载商品 ==========
@@ -442,6 +452,11 @@ function buildCartItem() {
 }
 
 function onAddToCart() {
+  if (!isLoggedIn()) {
+    uni.showToast({ title: '请先登录', icon: 'none', duration: 1500 })
+    setTimeout(() => uni.switchTab({ url: '/pages/mine/mine' }), 1500)
+    return
+  }
   if (product.value && product.value.outOfStock) {
     uni.showToast({ title: '该商品暂时缺货', icon: 'none' })
     return
@@ -462,6 +477,11 @@ function onAddToCart() {
 }
 
 function onBuyNow() {
+  if (!isLoggedIn()) {
+    uni.showToast({ title: '请先登录', icon: 'none', duration: 1500 })
+    setTimeout(() => uni.switchTab({ url: '/pages/mine/mine' }), 1500)
+    return
+  }
   if (product.value && product.value.outOfStock) {
     uni.showToast({ title: '该商品暂时缺货', icon: 'none' })
     return

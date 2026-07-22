@@ -119,12 +119,16 @@ function onTabTap(idx) {
 // ========== 加载订单 ==========
 async function loadOrders(reset = false) {
   if (loading.value) return
-	  if (!isLoggedIn()) {
-	    orders.value = []
-	    loading.value = false
-	    hasMore.value = false
-	    return
-	  }
+  if (!isLoggedIn()) {
+    orders.value = []
+    loading.value = false
+    hasMore.value = false
+    // 未登录时提示一次，引导用户去登录
+    if (reset) {
+      uni.showToast({ title: '请先登录查看订单', icon: 'none', duration: 2000 })
+    }
+    return
+  }
   const p = reset ? 1 : page.value
   loading.value = true
 

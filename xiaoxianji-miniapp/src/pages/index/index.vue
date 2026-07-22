@@ -212,7 +212,7 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
-import { onLoad, onShow, onReady, onPullDownRefresh } from '@dcloudio/uni-app'
+import { onLoad, onShow, onReady, onPullDownRefresh, onShareAppMessage } from '@dcloudio/uni-app'
 import { get } from '@/utils/request'
 import { formatMoney, safeImageUrl } from '@/utils/util'
 
@@ -496,6 +496,15 @@ function onSearchResultTap(e, id) {
   onSearchCancel()
   uni.navigateTo({ url: '/pages/goods/detail/detail?id=' + id })
 }
+
+// ========== 分享 ==========
+onShareAppMessage(() => {
+  return {
+    title: '小鲜鸡 · 新鲜鸡肉每日直达',
+    path: '/pages/index/index',
+    imageUrl: ''
+  }
+})
 
 // ========== 购物车 ==========
 function onCartTap() {

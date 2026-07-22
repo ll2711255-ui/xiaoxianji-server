@@ -4,7 +4,7 @@
     <view v-if="addresses.length > 0" class="address-list">
       <view
         v-for="addr in addresses"
-        :key="addr._id"
+        :key="addr.id"
         class="address-card"
       >
         <!-- 地址信息（点击编辑或选择） -->
@@ -58,7 +58,7 @@
 <script setup>
 import { ref } from 'vue'
 import { onShow, onLoad } from '@dcloudio/uni-app'
-import { get, put, del } from '@/utils/request'
+import { get, put, del, isLoggedIn } from '@/utils/request'
 
 // ========== State ==========
 const addresses = ref([])
@@ -72,6 +72,11 @@ onLoad((options) => {
 })
 
 onShow(() => {
+  if (!isLoggedIn()) {
+    uni.showToast({ title: '请先登录', icon: 'none', duration: 1500 })
+    setTimeout(() => uni.switchTab({ url: '/pages/mine/mine' }), 1500)
+    return
+  }
   loadAddresses()
 })
 
@@ -106,7 +111,7 @@ function onSelect(addr) {
 }
 
 function onEdit(addr) {
-  uni.navigateTo({ url: '/pages/mine/address/form?id=' + addr._id })
+  uni.navigateTo({ url: '/pages/mine/address/form?id=' + addr.id })
 }
 
 async function onSetDefault(addr) {
@@ -118,7 +123,7 @@ async function onSetDefault(addr) {
     })
     if (!res.confirm) return
 
-    await put('/addresses/' + addr._id, { isDefault: true })
+    await put('/addresses/' + addr.id, { isDefault: true })
     uni.showToast({ title: '已设为默认地址', icon: 'success' })
     loadAddresses()
   } catch (err) {
@@ -136,7 +141,7 @@ async function onDelete(addr) {
     })
     if (!res.confirm) return
 
-    await del('/addresses/' + addr._id)
+    await del('/addresses/' + addr.id)
     uni.showToast({ title: '已删除', icon: 'success' })
     loadAddresses()
   } catch (err) {

@@ -146,10 +146,10 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
-import { get, post } from '@/utils/request'
-import { formatMoney, calcDistance } from '@/utils/util'
+import { get, post, isLoggedIn } from '@/utils/request'
+import { formatMoney } from '@/utils/util'
 import { callPay } from '@/utils/pay'
-import { calcDrivingDistance, reverseGeocode } from '@/utils/map'
+import { calcDrivingDistance, geocodeAddress } from '@/utils/map'
 
 const WEEKDAY_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 const DELIVERY_TIME_SLOTS = ['08:00-10:00', '10:00-12:00', '12:00-14:00', '14:00-16:00', '16:00-18:00', '18:00-20:00']
@@ -237,6 +237,12 @@ onLoad((options) => {
 
 // 从地址选择页返回时，读取临时选中的地址
 onShow(() => {
+  // 未登录时跳转登录页
+  if (!isLoggedIn()) {
+    uni.showToast({ title: '请先登录', icon: 'none', duration: 1500 })
+    setTimeout(() => uni.switchTab({ url: '/pages/mine/mine' }), 1500)
+    return
+  }
   const selected = uni.getStorageSync('_tmp_selected_address')
   if (selected) {
     uni.removeStorageSync('_tmp_selected_address')
@@ -308,64 +314,21 @@ function onTimeCapsuleTap(type) {
 
 // ========== 地址 ==========
 function onSelectAddress() {
-  // #ifdef MP-WEIXIN
-  uni.chooseAddress({
-    success: (res) => {
-      const addr = {
-        name: res.userName,
-        phone: res.telNumber,
-        province: res.provinceName,
-        city: res.cityName,
-        district: res.countyName,
-        detail: res.detailInfo,
-        isDefault: false
-      }
-      address.value = addr
-      post('/addresses', addr).catch(err => {
-        console.error('[checkout] 保存地址失败:', err)
-      })
-      fetchAddressCoordinates(addr)
-    },
-    fail: () => {
-      uni.navigateTo({ url: '/pages/mine/address/address?select=true' })
-    }
-  })
-  // #endif
-  // #ifndef MP-WEIXIN
+  // 统一走小程序自己的地址列表，不用微信原生 chooseAddress（会显示微信通讯录地址，干扰用户选择）
   uni.navigateTo({ url: '/pages/mine/address/address?select=true' })
-  // #endif
 }
 
 async function fetchAddressCoordinates(addr) {
-  // #ifdef MP-WEIXIN
-  // 优先用当前 GPS 坐标，同时尝试逆地址解析补充完整地址
-  uni.getLocation({
-    type: 'gcj02',
-    success: async (locRes) => {
-      address.value = { ...addr, latitude: locRes.latitude, longitude: locRes.longitude }
-      // 如果用户通过微信原生选地址进来的，用逆地址解析补充坐标精度
-      if (addr.province && addr.detail && !addr.latitude) {
-        const geoResult = await reverseGeocode(locRes.latitude, locRes.longitude)
-        if (geoResult.success && geoResult.data) {
-          const d = geoResult.data
-          // 仅当微信原生地址没有省/市/区时用逆解析结果补充
-          address.value = {
-            ...address.value,
-            province: addr.province || d.province,
-            city: addr.city || d.city,
-            district: addr.district || d.district,
-            detail: addr.detail || d.recommend || d.street,
-            latitude: locRes.latitude,
-            longitude: locRes.longitude
-          }
-        }
-      }
-    },
-    fail: () => {
-      console.warn('[checkout] 获取位置失败')
-    }
-  })
-  // #endif
+  // 地址已有坐标 → 直接使用；无坐标 → 不做任何处理
+  // 坐标获取由 checkDeliveryRange() 统一负责（地址文本解析优先，不依赖手机GPS）
+  const hasCoord = addr.latitude != null && addr.longitude != null
+  if (hasCoord) {
+    address.value = { ...addr }
+  } else {
+    // 无坐标：保留原始地址数据，坐标留空，checkDeliveryRange 会通过地址文本做地理编码
+    address.value = { ...addr }
+    console.log('[checkout] 选中地址无GPS坐标，下单时将用地址文本解析坐标')
+  }
 }
 
 async function loadDefaultAddress() {
@@ -400,36 +363,70 @@ async function checkDeliveryRange() {
     const sLng = config.longitude || 113.2644
 
     let uLat, uLng
-    if (address.value.latitude !== undefined && address.value.longitude !== undefined) {
+    // 坐标获取优先级：地址文本解析 → 地址簿坐标 → 手机GPS → 不拦截
+    // 设计原则：地址文本才是真实的配送目的地。📍定位/手机GPS 记录的是
+    // 用户手机当时所在的位置，不是收货地址，不能作为距离校验的第一依据。
+    let geocoded = false
+
+    // ① 优先用地址文本做腾讯地图地理编码（省+市+区+详细地址）
+    //    把用户填的收货地址文字直接解析为坐标，最可靠。
+    const addrText = [address.value.province, address.value.city, address.value.district, address.value.detail]
+      .filter(Boolean).join('')
+    if (addrText) {
+      try {
+        const geoResult = await geocodeAddress(addrText)
+        if (geoResult.success && geoResult.data) {
+          uLat = geoResult.data.latitude
+          uLng = geoResult.data.longitude
+          geocoded = true
+          console.log(`[checkout] 地址文本解析成功: "${addrText}" → (${uLat}, ${uLng})`)
+        } else {
+          console.warn(`[checkout] 地址文本解析失败: "${addrText}"`, geoResult.error || '')
+        }
+      } catch (e) {
+        console.warn(`[checkout] 地址文本解析异常: "${addrText}"`, e.message || e)
+      }
+    } else {
+      console.warn('[checkout] 地址文本为空，无法做地理编码')
+    }
+
+    // ② 地址文本解析失败 → 用地址簿保存的坐标（来自智能搜索选地址，相对可靠）
+    if (!geocoded && address.value.latitude != null && address.value.longitude != null) {
       uLat = address.value.latitude
       uLng = address.value.longitude
-    } else {
-      // #ifdef MP-WEIXIN
+      geocoded = true
+      console.log(`[checkout] 降级为地址簿坐标: (${uLat}, ${uLng})`)
+    }
+
+    // ③ 手机 GPS 最后兜底（不准：手机位置 ≠ 收货地址，但比没有强）
+    // #ifdef MP-WEIXIN
+    if (!geocoded) {
       try {
         const locRes = await new Promise((resolve, reject) => {
           uni.getLocation({ type: 'gcj02', success: resolve, fail: reject })
         })
         uLat = locRes.latitude
         uLng = locRes.longitude
-      } catch (_) { uLat = sLat + 0.001; uLng = sLng + 0.001 }
-      // #endif
-      // #ifndef MP-WEIXIN
-      uLat = sLat + 0.001; uLng = sLng + 0.001
-      // #endif
+        geocoded = true
+        console.log(`[checkout] 降级为手机GPS: (${uLat}, ${uLng})`)
+      } catch (_) { console.warn('[checkout] 手机GPS获取失败') }
+    }
+    // #endif
+
+    // ④ 所有方式都失败 → 不拦截（无法判断距离时放行，避免误伤用户）
+    if (!geocoded) {
+      console.warn('[checkout] 所有坐标获取方式均失败，跳过配送范围校验')
+      return true
     }
 
-    // 优先用腾讯地图驾车距离（真实路网），失败时降级为直线距离
-    let distance = calcDistance(uLat, uLng, sLat, sLng)  // 默认直线距离
-    try {
-      const driveResult = await calcDrivingDistance(
-        { latitude: uLat, longitude: uLng },
-        { latitude: sLat, longitude: sLng }
-      )
-      if (driveResult.success && driveResult.data) {
-        distance = driveResult.data.distance
-        console.log(`[checkout] 驾车距离: ${distance}km, 预计: ${driveResult.data.duration}分钟`)
-      }
-    } catch (_) { /* 降级：使用 calcDistance 结果 */ }
+    // calcDrivingDistance 内置三级降级（直连→服务端代理→Haversine），永远返回可用距离
+    const driveResult = await calcDrivingDistance(
+      { latitude: uLat, longitude: uLng },
+      { latitude: sLat, longitude: sLng }
+    )
+    const distance = driveResult.data.distance
+    const methodLabel = driveResult.data.method === 'driving' ? '驾车距离' : '直线距离(估)'
+    console.log(`[checkout] ${methodLabel}: ${distance}km, 预计: ${driveResult.data.duration}分钟`)
     if (distance > deliveryRadius) {
       rangeModalMsg.value = `当前地址超出配送范围（${deliveryRadius}公里）`
       rangeModalDistance.value = distance.toFixed(1)
@@ -498,7 +495,8 @@ async function doSubmit() {
       productName: item.productName,
       pricingType: item.pricingType,
       spec: item.spec,
-      quantity: item.quantity
+      quantity: item.quantity,
+      remark: item.remark || ''
     }))
 
     const res = await post('/orders', {

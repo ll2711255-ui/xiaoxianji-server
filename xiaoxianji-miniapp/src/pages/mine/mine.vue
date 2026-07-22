@@ -75,6 +75,11 @@
         <text class="menu-label">扫码取货</text>
         <text class="menu-arrow">›</text>
       </view>
+      <view class="menu-item" @click="onStoreInfo">
+        <image class="menu-icon" src="/static/icons/ui/ui-store.png" mode="aspectFit" />
+        <text class="menu-label">线下店铺</text>
+        <text class="menu-arrow">›</text>
+      </view>
     </view>
 
     <!-- ========== 其他 ========== -->
@@ -513,6 +518,10 @@ function onScanPickup() {
     fail: () => { uni.showToast({ title: '扫码已取消', icon: 'none' }) }
   })
   // #endif
+}
+
+function onStoreInfo() {
+  uni.navigateTo({ url: '/pages/mine/store/store' })
 }
 
 function onContactService() {

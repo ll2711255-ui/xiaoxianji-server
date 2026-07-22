@@ -57,6 +57,12 @@
       }
     },
     {
+      "path": "pages/mine/store/store",
+      "style": {
+        "navigationBarTitleText": "线下店铺"
+      }
+    },
+    {
       "path": "pages/pickup/pickup",
       "style": {
         "navigationBarTitleText": "取货码"

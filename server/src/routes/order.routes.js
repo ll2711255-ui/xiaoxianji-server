@@ -7,6 +7,7 @@ const wxpay = require('../utils/wxpay');
 const config = require('../config');
 const logger = require('../utils/logger');
 const { validateOrderNo } = require('../utils/validate');
+const { checkText } = require('../utils/secCheck');
 
 /**
  * POST /api/orders — 创建订单
@@ -25,6 +26,16 @@ router.post('/', async (req, res) => {
     }
     if (type === 'delivery' && !deliveryAddress) {
       return res.status(400).json({ success: false, code: 400, message: '配送订单缺少收货地址' });
+    }
+
+    // 内容安全检测：逐条检测商品备注
+    for (const item of items) {
+      if (item.remark && item.remark.trim()) {
+        const textResult = await checkText(item.remark, openid);
+        if (!textResult.pass) {
+          return res.status(400).json({ success: false, code: 'CONTENT_RISK', message: textResult.reason || '备注内容含违规信息，请修改后重试' });
+        }
+      }
     }
 
     const result = await orderService.createOrder({
