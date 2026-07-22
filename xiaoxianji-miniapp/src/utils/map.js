@@ -86,28 +86,61 @@ function mapRequest(path, params = {}) {
  * }>, error?: string}>}
  */
 export async function suggestAddress(keyword, region = '') {
-  const params = {
+  // ① 优先小程序直连腾讯地图
+  const result = await mapRequest('/ws/place/v1/suggestion', {
     keyword: keyword,
     region: region,
-    region_fix: region ? 1 : 0, // 限定城市时固定在当前城市
+    region_fix: region ? 1 : 0,
     get_adcode: 1,
+  })
+  if (result.success) {
+    const list = (result.data && result.data.data) || []
+    return {
+      success: true,
+      data: list.map(item => ({
+        title: item.title || '',
+        province: item.province || '',
+        city: item.city || '',
+        district: item.district || '',
+        address: item.address || '',
+        latitude: item.location ? item.location.lat : 0,
+        longitude: item.location ? item.location.lng : 0,
+        adcode: item.adcode || '',
+      }))
+    }
   }
-  const result = await mapRequest('/ws/place/v1/suggestion', params)
-  if (!result.success) return result
 
-  const list = (result.data && result.data.data) || []
-  return {
-    success: true,
-    data: list.map(item => ({
-      title: item.title || '',
-      province: item.province || '',
-      city: item.city || '',
-      district: item.district || '',
-      address: item.address || '',
-      latitude: item.location ? item.location.lat : 0,
-      longitude: item.location ? item.location.lng : 0,
-      adcode: item.adcode || '',
-    }))
+  // ② 直连失败 → 服务端代理
+  console.warn('[map] 小程序直连地址建议API失败:', result.error, '→ 尝试服务端代理')
+  try {
+    const apiBase = import.meta.env.VITE_API_BASE_URL || ''
+    if (!apiBase) {
+      console.warn('[map] VITE_API_BASE_URL 未配置，无法使用服务端代理')
+      return result
+    }
+    const proxyResult = await new Promise((resolve) => {
+      wx.request({
+        url: apiBase + '/api/map/suggestion',
+        data: { keyword: keyword, region: region },
+        method: 'GET',
+        timeout: 10000,
+        success: (res) => {
+          if (res.statusCode === 200 && res.data && res.data.success) {
+            resolve({ success: true, data: (res.data.data || []) })
+          } else {
+            resolve({ success: false, error: (res.data && res.data.message) || '服务端代理地址建议失败' })
+          }
+        },
+        fail: (err) => {
+          console.error('[map] 服务端代理地址建议请求失败:', err)
+          resolve({ success: false, error: '地图服务代理不可达' })
+        }
+      })
+    })
+    return proxyResult
+  } catch (e) {
+    console.error('[map] 服务端代理地址建议异常:', e.message || e)
+    return result
   }
 }
 
@@ -129,35 +162,68 @@ export async function suggestAddress(keyword, region = '') {
  * }, error?: string}>}
  */
 export async function reverseGeocode(lat, lng) {
+  // ① 优先小程序直连腾讯地图
   const result = await mapRequest('/ws/geocoder/v1', {
     location: lat + ',' + lng,
-    get_poi: 1,         // 同时返回周边 POI
-    poi_options: 'radius=500;policy=1', // 500米内取最近 POI 用于语义化描述
+    get_poi: 1,
+    poi_options: 'radius=500;policy=1',
   })
-  if (!result.success) return result
-
-  const d = (result.data && result.data.result) || {}
-  const addrComp = d.address_component || {}
-  const adInfo = d.ad_info || {}
-  const formatted = d.formatted_addresses && d.formatted_addresses.recommend
-    ? d.formatted_addresses.recommend
-    : ''
-
-  return {
-    success: true,
-    data: {
-      province: addrComp.province || '',
-      city: addrComp.city || '',
-      district: addrComp.district || '',
-      address: d.address || '',
-      street: addrComp.street || '',
-      streetNumber: addrComp.street_number || '',
-      recommend: formatted || (addrComp.street || '') + (addrComp.street_number || ''),
-      sematicDesc: (d.sematic_description || ''),
-      adcode: adInfo.adcode || '',
-      latitude: lat,
-      longitude: lng,
+  if (result.success) {
+    const d = (result.data && result.data.result) || {}
+    const addrComp = d.address_component || {}
+    const adInfo = d.ad_info || {}
+    const formatted = d.formatted_addresses && d.formatted_addresses.recommend
+      ? d.formatted_addresses.recommend
+      : ''
+    return {
+      success: true,
+      data: {
+        province: addrComp.province || '',
+        city: addrComp.city || '',
+        district: addrComp.district || '',
+        address: d.address || '',
+        street: addrComp.street || '',
+        streetNumber: addrComp.street_number || '',
+        recommend: formatted || (addrComp.street || '') + (addrComp.street_number || ''),
+        sematicDesc: (d.sematic_description || ''),
+        adcode: adInfo.adcode || '',
+        latitude: lat,
+        longitude: lng,
+      }
     }
+  }
+
+  // ② 直连失败 → 服务端代理
+  console.warn('[map] 小程序直连逆地址解析失败:', result.error, '→ 尝试服务端代理')
+  try {
+    const apiBase = import.meta.env.VITE_API_BASE_URL || ''
+    if (!apiBase) {
+      console.warn('[map] VITE_API_BASE_URL 未配置，无法使用服务端代理')
+      return result
+    }
+    const proxyResult = await new Promise((resolve) => {
+      wx.request({
+        url: apiBase + '/api/map/reverse-geocode',
+        data: { lat: lat, lng: lng },
+        method: 'GET',
+        timeout: 10000,
+        success: (res) => {
+          if (res.statusCode === 200 && res.data && res.data.success) {
+            resolve({ success: true, data: res.data.data || {} })
+          } else {
+            resolve({ success: false, error: (res.data && res.data.message) || '服务端代理逆地址解析失败' })
+          }
+        },
+        fail: (err) => {
+          console.error('[map] 服务端代理逆地址解析失败:', err)
+          resolve({ success: false, error: '地图服务代理不可达' })
+        }
+      })
+    })
+    return proxyResult
+  } catch (e) {
+    console.error('[map] 服务端代理逆地址解析异常:', e.message || e)
+    return result
   }
 }
 

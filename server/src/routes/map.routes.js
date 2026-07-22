@@ -161,4 +161,127 @@ function calcHaversineKm(lat1, lng1, lat2, lng2) {
   return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 100) / 100;
 }
 
+/**
+ * GET /api/map/suggestion?keyword=xxx&region=xxx
+ *
+ * 地址关键词补全（输入提示），代理腾讯地图 suggestion API。
+ * 用户输入部分地址时实时返回候选列表。
+ * 公开接口，无需登录。
+ */
+router.get('/suggestion', async (req, res) => {
+  try {
+    const { keyword, region } = req.query;
+    if (!keyword || !keyword.trim()) {
+      return res.status(400).json({ success: false, code: 400, message: '缺少 keyword 参数' });
+    }
+
+    if (!MAP_KEY) {
+      return res.status(500).json({
+        success: false, code: 500,
+        message: '服务端未配置 TENCENT_MAP_KEY，请在 .env 中设置'
+      });
+    }
+
+    const params = {
+      key: MAP_KEY,
+      keyword: keyword.trim(),
+      region: (region || '').trim(),
+      region_fix: region ? 1 : 0,
+      get_adcode: 1,
+    };
+
+    const url = `${MAP_BASE}/ws/place/v1/suggestion`;
+    const response = await axios.get(url, { params, timeout: TIMEOUT });
+    const data = response.data;
+
+    if (data && data.status === 0) {
+      const list = (data.data || []).map(item => ({
+        title: item.title || '',
+        province: item.province || '',
+        city: item.city || '',
+        district: item.district || '',
+        address: item.address || '',
+        latitude: item.location ? item.location.lat : 0,
+        longitude: item.location ? item.location.lng : 0,
+        adcode: item.adcode || '',
+      }));
+      return res.json({ success: true, code: 200, data: list });
+    }
+
+    const errMsg = (data && data.message) || '地址建议查询失败';
+    logger.warn('[map] 地址建议失败: ' + errMsg);
+    return res.json({ success: false, code: 200, message: errMsg });
+  } catch (err) {
+    logger.error('[map] 地址建议请求异常: ' + (err.message || err));
+    res.status(500).json({ success: false, code: 500, message: '地图服务暂不可用' });
+  }
+});
+
+/**
+ * GET /api/map/reverse-geocode?lat=xxx&lng=xxx
+ *
+ * 逆地址解析（GPS 坐标 → 结构化地址），代理腾讯地图 geocoder API。
+ * 用户点「定位」按钮获取手机 GPS 后反查地址。
+ * 公开接口，无需登录。
+ */
+router.get('/reverse-geocode', async (req, res) => {
+  try {
+    const { lat, lng } = req.query;
+    if (lat == null || lng == null || lat === '' || lng === '') {
+      return res.status(400).json({ success: false, code: 400, message: '缺少 lat/lng 参数' });
+    }
+
+    if (!MAP_KEY) {
+      return res.status(500).json({
+        success: false, code: 500,
+        message: '服务端未配置 TENCENT_MAP_KEY，请在 .env 中设置'
+      });
+    }
+
+    const url = `${MAP_BASE}/ws/geocoder/v1`;
+    const response = await axios.get(url, {
+      params: {
+        key: MAP_KEY,
+        location: lat + ',' + lng,
+        get_poi: 1,
+        poi_options: 'radius=500;policy=1',
+      },
+      timeout: TIMEOUT,
+    });
+
+    const data = response.data;
+    if (data && data.status === 0 && data.result) {
+      const d = data.result;
+      const addrComp = d.address_component || {};
+      const adInfo = d.ad_info || {};
+      const formatted = d.formatted_addresses && d.formatted_addresses.recommend
+        ? d.formatted_addresses.recommend
+        : '';
+      return res.json({
+        success: true, code: 200,
+        data: {
+          province: addrComp.province || '',
+          city: addrComp.city || '',
+          district: addrComp.district || '',
+          address: d.address || '',
+          street: addrComp.street || '',
+          streetNumber: addrComp.street_number || '',
+          recommend: formatted || (addrComp.street || '') + (addrComp.street_number || ''),
+          sematicDesc: d.sematic_description || '',
+          adcode: adInfo.adcode || '',
+          latitude: parseFloat(lat),
+          longitude: parseFloat(lng),
+        }
+      });
+    }
+
+    const errMsg = (data && data.message) || '逆地址解析失败';
+    logger.warn('[map] 逆地址解析失败: ' + errMsg);
+    return res.json({ success: false, code: 200, message: errMsg });
+  } catch (err) {
+    logger.error('[map] 逆地址解析请求异常: ' + (err.message || err));
+    res.status(500).json({ success: false, code: 500, message: '地图服务暂不可用' });
+  }
+});
+
 module.exports = router;
