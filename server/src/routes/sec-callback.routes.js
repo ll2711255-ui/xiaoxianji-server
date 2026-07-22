@@ -30,14 +30,45 @@ const router = require('express').Router();
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const db = require('../config/db');
 const logger = require('../utils/logger');
+
+// 微信消息推送 Token（与 mp.weixin.qq.com 后台配置一致）
+const WX_PUSH_TOKEN = process.env.WX_PUSH_TOKEN || 'xiaoxianji2026';
 
 // 默认头像路径（违规时替换为此头像）
 const DEFAULT_AVATAR = '/uploads/avatars/default-avatar.png';
 
 // 接收 raw body（JSON 格式）
 router.use(express.json());
+
+/**
+ * GET /api/sec-callback/media-check
+ * 微信消息推送 URL 验证
+ * 微信配置回调地址时会发送 GET 请求验证服务器所有权
+ */
+router.get('/media-check', (req, res) => {
+  const { signature, timestamp, nonce, echostr } = req.query;
+
+  if (!signature || !timestamp || !nonce || !echostr) {
+    logger.warn('[sec-callback] GET 验证缺少参数:', req.query);
+    return res.status(400).send('missing params');
+  }
+
+  // 字典序排序 token, timestamp, nonce → 拼接 → SHA1
+  const arr = [WX_PUSH_TOKEN, timestamp, nonce].sort();
+  const raw = arr.join('');
+  const hash = crypto.createHash('sha1').update(raw).digest('hex');
+
+  if (hash === signature) {
+    logger.info('[sec-callback] URL 验证通过');
+    return res.send(echostr);
+  }
+
+  logger.warn('[sec-callback] URL 验证失败 — signature 不匹配');
+  return res.status(403).send('signature mismatch');
+});
 
 /**
  * POST /api/sec-callback/media-check
