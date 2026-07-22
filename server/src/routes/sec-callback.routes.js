@@ -139,7 +139,8 @@ router.post('/media-check', async (req, res) => {
       if (user.avatarPendingUrl) {
         try {
           const urlPath = new URL(user.avatarPendingUrl).pathname;
-          const filePath = path.join(__dirname, '..', '..', urlPath);
+          // path.join 遇到以 / 开头的参数会当作绝对路径，必须去掉前导 /
+	          const filePath = path.join(__dirname, '..', '..', urlPath.replace(/^\//, ''));
           if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
             logger.info('[sec-callback] 已删除违规头像文件:', filePath);
