@@ -128,7 +128,7 @@ router.post('/media-check', async (req, res) => {
       // ========== 审核通过 → 正式生效 ==========
       await db.execute(
         'UPDATE users SET avatar_url = ?, avatar_review_status = ?, avatar_trace_id = ?, avatar_pending_url = ? WHERE id = ?',
-        [user.avatar_pending_url, 'approved', '', '', user.id]
+        [user.avatarPendingUrl, 'approved', '', '', user.id]
       );
 
       logger.info('[sec-callback] ✅ 头像审核通过, user:', user.id, 'trace_id:', traceId);
@@ -136,9 +136,9 @@ router.post('/media-check', async (req, res) => {
     } else if (suggest === 'risky' || suggest === 'review') {
       // ========== 违规或可疑 → 替换为默认头像 ==========
       // 删除违规图片文件
-      if (user.avatar_pending_url) {
+      if (user.avatarPendingUrl) {
         try {
-          const urlPath = new URL(user.avatar_pending_url).pathname;
+          const urlPath = new URL(user.avatarPendingUrl).pathname;
           const filePath = path.join(__dirname, '..', '..', urlPath);
           if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
@@ -164,7 +164,7 @@ router.post('/media-check', async (req, res) => {
     return res.send('success');
 
   } catch (err) {
-    logger.error('[sec-callback] 处理回调失败:', err.message);
+    logger.error('[sec-callback] 处理回调失败: ' + (err.message || err));
     return res.send('success'); // 即使出错也返回 success，避免微信重复推送
   }
 });
