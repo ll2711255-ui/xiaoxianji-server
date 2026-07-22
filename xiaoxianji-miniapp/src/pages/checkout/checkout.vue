@@ -149,6 +149,7 @@ import { onLoad, onShow } from '@dcloudio/uni-app'
 import { get, post } from '@/utils/request'
 import { formatMoney, calcDistance } from '@/utils/util'
 import { callPay } from '@/utils/pay'
+import { calcDrivingDistance, reverseGeocode } from '@/utils/map'
 
 const WEEKDAY_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 const DELIVERY_TIME_SLOTS = ['08:00-10:00', '10:00-12:00', '12:00-14:00', '14:00-16:00', '16:00-18:00', '18:00-20:00']
@@ -335,12 +336,30 @@ function onSelectAddress() {
   // #endif
 }
 
-function fetchAddressCoordinates(addr) {
+async function fetchAddressCoordinates(addr) {
   // #ifdef MP-WEIXIN
+  // 优先用当前 GPS 坐标，同时尝试逆地址解析补充完整地址
   uni.getLocation({
     type: 'gcj02',
-    success: (locRes) => {
+    success: async (locRes) => {
       address.value = { ...addr, latitude: locRes.latitude, longitude: locRes.longitude }
+      // 如果用户通过微信原生选地址进来的，用逆地址解析补充坐标精度
+      if (addr.province && addr.detail && !addr.latitude) {
+        const geoResult = await reverseGeocode(locRes.latitude, locRes.longitude)
+        if (geoResult.success && geoResult.data) {
+          const d = geoResult.data
+          // 仅当微信原生地址没有省/市/区时用逆解析结果补充
+          address.value = {
+            ...address.value,
+            province: addr.province || d.province,
+            city: addr.city || d.city,
+            district: addr.district || d.district,
+            detail: addr.detail || d.recommend || d.street,
+            latitude: locRes.latitude,
+            longitude: locRes.longitude
+          }
+        }
+      }
     },
     fail: () => {
       console.warn('[checkout] 获取位置失败')
@@ -399,7 +418,18 @@ async function checkDeliveryRange() {
       // #endif
     }
 
-    const distance = calcDistance(uLat, uLng, sLat, sLng)
+    // 优先用腾讯地图驾车距离（真实路网），失败时降级为直线距离
+    let distance = calcDistance(uLat, uLng, sLat, sLng)  // 默认直线距离
+    try {
+      const driveResult = await calcDrivingDistance(
+        { latitude: uLat, longitude: uLng },
+        { latitude: sLat, longitude: sLng }
+      )
+      if (driveResult.success && driveResult.data) {
+        distance = driveResult.data.distance
+        console.log(`[checkout] 驾车距离: ${distance}km, 预计: ${driveResult.data.duration}分钟`)
+      }
+    } catch (_) { /* 降级：使用 calcDistance 结果 */ }
     if (distance > deliveryRadius) {
       rangeModalMsg.value = `当前地址超出配送范围（${deliveryRadius}公里）`
       rangeModalDistance.value = distance.toFixed(1)

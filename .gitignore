@@ -3,6 +3,7 @@ dist/
 *.zip
 *.tar.gz
 .env
+.env.*
 .env.local
 *.log
 .DS_Store

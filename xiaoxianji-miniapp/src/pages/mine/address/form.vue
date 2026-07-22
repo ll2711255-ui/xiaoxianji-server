@@ -1,5 +1,51 @@
 <template>
   <view class="page">
+    <!-- ========== 智能地址搜索 ========== -->
+    <view class="form-section">
+      <view class="search-box">
+        <text class="search-icon">🔍</text>
+        <input
+          class="search-input"
+          v-model="searchKeyword"
+          placeholder="搜索地址，自动填入下方信息"
+          @input="onSearchInput"
+          @focus="onSearchFocus"
+          maxlength="50"
+        />
+        <text v-if="searchKeyword" class="search-clear" @click="clearSearch">✕</text>
+      </view>
+
+      <!-- 下拉建议列表 -->
+      <view v-if="showSuggestions && suggestions.length > 0" class="suggestion-list">
+        <view
+          v-for="(item, idx) in suggestions"
+          :key="idx"
+          class="suggestion-item"
+          @click="onSelectSuggestion(item)"
+        >
+          <view class="sugg-left">
+            <image class="sugg-icon" src="/static/icons/ui/ui-location.png" mode="aspectFit" />
+          </view>
+          <view class="sugg-body">
+            <text class="sugg-title">{{ item.title }}</text>
+            <text class="sugg-detail">{{ item.address }}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 无结果 -->
+      <view v-if="showSuggestions && searchKeyword && suggestions.length === 0 && !searching" class="suggestion-empty">
+        <text>未找到匹配地址，请尝试更具体的关键词</text>
+      </view>
+    </view>
+
+    <!-- 分割线 -->
+    <view class="divider-row">
+      <view class="divider-line" />
+      <text class="divider-text">或手动填写以下</text>
+      <view class="divider-line" />
+    </view>
+
     <!-- ========== 表单区域 ========== -->
     <view class="form-section">
       <!-- 姓名 -->
@@ -41,15 +87,18 @@
         </picker>
       </view>
 
-      <!-- 详细地址 -->
+      <!-- 详细地址 + 定位按钮 -->
       <view class="form-item">
         <text class="form-label">详细地址</text>
         <input
-          class="form-input"
+          class="form-input detail-input"
           v-model="form.detail"
           placeholder="门牌号、街道、楼层等"
           maxlength="100"
         />
+        <view class="locate-btn" @click="onLocateFill">
+          <text class="locate-btn-text">{{ locating ? '定位中...' : '📍' }}</text>
+        </view>
       </view>
     </view>
 
@@ -83,6 +132,7 @@
 import { ref, reactive } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { get, post, put, del } from '@/utils/request'
+import { suggestAddress, reverseGeocode } from '@/utils/map'
 
 // ========== 页面参数 ==========
 const editId = ref('')
@@ -103,6 +153,16 @@ const form = reactive({
 
 const region = ref([])
 const regionText = ref('')
+
+// ========== 智能搜索 ==========
+const searchKeyword = ref('')
+const suggestions = ref([])
+const showSuggestions = ref(false)
+const searching = ref(false)
+let searchTimer = null
+
+// ========== 定位按钮 ==========
+const locating = ref(false)
 
 // ========== Lifecycle ==========
 onLoad((options) => {
@@ -141,6 +201,107 @@ async function loadAddress(id) {
     uni.hideLoading()
     console.error('[form] 加载地址失败:', err)
   }
+}
+
+// ========== 智能地址搜索 ==========
+function onSearchInput(e) {
+  const val = e.detail ? e.detail.value : (e.target ? e.target.value : searchKeyword.value)
+  searchKeyword.value = val
+  if (searchTimer) clearTimeout(searchTimer)
+  if (!val || !val.trim()) {
+    suggestions.value = []
+    showSuggestions.value = false
+    return
+  }
+  // 防抖 300ms
+  searchTimer = setTimeout(() => {
+    doSearch(val.trim())
+  }, 300)
+}
+
+function onSearchFocus() {
+  if (suggestions.value.length > 0) {
+    showSuggestions.value = true
+  }
+}
+
+async function doSearch(keyword) {
+  searching.value = true
+  // 优先限定在当前城市（如果已选城市）
+  const city = form.city || ''
+  const result = await suggestAddress(keyword, city)
+  searching.value = false
+  if (result.success) {
+    suggestions.value = result.data || []
+    showSuggestions.value = suggestions.value.length > 0
+  } else {
+    suggestions.value = []
+    showSuggestions.value = false
+    // 不弹 toast，静默失败（可能 Key 未配置）
+    if (result.error) console.warn('[form] 地址搜索失败:', result.error)
+  }
+}
+
+function onSelectSuggestion(item) {
+  // 自动填充省市区
+  form.province = item.province || ''
+  form.city = item.city || ''
+  form.district = item.district || ''
+  if (item.province) {
+    region.value = [item.province, item.city || '', item.district || '']
+    regionText.value = region.value.filter(Boolean).join(' ')
+  }
+  // 详细地址（API 返回的 address 字段 = 区之后的部分）
+  form.detail = item.address || ''
+  // 坐标
+  form.latitude = item.latitude || null
+  form.longitude = item.longitude || null
+
+  // 关闭下拉
+  showSuggestions.value = false
+  searchKeyword.value = ''
+  suggestions.value = []
+}
+
+function clearSearch() {
+  searchKeyword.value = ''
+  suggestions.value = []
+  showSuggestions.value = false
+}
+
+// ========== 定位获取地址 ==========
+async function onLocateFill() {
+  if (locating.value) return
+  locating.value = true
+  try {
+    const locRes = await new Promise((resolve, reject) => {
+      uni.getLocation({ type: 'gcj02', success: resolve, fail: reject })
+    })
+    const geoResult = await reverseGeocode(locRes.latitude, locRes.longitude)
+    if (geoResult.success && geoResult.data) {
+      const d = geoResult.data
+      form.province = d.province || ''
+      form.city = d.city || ''
+      form.district = d.district || ''
+      form.detail = d.recommend || d.street || d.address || ''
+      form.latitude = locRes.latitude
+      form.longitude = locRes.longitude
+      if (d.province) {
+        region.value = [d.province, d.city || '', d.district || '']
+        regionText.value = region.value.filter(Boolean).join(' ')
+      }
+      uni.showToast({ title: '地址已识别', icon: 'success', duration: 1500 })
+    } else {
+      // 逆地址解析失败，至少记录坐标
+      form.latitude = locRes.latitude
+      form.longitude = locRes.longitude
+      uni.showToast({ title: '已获取位置，请手动填写地址', icon: 'none', duration: 2000 })
+    }
+  } catch (err) {
+    console.error('[form] 定位失败:', err)
+    uni.showToast({ title: '定位失败，请检查定位权限', icon: 'none' })
+  }
+  locating.value = false
 }
 
 // ========== 省市区选择 ==========
@@ -246,6 +407,132 @@ async function onDelete() {
 }
 
 /* ================================================================
+   智能搜索
+   ================================================================ */
+.search-box {
+  display: flex;
+  align-items: center;
+  padding: 10rpx 20rpx;
+  background: #f5f5f5;
+  border-radius: 12rpx;
+  margin: 20rpx 24rpx;
+}
+
+.search-icon {
+  font-size: 32rpx;
+  margin-right: 12rpx;
+  opacity: 0.7;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333;
+  height: 64rpx;
+}
+
+.search-input::placeholder {
+  color: #BFBFBF;
+}
+
+.search-clear {
+  font-size: 28rpx;
+  color: #999;
+  padding: 8rpx;
+}
+
+/* 下拉建议 */
+.suggestion-list {
+  background: #fff;
+  margin: 0 24rpx;
+  border-radius: 0 0 16rpx 16rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.08);
+  max-height: 480rpx;
+  overflow-y: auto;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  padding: 22rpx 24rpx;
+  border-bottom: 1rpx solid #F0F0F0;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:active {
+  background: #FAF9F7;
+}
+
+.sugg-left {
+  margin-right: 16rpx;
+}
+
+.sugg-icon {
+  width: 32rpx;
+  height: 32rpx;
+}
+
+.sugg-body {
+  flex: 1;
+  overflow: hidden;
+}
+
+.sugg-title {
+  font-size: 28rpx;
+  color: #333;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sugg-detail {
+  font-size: 24rpx;
+  color: #999;
+  display: block;
+  margin-top: 4rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestion-empty {
+  background: #fff;
+  padding: 32rpx 24rpx;
+  text-align: center;
+  margin: 0 24rpx;
+  border-radius: 0 0 16rpx 16rpx;
+}
+
+.suggestion-empty text {
+  font-size: 26rpx;
+  color: #999;
+}
+
+/* 分割线 */
+.divider-row {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 48rpx;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1rpx;
+  background: #E0DDD6;
+}
+
+.divider-text {
+  font-size: 24rpx;
+  color: #BFBFBF;
+  margin: 0 20rpx;
+}
+
+/* ================================================================
    表单
    ================================================================ */
 .form-section {
@@ -283,6 +570,31 @@ async function onDelete() {
 
 .form-input::placeholder {
   color: #BFBFBF;
+}
+
+/* 详细地址 + 定位按钮 */
+.detail-input {
+  flex: 1;
+  margin-right: 8rpx;
+}
+
+.locate-btn {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #FFF1F0;
+  flex-shrink: 0;
+}
+
+.locate-btn:active {
+  background: #FFE0D8;
+}
+
+.locate-btn-text {
+  font-size: 28rpx;
 }
 
 /* 省市区选择器 */
