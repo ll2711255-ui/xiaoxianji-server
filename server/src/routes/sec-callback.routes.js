@@ -62,7 +62,7 @@ router.get('/media-check', (req, res) => {
   const hash = crypto.createHash('sha1').update(raw).digest('hex');
 
   // 详细诊断日志（排查签名不匹配）
-  logger.info('[sec-callback] GET 验证参数:', JSON.stringify({
+  logger.info('[sec-callback] GET 验证参数: ' + JSON.stringify({
     signature,
     timestamp,
     nonce,
@@ -90,7 +90,7 @@ router.post('/media-check', async (req, res) => {
   try {
     const body = req.body;
 
-    logger.info('[sec-callback] 收到 content security 回调:', JSON.stringify({
+    logger.info('[sec-callback] 收到 content security 回调: ' + JSON.stringify({
       Event: body.Event,
       appid: body.appid,
       trace_id: body.trace_id,
