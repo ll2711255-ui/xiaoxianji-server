@@ -90,6 +90,7 @@ app.use('/api/sec-callback', require('./routes/sec-callback.routes'));
 app.use('/api/payment', require('./routes/payment.routes'));
 
 // 公开路由（无需登录）
+app.use('/api/map', require('./routes/map.routes'));
 app.use('/api/store', require('./routes/store.routes'));
 app.use('/api/products', require('./routes/product.routes'));
 app.use('/api/categories', require('./routes/category.routes'));
