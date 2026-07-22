@@ -15,14 +15,6 @@
         <view v-else class="avatar-placeholder">
           <image class="avatar-default-icon" src="/static/icons/avatar/avatar-default.png" mode="aspectFit" />
         </view>
-        <!-- #ifdef MP-WEIXIN -->
-        <button
-          v-if="showProfileModal"
-          class="avatar-edit-btn-transparent"
-          open-type="chooseAvatar"
-          @chooseavatar="onChooseAvatar"
-        />
-        <!-- #endif -->
       </view>
 
       <view class="user-info" @click="onAvatarClick">
@@ -205,6 +197,7 @@ const pendingAction = ref('') // 登录后自动执行：'address' | 'orders'
 const ongoingCount = ref(0)
 const appVersion = ref('1.0.0')
 const isDev = ref(false)
+const uploading = ref(false) // 防止并发上传
 
 // ========== Lifecycle ==========
 onShow(() => {
@@ -306,6 +299,7 @@ function onEditProfile() {
 function onChooseAvatar(e) {
   const url = e.detail.avatarUrl
   if (!url) return
+  if (uploading.value) return  // 防止重复触发
 
   // 先展示本地预览，再异步上传（含内容安全检测）
   avatarUrl.value = url
@@ -358,6 +352,9 @@ function onPickAvatarFromCamera() {
  * @param {string} filePath - 图片本地临时路径
  */
 function uploadAvatarToServer(filePath) {
+  if (uploading.value) return
+  uploading.value = true
+
   const token = uni.getStorageSync('access_token') || ''
 
   uni.showLoading({ title: '上传中...', mask: true })
@@ -369,6 +366,7 @@ function uploadAvatarToServer(filePath) {
     header: { 'Authorization': 'Bearer ' + token },
     success: (res) => {
       uni.hideLoading()
+      uploading.value = false
       try {
         const data = JSON.parse(res.data)
 
@@ -402,6 +400,7 @@ function uploadAvatarToServer(filePath) {
     },
     fail: () => {
       uni.hideLoading()
+      uploading.value = false
       uni.showToast({ title: '上传失败，请重试', icon: 'none' })
       loadUserInfo()
     }
