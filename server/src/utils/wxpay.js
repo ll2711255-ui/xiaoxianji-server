@@ -201,24 +201,26 @@ async function buildPayParams(prepayId, appId) {
   const msg = effectiveAppId + '\n' + ts + '\n' + nonce + '\n' + pkg + '\n';
   const paySign = crypto.createSign('RSA-SHA256').update(msg).sign(cfg.privateKey, 'base64');
 
-  // ===== 诊断日志：完整输出签名过程 =====
-  logger.info('[wxpay] ===== buildPayParams 签名诊断 =====');
-  logger.info('[wxpay] 传入 appId:', appId);
-  logger.info('[wxpay] 有效 appId:', effectiveAppId);
-  logger.info('[wxpay] 配置来源:', cfg.source);
-  logger.info('[wxpay] 商户号:', cfg.mchId);
-  logger.info('[wxpay] 证书序列号:', cfg.serialNo);
-  logger.info('[wxpay] APIv3密钥长度:', cfg.apiV3Key ? cfg.apiV3Key.length : 0);
-  logger.info('[wxpay] 私钥是否加载:', cfg.privateKey ? `是 (${cfg.privateKey.length}字符)` : '否');
-  logger.info('[wxpay] prepay_id:', prepayId);
-  logger.info('[wxpay] timeStamp:', ts);
-  logger.info('[wxpay] nonceStr:', nonce, '长度:', nonce.length);
-  logger.info('[wxpay] package:', pkg);
-  logger.info('[wxpay] 签名串（\\n 标记换行）:', msg.replace(/\n/g, '\\n'));
-  logger.info('[wxpay] 签名算法: RSA-SHA256');
-  logger.info('[wxpay] paySign:', paySign);
-  logger.info('[wxpay] paySign长度:', paySign.length);
-  logger.info('[wxpay] ===== buildPayParams 签名诊断结束 =====');
+  // ===== 诊断日志：完整输出签名过程（用模板字符串，不依赖 splat）=====
+  const privKeyLoaded = cfg.privateKey ? `是(${cfg.privateKey.length}字符)` : '否';
+  const signMsg = msg.replace(/\n/g, '\\n');
+  logger.info(`[wxpay] ===== buildPayParams 签名诊断 =====
+传入 appId: ${appId}
+有效 appId: ${effectiveAppId}
+配置来源: ${cfg.source}
+商户号: ${cfg.mchId}
+证书序列号: ${cfg.serialNo}
+APIv3密钥长度: ${cfg.apiV3Key ? cfg.apiV3Key.length : 0}
+私钥是否加载: ${privKeyLoaded}
+prepay_id: ${prepayId}
+timeStamp: ${ts}
+nonceStr: ${nonce} (长度:${nonce.length})
+package: ${pkg}
+签名串(\\n=换行): ${signMsg}
+签名算法: RSA-SHA256
+paySign: ${paySign}
+paySign长度: ${paySign.length}
+===== buildPayParams 签名诊断结束 =====`);
 
   return {
     timeStamp: ts,
