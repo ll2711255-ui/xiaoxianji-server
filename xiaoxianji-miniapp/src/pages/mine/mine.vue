@@ -393,7 +393,8 @@ function uploadAvatarToServer(filePath) {
           uni.showToast({ title: data.message || '上传失败，请重试', icon: 'none' })
           loadUserInfo()
         }
-      } catch (_) {
+      } catch (e) {
+        console.error('[mine] 头像上传解析失败:', e, res.data)
         uni.showToast({ title: '上传失败，请重试', icon: 'none' })
         loadUserInfo()
       }

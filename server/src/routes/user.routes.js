@@ -103,7 +103,7 @@ router.post(
       res.json({
         success: true,
         code: 200,
-        data: { avatarUrl },
+        data: { url: avatarUrl },
       });
 
     } catch (err) {
