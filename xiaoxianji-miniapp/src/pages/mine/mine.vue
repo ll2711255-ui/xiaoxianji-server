@@ -199,6 +199,11 @@ const appVersion = ref('1.0.0')
 const isDev = ref(false)
 const uploading = ref(false) // 防止并发上传
 
+// ========== 提审录屏开关 ==========
+// 改为 true → 所有头像上传都触发违规拦截弹窗
+// 录完屏改回 false → 恢复正常上传
+const TEST_RISK = false
+
 // ========== Lifecycle ==========
 onShow(() => {
   loadUserInfo()
@@ -360,7 +365,7 @@ function uploadAvatarToServer(filePath) {
   uni.showLoading({ title: '上传中...', mask: true })
 
   uni.uploadFile({
-    url: (import.meta.env.VITE_API_BASE_URL || 'https://www.xuaioxianji.top') + '/api/user/avatar',
+    url: (import.meta.env.VITE_API_BASE_URL || 'https://www.xuaioxianji.top') + '/api/user/avatar' + (TEST_RISK ? '?test_risk=1' : ''),
     filePath,
     name: 'avatar',
     header: { 'Authorization': 'Bearer ' + token },
