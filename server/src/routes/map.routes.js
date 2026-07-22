@@ -71,4 +71,54 @@ router.get('/geocode', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/map/distance?from=lat,lng&to=lat,lng
+ *
+ * 驾车距离计算，代理腾讯地图 direction API。
+ * 公开接口，无需登录。
+ */
+router.get('/distance', async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    if (!from || !from.trim()) {
+      return res.status(400).json({ success: false, code: 400, message: '缺少 from 参数' });
+    }
+    if (!to || !to.trim()) {
+      return res.status(400).json({ success: false, code: 400, message: '缺少 to 参数' });
+    }
+
+    if (!MAP_KEY) {
+      return res.status(500).json({
+        success: false, code: 500,
+        message: '服务端未配置 TENCENT_MAP_KEY，请在 .env 中设置'
+      });
+    }
+
+    const url = `${MAP_BASE}/ws/direction/v1/driving`;
+    const response = await axios.get(url, {
+      params: { key: MAP_KEY, from: from.trim(), to: to.trim(), output: 'json' },
+      timeout: TIMEOUT,
+    });
+
+    const data = response.data;
+    if (data && data.status === 0 && data.result && data.result.routes) {
+      const route = data.result.routes[0];
+      return res.json({
+        success: true, code: 200,
+        data: {
+          distance: Math.round(route.distance / 10) / 100,   // 米 → 公里，保留两位
+          duration: Math.ceil(route.duration / 60),           // 秒 → 分钟，向上取整
+        }
+      });
+    }
+
+    const errMsg = (data && data.message) || '驾车距离计算失败';
+    logger.warn('[map] 距离计算失败: ' + errMsg);
+    return res.json({ success: false, code: 200, message: errMsg });
+  } catch (err) {
+    logger.error('[map] 距离计算请求异常: ' + (err.message || err));
+    res.status(500).json({ success: false, code: 500, message: '地图服务暂不可用' });
+  }
+});
+
 module.exports = router;

@@ -175,28 +175,71 @@ export async function reverseGeocode(lat, lng) {
  * }, error?: string}>}
  */
 export async function calcDrivingDistance(from, to) {
+  const fromStr = from.latitude + ',' + from.longitude
+  const toStr = to.latitude + ',' + to.longitude
+
+  // ① 优先尝试小程序直连腾讯地图
   const result = await mapRequest('/ws/direction/v1/driving', {
-    from: from.latitude + ',' + from.longitude,
-    to: to.latitude + ',' + to.longitude,
+    from: fromStr,
+    to: toStr,
     output: 'json',
     heading: 0,
     speed: 30,
   })
-  if (!result.success) return result
-
-  const route = result.data && result.data.result && result.data.result.routes
-    ? result.data.result.routes[0]
-    : null
-  if (!route) {
-    return { success: false, error: '未找到驾车路线' }
+  if (result.success) {
+    const route = result.data && result.data.result && result.data.result.routes
+      ? result.data.result.routes[0]
+      : null
+    if (!route) {
+      return { success: false, error: '未找到驾车路线' }
+    }
+    return {
+      success: true,
+      data: {
+        distance: Math.round(route.distance / 10) / 100,   // 米 → 公里，保留两位
+        duration: Math.ceil(route.duration / 60),           // 秒 → 分钟，向上取整
+      }
+    }
   }
 
-  return {
-    success: true,
-    data: {
-      distance: Math.round(route.distance / 10) / 100,   // 米 → 公里，保留两位
-      duration: Math.ceil(route.duration / 60),           // 秒 → 分钟，向上取整
+  // ② 小程序直连失败 → 降级走服务端代理（用服务器 IP 白名单鉴权）
+  console.warn('[map] 小程序直连驾车距离API失败:', result.error, '→ 尝试服务端代理')
+  try {
+    const apiBase = import.meta.env.VITE_API_BASE_URL || ''
+    if (!apiBase) {
+      console.warn('[map] VITE_API_BASE_URL 未配置，无法使用服务端代理')
+      return result
     }
+    const proxyResult = await new Promise((resolve) => {
+      wx.request({
+        url: apiBase + '/api/map/distance',
+        data: { from: fromStr, to: toStr },
+        method: 'GET',
+        timeout: 10000,
+        success: (res) => {
+          if (res.statusCode === 200 && res.data && res.data.success) {
+            const d = res.data.data || {}
+            resolve({
+              success: true,
+              data: {
+                distance: d.distance,
+                duration: d.duration,
+              }
+            })
+          } else {
+            resolve({ success: false, error: (res.data && res.data.message) || '服务端代理距离计算失败' })
+          }
+        },
+        fail: (err) => {
+          console.error('[map] 服务端代理距离请求失败:', err)
+          resolve({ success: false, error: '地图服务代理不可达' })
+        }
+      })
+    })
+    return proxyResult
+  } catch (e) {
+    console.error('[map] 服务端代理异常:', e.message || e)
+    return result
   }
 }
 
@@ -214,6 +257,83 @@ export async function calcDrivingDistance(from, to) {
  *   latitude: number, longitude: number, distance: number
  * }>, error?: string}>}
  */
+/**
+ * ⑤ 地址解析（地址文本 → GPS 坐标）
+ *
+ * 当收货地址没有 GPS 坐标时，用省+市+区+详细地址去腾讯地图解析坐标，
+ * 代替手机 GPS 定位。手机可能不在收货地址附近，地址文本才是真实的配送目的地。
+ *
+ * 文档：https://lbs.qq.com/service/webService/webServiceGuide/webServiceGeocoder
+ *
+ * @param {string} addressText - 完整地址文本（如 "广东省广州市海珠区新港中路397号"）
+ * @returns {Promise<{success: boolean, data?: { latitude: number, longitude: number, title: string }, error?: string}>}
+ */
+export async function geocodeAddress(addressText) {
+  if (!addressText || !addressText.trim()) {
+    return { success: false, error: '地址文本为空' }
+  }
+
+  // ① 优先尝试小程序端直接调用腾讯地图 API（Key 需绑定 AppID + 开启 WebService）
+  const result = await mapRequest('/ws/geocoder/v1', { address: addressText.trim() })
+  if (result.success) {
+    const d = (result.data && result.data.result) || {}
+    const loc = d.location || {}
+    if (loc.lat && loc.lng) {
+      return {
+        success: true,
+        data: {
+          latitude: loc.lat,
+          longitude: loc.lng,
+          title: d.title || addressText,
+        }
+      }
+    }
+    return { success: false, error: '地址解析失败，未获取到坐标' }
+  }
+
+  // ② 小程序直接调用失败（常见原因：Key 未开启 WebService API）→ 降级走服务端代理
+  //    服务端用 IP 白名单方式鉴权，不受小程序端 Key 的 WebService 开关限制
+  console.warn('[map] 小程序直连地图API失败:', result.error, '→ 尝试服务端代理')
+  try {
+    const apiBase = import.meta.env.VITE_API_BASE_URL || ''
+    if (!apiBase) {
+      console.warn('[map] VITE_API_BASE 未配置，无法使用服务端代理')
+      return result
+    }
+    const proxyResult = await new Promise((resolve) => {
+      wx.request({
+        url: apiBase + '/api/map/geocode',
+        data: { address: addressText.trim() },
+        method: 'GET',
+        timeout: 10000,
+        success: (res) => {
+          if (res.statusCode === 200 && res.data && res.data.success) {
+            const d = res.data.data || {}
+            resolve({
+              success: true,
+              data: {
+                latitude: d.latitude,
+                longitude: d.longitude,
+                title: d.title || addressText,
+              }
+            })
+          } else {
+            resolve({ success: false, error: (res.data && res.data.message) || '服务端代理解析失败' })
+          }
+        },
+        fail: (err) => {
+          console.error('[map] 服务端代理请求失败:', err)
+          resolve({ success: false, error: '地图服务代理不可达' })
+        }
+      })
+    })
+    return proxyResult
+  } catch (e) {
+    console.error('[map] 服务端代理异常:', e.message || e)
+    return result
+  }
+}
+
 export async function searchPlace(keyword, lat, lng, radius = 3000) {
   const result = await mapRequest('/ws/place/v1/search', {
     keyword: keyword,
