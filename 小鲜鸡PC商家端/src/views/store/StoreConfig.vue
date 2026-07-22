@@ -3,21 +3,25 @@
     <h2 class="page-title">店铺设置</h2>
 
     <el-row :gutter="20">
-      <el-col :span="12">
+      <!-- 左栏：店铺信息 + 地图选点 -->
+      <el-col :span="14">
         <el-card header="店铺信息" style="margin-bottom:20px">
           <el-form label-width="100px" size="default">
             <el-form-item label="店铺名称">
               <el-input v-model="form.name" placeholder="店铺名称" />
             </el-form-item>
-            <el-form-item label="店铺地址">
-              <el-input v-model="form.address" type="textarea" :rows="2" placeholder="详细地址" />
+
+            <el-form-item label="门店位置">
+              <MapPicker
+                :latitude="parseFloat(form.latitude) || 23.1291"
+                :longitude="parseFloat(form.longitude) || 113.2644"
+                :address="form.address"
+                @update:latitude="onLatUpdate"
+                @update:longitude="onLngUpdate"
+                @update:address="onAddrUpdate"
+              />
             </el-form-item>
-            <el-form-item label="经纬度">
-              <el-row :gutter="8">
-                <el-col :span="12"><el-input v-model="form.latitude" placeholder="纬度" /></el-col>
-                <el-col :span="12"><el-input v-model="form.longitude" placeholder="经度" /></el-col>
-              </el-row>
-            </el-form-item>
+
             <el-form-item label="联系人">
               <el-input v-model="form.contactName" placeholder="联系人姓名" />
             </el-form-item>
@@ -31,7 +35,8 @@
         </el-card>
       </el-col>
 
-      <el-col :span="12">
+      <!-- 右栏：配送 & 营业时间 -->
+      <el-col :span="10">
         <el-card header="配送 & 营业时间" style="margin-bottom:20px">
           <el-form label-width="120px" size="default">
             <el-form-item label="配送半径(公里)">
@@ -48,14 +53,14 @@
             </el-form-item>
           </el-form>
         </el-card>
+
+        <el-result
+          icon="success"
+          title="店铺配置说明"
+          sub-title="以上设置会实时同步到小程序端。修改后用户端将立即生效。"
+        />
       </el-col>
     </el-row>
-
-    <el-result
-      icon="success"
-      title="店铺配置说明"
-      sub-title="以上设置会实时同步到小程序端。修改后用户端将立即生效。"
-    />
   </div>
 </template>
 
@@ -63,6 +68,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import api from '@/utils/api'
+import MapPicker from '@/components/MapPicker.vue'
 
 const form = reactive({
   name: '小鲜鸡店铺', address: '', latitude: '23.1291', longitude: '113.2644',
@@ -72,6 +78,11 @@ const form = reactive({
 const openTimeObj = ref('')
 const closeTimeObj = ref('')
 const saving = reactive({ shop: false, delivery: false })
+
+// ========== 地图坐标回调 ==========
+function onLatUpdate(val) { form.latitude = String(val) }
+function onLngUpdate(val) { form.longitude = String(val) }
+function onAddrUpdate(val) { form.address = val }
 
 async function loadConfig() {
   try {
@@ -91,6 +102,7 @@ async function loadConfig() {
 
 async function saveShopInfo() {
   if (!form.name.trim()) { ElMessage.warning('请输入店铺名称'); return }
+  if (!form.address.trim()) { ElMessage.warning('请在地图上选择门店位置'); return }
   saving.shop = true
   try {
     const res = await api.put('/store', {
