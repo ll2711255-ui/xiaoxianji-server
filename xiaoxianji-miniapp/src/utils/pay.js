@@ -84,26 +84,55 @@ export async function callPay({ orderNo, payment, amountDisplay, onSuccess, onCa
   // ⚠️ 关键：小程序端 uni.requestPayment 不需要 provider 参数！
   // provider 只在 App 端（iOS/Android 原生）使用，传了反而可能导致路由错误。
   // 各平台通过条件编译注入各自的支付参数。
+
+  // ===== 调试：打印完整支付参数 =====
+  console.log('[pay] ===== 拉起支付参数 =====')
+  console.log('[pay] orderNo:', orderNo)
+  console.log('[pay] timeStamp:', payment.timeStamp)
+  console.log('[pay] nonceStr:', payment.nonceStr, 'len:', payment.nonceStr ? payment.nonceStr.length : 0)
+  console.log('[pay] package:', payment.package)
+  console.log('[pay] signType:', payment.signType)
+  console.log('[pay] paySign前30字符:', payment.paySign ? payment.paySign.substring(0, 30) : '(空)')
+  console.log('[pay] ===== 拉起支付参数结束 =====')
+
   try {
     await new Promise((resolve, reject) => {
-      uni.requestPayment({
-        // #ifdef MP-WEIXIN
+      // #ifdef MP-WEIXIN
+      // 绕过 uni.requestPayment，直接调用微信原生 API
+      // uni.requestPayment 在某些版本可能有参数转发问题
+      const payParams = {
         timeStamp: String(payment.timeStamp || ''),
         nonceStr: payment.nonceStr || '',
         package: payment.package || '',
         signType: payment.signType || 'RSA',
         paySign: payment.paySign || '',
-        // #endif
-        // #ifdef MP-ALIPAY
+        success: resolve,
+        fail: reject
+      }
+      console.log('[pay] 原生 wx.requestPayment 参数:', JSON.stringify({
+        timeStamp: payParams.timeStamp,
+        nonceStr: payParams.nonceStr,
+        package: payParams.package,
+        signType: payParams.signType,
+        paySign前20: payParams.paySign.substring(0, 20)
+      }))
+      wx.requestPayment(payParams)
+      // #endif
+      // #ifdef MP-ALIPAY
+      uni.requestPayment({
         tradeNO: payment.tradeNo || payment.trade_no || '',
-        // #endif
-        // #ifdef MP-TOUTIAO
-        orderId: payment.orderId || '',
-        orderToken: payment.orderToken || '',
-        // #endif
         success: resolve,
         fail: reject
       })
+      // #endif
+      // #ifdef MP-TOUTIAO
+      uni.requestPayment({
+        orderId: payment.orderId || '',
+        orderToken: payment.orderToken || '',
+        success: resolve,
+        fail: reject
+      })
+      // #endif
     })
 
     if (clearItems) clearItems()
@@ -112,6 +141,8 @@ export async function callPay({ orderNo, payment, amountDisplay, onSuccess, onCa
     if (onSuccess) setTimeout(onSuccess, 1500)
   } catch (err) {
     done()
+    // 完整错误对象（可能包含 errCode 等微信特有字段）
+    console.error('[pay] 完整错误对象:', JSON.stringify(err, Object.getOwnPropertyNames(err)))
     const errMsg = err.errMsg || err.message || '未知错误'
     console.error('[pay] 支付失败:', errMsg)
 

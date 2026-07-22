@@ -280,6 +280,50 @@ router.post('/orders/:orderNo/:action', async (req, res) => {
 
     logger.info(`[merchant] ${action} → ${orderNo} (${order.status} → ${rule.nextLabel})`);
 
+    // ===== 发货/完成时上报微信「订单发货管理」=====
+    // 微信 2025 年强制新规：实物电商发货后必须调此接口上报，
+    // 否则资金冻结无法结算
+    const shouldReportShip = (
+      (action === 'deliver' && order.type === 'delivery') ||
+      (action === 'complete' && order.type === 'pickup')
+    );
+    if (shouldReportShip) {
+      const fullOrder = await db.queryOne(
+        'SELECT transaction_id, delivery_address FROM order_info WHERE order_no = ?',
+        [orderNo]
+      );
+      if (fullOrder && fullOrder.transactionId) {
+        const deliveryType = order.type === 'delivery' ? 'delivery' : 'pickup';
+        const deliveryInfo = {
+          type: deliveryType,
+          deliverTime: new Date().toISOString(),
+          deliveredBy: req.user.openid,
+        };
+        const shipResult = await wxpay.uploadShippingInfo({
+          outTradeNo: orderNo,
+          transactionId: fullOrder.transactionId,
+          deliveryType,
+          deliverBy: req.user.openid,
+        });
+        await db.execute(
+          'UPDATE order_info SET delivery_info = ?, shipping_uploaded = ?, shipping_log = ? WHERE order_no = ?',
+          [
+            JSON.stringify(deliveryInfo),
+            shipResult.success ? 1 : 2,
+            JSON.stringify(shipResult),
+            orderNo,
+          ]
+        );
+        if (shipResult.success) {
+          logger.info(`[merchant] 微信发货上报成功: ${orderNo}`);
+        } else {
+          logger.warn(`[merchant] ⚠️ 微信发货上报失败: ${orderNo}`, shipResult.error);
+        }
+      } else {
+        logger.warn(`[merchant] ⚠️ 订单 ${orderNo} 缺少 transaction_id，跳过发货上报`);
+      }
+    }
+
     res.json({ success: true, code: 200, message: '操作成功' });
   } catch (err) {
     logger.error(`[merchant] 操作失败: ${err.message || '(无错误信息)'}`, err);

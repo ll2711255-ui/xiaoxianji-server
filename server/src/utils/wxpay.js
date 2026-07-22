@@ -370,6 +370,90 @@ async function createRefund({ out_trade_no, out_refund_no, total, refund, reason
   };
 }
 
+// ========== 发货信息上报（微信「订单发货管理」强制要求） ==========
+
+/**
+ * 上报发货信息到微信支付（2025 年强制新规）
+ *
+ * 实物电商类小程序必须接入「订单发货管理」，发货后调用此接口上报。
+ * 未接入会导致：
+ *   - 客户端支付被拦截（errno: 102）
+ *   - 未上报发货导致资金冻结、无法结算
+ *
+ * 文档参考：https://pay.weixin.qq.com/doc/v3/merchant/4012791856
+ *
+ * @param {object} params
+ * @param {string} params.outTradeNo  - 商户订单号
+ * @param {string} params.transactionId - 微信支付交易号（必填：发货必须以已支付为前提）
+ * @param {'express'|'same_city'|'pickup'} params.deliveryType - 发货类型
+ *   - 'express'    快递发货（需 carrier + trackingNo）
+ *   - 'same_city'  同城配送（商家自配，不填物流单号）
+ *   - 'pickup'     到店自提
+ * @param {string} [params.carrier]     - 快递公司编码（express 时必填）
+ * @param {string} [params.trackingNo]  - 快递单号（express 时必填）
+ * @param {string} [params.deliverBy]   - 发货人（店员姓名/ID）
+ * @returns {Promise<{success:boolean, error?:string}>}
+ */
+async function uploadShippingInfo({ outTradeNo, transactionId, deliveryType, carrier, trackingNo, deliverBy }) {
+  const path = '/v3/merchant/fund/shipping/notify';
+
+  // 配送类型映射为微信要求的枚举值
+  const deliveryTypeMap = {
+    delivery: 'same_city',   // 同城配送
+    pickup: 'self_pickup',   // 到店自提
+    express: 'express',       // 快递发货
+  };
+  const wxDeliveryType = deliveryTypeMap[deliveryType] || 'same_city';
+
+  const apiBody = {
+    out_trade_no: outTradeNo,
+    transaction_id: transactionId,
+    delivery_type: wxDeliveryType,
+    logistics_info: {},
+  };
+
+  // 快递发货：必须填物流信息
+  if (deliveryType === 'express') {
+    apiBody.logistics_info = {
+      express_company: carrier || '',
+      tracking_no: trackingNo || '',
+    };
+  }
+
+  // 自提/同城配送：上传发货时间和操作人
+  if (deliveryType === 'pickup' || deliveryType === 'delivery') {
+    apiBody.logistics_info = {
+      deliver_time: new Date().toISOString().replace('Z', '+08:00'),
+      deliver_by: deliverBy || '小鲜鸡店员',
+    };
+  }
+
+  logger.info('[wxpay] 上报发货信息:', JSON.stringify({
+    outTradeNo, transactionId, deliveryType: wxDeliveryType,
+    carrier: carrier || '无', trackingNo: trackingNo || '无',
+  }));
+
+  const result = await v3Request('POST', path, apiBody);
+
+  if (result.status === 200 || result.status === 204) {
+    logger.info(`[wxpay] 发货信息上报成功: ${outTradeNo}`);
+    return { success: true };
+  }
+
+  // 重复上报（已上报过）也算成功
+  if (result.data && (result.data.code === 'SHIPPING_ALREADY_EXISTS' || result.data.code === 'ORDER_ALREADY_SHIPPED')) {
+    logger.info(`[wxpay] 发货信息已存在（幂等）: ${outTradeNo}`);
+    return { success: true, alreadyReported: true };
+  }
+
+  logger.error('[wxpay] 发货信息上报失败:', JSON.stringify(result));
+  return {
+    success: false,
+    error: (result.data && result.data.message) || '发货信息上报失败',
+    raw: result.data,
+  };
+}
+
 // ========== 查询退款 ==========
 
 /**
@@ -534,6 +618,7 @@ module.exports = {
   queryOrder,
   closeOrder,
   createRefund,
+  uploadShippingInfo,
   queryRefund,
   verifyCallbackSign,
   decryptResource,
