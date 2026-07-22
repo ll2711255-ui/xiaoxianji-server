@@ -1,14 +1,14 @@
 /**
  * 用户路由 /api/user/*
  *
- * 头像上传 → 内容安全检测 → 保存文件 → 更新数据库
+ * 头像上传 → 异步内容安全检测 → 保存文件 → 标记待审核 → 回调生效
  */
 const router = require('express').Router();
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const { verifyToken } = require('../middleware/auth');
-const { checkImage } = require('../utils/secCheck');
+const { submitImageCheck } = require('../utils/secCheck');
 const db = require('../config/db');
 const logger = require('../utils/logger');
 
@@ -36,14 +36,22 @@ const upload = multer({
 
 /**
  * POST /api/user/avatar
- * 上传头像（含微信内容安全检测）
+ * 上传头像（含微信异步内容安全检测 media_check_async v2）
+ *
+ * 流程：
+ *   1. 接收文件 → 保存到磁盘
+ *   2. 构造公网 HTTPS URL
+ *   3. 提交 media_check_async 检测任务
+ *   4. 标记 avatar_review_status = 'pending' + 记录 trace_id
+ *   5. 返回头像 URL + 审核中状态
+ *   6. 微信异步回调 → 审核通过自动生效 / 违规替换为默认头像
  *
  * 小程序调用：
  *   uni.uploadFile({ url: '.../api/user/avatar', filePath, name: 'avatar', header: { Authorization: 'Bearer ...' } })
  *
  * 返回：
- *   成功 → { success: true, data: { avatarUrl: '/uploads/avatars/xxx.jpg' } }
- *   违规 → { success: false, code: 'CONTENT_RISK', message: '...' }
+ *   成功提交 → { success: true, data: { url: '...', reviewStatus: 'pending' } }
+ *   检测服务不可用 → { success: false, code: 'CONTENT_RISK', message: '...' }
  */
 router.post(
   '/avatar',
@@ -68,52 +76,60 @@ router.post(
         });
       }
 
-      // 3. 微信内容安全检测（imgSecCheck）
-      //    测试模式：URL 加 ?test_risk=1 模拟违规拦截，用于提审录屏
-      let checkResult;
+      // 3. 测试模式：URL 加 ?test_risk=1 模拟违规拦截，用于提审录屏
       if (req.query.test_risk) {
-        logger.info('[user] 🧪 测试模式 — 模拟 imgSecCheck 违规拦截');
-        checkResult = { pass: false, reason: '您上传的内容含违规信息，请重新选择头像' };
-      } else {
-        checkResult = await checkImage(req.file.buffer, openid, {
-          mimeType: req.file.mimetype,
-          filename: req.file.originalname,
-        });
-      }
-
-      if (!checkResult.pass) {
-        logger.warn('[user] 头像被 imgSecCheck 拦截, openid:', openid);
+        logger.info('[user] 🧪 测试模式 — 模拟 content security 违规拦截');
         return res.status(200).json({
           success: false,
           code: 'CONTENT_RISK',
-          message: checkResult.reason,
+          message: '您上传的内容含违规信息，请重新选择头像',
         });
       }
 
       // 4. 保存图片到磁盘
       const ext = path.extname(req.file.originalname) || '.jpg';
-      const filename = `avatar_${req.user.id}_${Date.now()}${ext}`;
+      const filename = 'avatar_' + req.user.id + '_' + Date.now() + ext;
       const filePath = path.join(AVATAR_DIR, filename);
 
       fs.writeFileSync(filePath, req.file.buffer);
 
-      // 5. 构造访问 URL
+      // 5. 构造公网 HTTPS URL
       const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
       const host = req.headers['x-forwarded-host'] || req.headers.host || 'www.xuaioxianji.top';
       const avatarUrl = protocol + '://' + host + '/uploads/avatars/' + filename;
 
-      // 6. 更新数据库 users 表头像字段
+      // 6. 提交异步内容安全检测（media_check_async v2）
+      const checkResult = await submitImageCheck(avatarUrl, openid);
+
+      if (!checkResult.success) {
+        // API 提交失败 → 按拦截处理（异步检测场景下不默认放行）
+        // 删除已保存的文件
+        try { fs.unlinkSync(filePath); } catch (_) { /* best effort */ }
+        logger.warn('[user] media_check_async 提交失败，拦截上传, openid:', openid);
+        return res.status(200).json({
+          success: false,
+          code: 'CONTENT_RISK',
+          message: checkResult.reason || '内容安全检测服务暂时不可用，请稍后重试',
+        });
+      }
+
+      // 7. 记录待审核状态 + trace_id（回调时匹配）
       await db.execute(
-        'UPDATE users SET avatar_url = ? WHERE id = ?',
-        [avatarUrl, req.user.id]
+        'UPDATE users SET avatar_pending_url = ?, avatar_trace_id = ?, avatar_review_status = ? WHERE id = ?',
+        [avatarUrl, checkResult.traceId, 'pending', req.user.id]
       );
 
-      logger.info('[user] 头像上传成功:', filename, `(${(req.file.size / 1024).toFixed(1)}KB)`);
+      logger.info('[user] 头像已提交审核:', filename,
+        'trace_id:', checkResult.traceId,
+        '(' + (req.file.size / 1024).toFixed(1) + 'KB)');
 
       res.json({
         success: true,
         code: 200,
-        data: { url: avatarUrl },
+        data: {
+          url: avatarUrl,
+          reviewStatus: 'pending',
+        },
       });
 
     } catch (err) {

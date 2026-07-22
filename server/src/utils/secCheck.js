@@ -205,4 +205,56 @@ async function checkText(content, openid) {
   }
 }
 
-module.exports = { checkImage, checkText };
+// ========== 异步图片内容安全检测（media_check_async v2） ==========
+
+/**
+ * 提交异步图片内容安全检测（media_check_async v2）
+ *
+ * 行业标准做法（对标朴朴/叮咚）：
+ *   先上传图片到云存储获取 HTTPS URL → 提交此接口 → 等待微信回调通知结果
+ *
+ * 优势：
+ *   - 无文件大小限制（同步版 img_sec_check 限制 1MB）
+ *   - 通过回调异步通知结果，避免阻塞上传流程
+ *   - 审核结果可追溯（trace_id）
+ *
+ * API 文档：https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/sec-center/sec-check/mediaCheckAsync.html
+ *
+ * @param {string} imageUrl  图片公网 HTTPS 地址
+ * @param {string} openid    用户 openid
+ * @returns {{ success: boolean, traceId?: string, reason?: string }}
+ */
+async function submitImageCheck(imageUrl, openid) {
+  try {
+    const token = await getAccessToken();
+
+    const res = await axios.post(
+      'https://api.weixin.qq.com/wxa/media_check_async?access_token=' + token,
+      {
+        media_url: imageUrl,
+        media_type: 1,  // 1=图片，2=音频
+        version: 2,     // v2 版本
+        scene: 2,       // 1=资料，2=评论，3=论坛，4=社交日志
+        openid: openid || '',
+      },
+      { timeout: 10000 }
+    );
+
+    logger.info('[secCheck] media_check_async 提交结果:', JSON.stringify(res.data));
+
+    if (res.data.errcode === 0 && res.data.trace_id) {
+      return { success: true, traceId: res.data.trace_id };
+    }
+
+    // 提交失败（非违规，是 API 调用失败）
+    logger.warn('[secCheck] media_check_async 提交失败:', res.data.errcode, res.data.errmsg);
+    return { success: false, reason: '内容安全检测服务暂时不可用，请稍后重试' };
+
+  } catch (err) {
+    // 网络错误/超时 → 按拦截处理（异步检测场景下，失败不应放行）
+    logger.error('[secCheck] media_check_async 调用失败:', err.message);
+    return { success: false, reason: '内容安全检测服务暂时不可用，请稍后重试' };
+  }
+}
+
+module.exports = { checkImage, checkText, submitImageCheck };

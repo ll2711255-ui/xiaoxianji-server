@@ -392,7 +392,13 @@ function uploadAvatarToServer(filePath) {
           const updated = { nickName: nickName.value, avatarUrl: data.data.url }
           uni.setStorageSync('userInfo', updated)
           avatarUrl.value = data.data.url
-          uni.showToast({ title: '头像更新成功', icon: 'success' })
+
+          // 异步审核中提示（media_check_async 场景）
+          if (data.data.reviewStatus === 'pending') {
+            uni.showToast({ title: '头像审核中，通过后将自动生效', icon: 'none', duration: 2500 })
+          } else {
+            uni.showToast({ title: '头像更新成功', icon: 'success' })
+          }
         } else {
           // 其他失败（网络错误等）
           uni.showToast({ title: data.message || '上传失败，请重试', icon: 'none' })
@@ -423,19 +429,30 @@ function onProfileNicknameBlur(e) {
 async function onSaveProfile() {
   const name = profileFormNickName.value.trim()
   if (name) {
-    nickName.value = name
-    const userInfo = uni.getStorageSync('userInfo') || {}
-    userInfo.nickName = name
-    uni.setStorageSync('userInfo', userInfo)
-
-    // 持久化到后端
+    // 持久化到后端（含内容安全检测）
     try {
-      await put('/auth/profile', { nickName: name })
+      const res = await put('/auth/profile', { nickName: name })
+      // 内容安全检测拦截
+      if (!res.success && res.code === 'CONTENT_RISK') {
+        uni.showModal({
+          title: '提示',
+          content: res.message || '您提交的内容含违规信息，请修改后重试',
+          showCancel: false,
+          confirmText: '我知道了'
+        })
+        return // 不关闭弹窗，让用户重新输入
+      }
     } catch (err) {
       console.error('[mine] 更新昵称失败:', err)
       uni.showToast({ title: '同步失败，请重试', icon: 'none' })
       return
     }
+
+    // 本地更新
+    nickName.value = name
+    const userInfo = uni.getStorageSync('userInfo') || {}
+    userInfo.nickName = name
+    uni.setStorageSync('userInfo', userInfo)
   }
   showProfileModal.value = false
   uni.showToast({ title: '资料已更新', icon: 'success' })

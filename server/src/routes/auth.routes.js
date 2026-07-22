@@ -11,6 +11,7 @@ const authService = require('../services/auth.service');
 const { verifyToken } = require('../middleware/auth');
 const { loginLimiter, checkLoginFailCount } = require('../middleware/loginLimiter');
 const rateLimiter = require('../middleware/rateLimiter');
+const { checkText } = require('../utils/secCheck');
 const logger = require('../utils/logger');
 
 // 小程序登录接口限流：每分钟最多 10 次
@@ -303,6 +304,19 @@ router.put('/profile', verifyToken, async (req, res) => {
     }
     if (avatarUrl !== undefined && typeof avatarUrl !== 'string') {
       return res.status(400).json({ success: false, code: 400, message: '头像地址格式不正确' });
+    }
+
+    // 微信文本内容安全检测（msgSecCheck v2）— 昵称违规实时拦截
+    if (nickName !== undefined && nickName.trim()) {
+      const textCheck = await checkText(nickName, req.user.openid);
+      if (!textCheck.pass) {
+        logger.warn('[auth] 昵称被 msgSecCheck 拦截:', req.user.openid);
+        return res.status(200).json({
+          success: false,
+          code: 'CONTENT_RISK',
+          message: textCheck.reason,
+        });
+      }
     }
 
     const result = await authService.updateProfile(req.user.openid, { nickName, avatarUrl });
