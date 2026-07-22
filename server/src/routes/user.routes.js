@@ -69,7 +69,14 @@ router.post(
       }
 
       // 3. 微信内容安全检测（imgSecCheck）
-      const checkResult = await checkImage(req.file.buffer, openid);
+      //    测试模式：URL 加 ?test_risk=1 模拟违规拦截，用于提审录屏
+      let checkResult;
+      if (req.query.test_risk) {
+        logger.info('[user] 🧪 测试模式 — 模拟 imgSecCheck 违规拦截');
+        checkResult = { pass: false, reason: '您上传的内容含违规信息，请重新选择头像' };
+      } else {
+        checkResult = await checkImage(req.file.buffer, openid);
+      }
 
       if (!checkResult.pass) {
         logger.warn('[user] 头像被 imgSecCheck 拦截, openid:', openid);
