@@ -306,34 +306,15 @@ function onEditProfile() {
 function onChooseAvatar(e) {
   const url = e.detail.avatarUrl
   if (!url) return
+
+  // 先展示本地预览，再异步上传（含内容安全检测）
   avatarUrl.value = url
   const userInfo = uni.getStorageSync('userInfo') || {}
   userInfo.avatarUrl = url
   uni.setStorageSync('userInfo', userInfo)
 
-  // 上传至后端 + 同步到用户资料
   // #ifdef MP-WEIXIN
-  const token = uni.getStorageSync('access_token') || ''
-  uni.uploadFile({
-    url: (import.meta.env.VITE_API_BASE_URL || 'https://www.xuaioxianji.top') + '/api/upload/image',
-    filePath: url,
-    name: 'file',
-    header: { 'Authorization': 'Bearer ' + token },
-    success: (res) => {
-      try {
-        const data = JSON.parse(res.data)
-        if (data.success && data.data && data.data.url) {
-          const updated = { nickName: nickName.value, avatarUrl: data.data.url }
-          uni.setStorageSync('userInfo', updated)
-          avatarUrl.value = data.data.url
-          // 持久化到后端
-          put('/auth/profile', { avatarUrl: data.data.url }).catch(err => {
-            console.error('[mine] 同步头像失败:', err)
-          })
-        }
-      } catch (_) {}
-    }
-  })
+  uploadAvatarToServer(url)
   // #endif
 }
 
@@ -345,7 +326,7 @@ function onPickAvatarFromAlbum() {
       const url = res.tempFilePaths[0]
       if (url) {
         avatarUrl.value = url
-        uploadProfileAvatar(url)
+        uploadAvatarToServer(url)
       }
     }
   })
@@ -359,32 +340,70 @@ function onPickAvatarFromCamera() {
       const url = res.tempFilePaths[0]
       if (url) {
         avatarUrl.value = url
-        uploadProfileAvatar(url)
+        uploadAvatarToServer(url)
       }
     }
   })
 }
 
-function uploadProfileAvatar(filePath) {
+/**
+ * 上传头像至服务端（含微信内容安全检测 imgSecCheck）
+ *
+ * 流程：
+ *   1. uni.uploadFile → POST /api/user/avatar
+ *   2. 服务端调 imgSecCheck 检测图片
+ *   3. 检测通过 → 保存文件 + 更新数据库 → 返回 avatarUrl
+ *   4. 检测违规 → 返回 CONTENT_RISK → 弹窗提示用户
+ *
+ * @param {string} filePath - 图片本地临时路径
+ */
+function uploadAvatarToServer(filePath) {
   const token = uni.getStorageSync('access_token') || ''
+
+  uni.showLoading({ title: '上传中...', mask: true })
+
   uni.uploadFile({
-    url: (import.meta.env.VITE_API_BASE_URL || 'https://www.xuaioxianji.top') + '/api/upload/image',
+    url: (import.meta.env.VITE_API_BASE_URL || 'https://www.xuaioxianji.top') + '/api/user/avatar',
     filePath,
-    name: 'file',
+    name: 'avatar',
     header: { 'Authorization': 'Bearer ' + token },
     success: (res) => {
+      uni.hideLoading()
       try {
         const data = JSON.parse(res.data)
+
+        // 内容安全检测拦截 → Modal 强提示（满足微信审核要求）
+        if (!data.success && data.code === 'CONTENT_RISK') {
+          uni.showModal({
+            title: '提示',
+            content: data.message || '您上传的内容含违规信息，请重新选择头像',
+            showCancel: false,
+            confirmText: '我知道了'
+          })
+          // 回滚本地预览
+          loadUserInfo()
+          return
+        }
+
         if (data.success && data.data && data.data.url) {
           const updated = { nickName: nickName.value, avatarUrl: data.data.url }
           uni.setStorageSync('userInfo', updated)
           avatarUrl.value = data.data.url
-          // 持久化到后端
-          put('/auth/profile', { avatarUrl: data.data.url }).catch(err => {
-            console.error('[mine] 同步头像失败:', err)
-          })
+          uni.showToast({ title: '头像更新成功', icon: 'success' })
+        } else {
+          // 其他失败（网络错误等）
+          uni.showToast({ title: data.message || '上传失败，请重试', icon: 'none' })
+          loadUserInfo()
         }
-      } catch (_) {}
+      } catch (_) {
+        uni.showToast({ title: '上传失败，请重试', icon: 'none' })
+        loadUserInfo()
+      }
+    },
+    fail: () => {
+      uni.hideLoading()
+      uni.showToast({ title: '上传失败，请重试', icon: 'none' })
+      loadUserInfo()
     }
   })
 }

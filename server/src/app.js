@@ -108,6 +108,9 @@ app.use('/api/merchant/accounts', require('./routes/merchant-account.routes'));
 // 支付方式管理路由（商家端，内部自带 verifyToken + requireMerchant）
 app.use('/api/payment-methods', require('./routes/payment-methods.routes'));
 
+// 用户路由（需登录，头像上传 + 内容安全检测）
+app.use('/api/user', require('./routes/user.routes'));
+
 // 文件上传路由（需登录，内部自行解析 multipart）
 app.use('/api/upload', require('./routes/upload.routes'));
 
