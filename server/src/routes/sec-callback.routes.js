@@ -61,6 +61,18 @@ router.get('/media-check', (req, res) => {
   const raw = arr.join('');
   const hash = crypto.createHash('sha1').update(raw).digest('hex');
 
+  // 详细诊断日志（排查签名不匹配）
+  logger.info('[sec-callback] GET 验证参数:', JSON.stringify({
+    signature,
+    timestamp,
+    nonce,
+    echostr: echostr.substring(0, 6) + '...',
+    token: WX_PUSH_TOKEN,
+    sorted: arr,
+    raw: raw.substring(0, 40) + '...',
+    computed: hash,
+  }));
+
   if (hash === signature) {
     logger.info('[sec-callback] URL 验证通过');
     return res.send(echostr);
