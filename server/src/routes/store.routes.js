@@ -93,11 +93,19 @@ router.put('/banners', verifyToken, requireMerchant, async (req, res) => {
     }
 
     // 全量替换
-    await db.execute("DELETE FROM banners WHERE status = 'on' OR status = 'off'");
+    await db.execute("DELETE FROM banners");
     for (const b of banners) {
+      // 前端字段名为 image（上传返回）, 兼顾 imageUrl / image_url（旧数据兼容）
+      const imageUrl = b.image || b.imageUrl || b.image_url || '';
+      const title = b.title || '';
+      const subtitle = b.subtitle || '';
+      const bg = b.bg || '#FFF8F5';
+      const sort = b.sort || 0;
+      const status = b.status || (b.statusOn ? 'on' : 'off');
+
       await db.insert(
-        'INSERT INTO banners (image_url, link_url, sort, status) VALUES (?, ?, ?, ?)',
-        [b.imageUrl || b.image_url, b.linkUrl || b.link_url || '', b.sort || 0, 'on']
+        'INSERT INTO banners (image_url, title, subtitle, bg_color, sort, status) VALUES (?, ?, ?, ?, ?, ?)',
+        [imageUrl, title, subtitle, bg, sort, status]
       );
     }
 
