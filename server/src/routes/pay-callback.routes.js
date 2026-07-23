@@ -152,6 +152,10 @@ router.post('/', async (req, res) => {
     const { redis } = require('../config/db');
     await redis.zrem('order:timeout:queue', outTradeNo);
 
+    // 推送新订单到商家端（微信支付）
+    const { emitNewPaidOrder } = require('../socket');
+    emitNewPaidOrder(outTradeNo);
+
     payLogger.info(`[pay-callback] ✅ 支付成功处理完成: ${outTradeNo} tx=${transactionId}`);
   } catch (err) {
     payLogger.error(`[pay-callback] 更新订单失败: ${outTradeNo}`, err.message);
@@ -369,6 +373,10 @@ alipayCallbackRouter.post('/', async (req, res) => {
     const { redis } = require('../config/db');
     await redis.zrem('order:timeout:queue', outTradeNo);
 
+    // 推送新订单到商家端（支付宝支付）
+    const { emitNewPaidOrder } = require('../socket');
+    emitNewPaidOrder(outTradeNo);
+
     payLogger.info(`[alipay-callback] ✅ 支付成功处理完成: ${outTradeNo} tradeNo=${tradeNo}`);
   } catch (err) {
     payLogger.error(`[alipay-callback] 更新订单失败: ${outTradeNo}`, err.message);
@@ -492,6 +500,10 @@ router.post('/tt', async (req, res) => {
 
     const { redis } = require('../config/db');
     await redis.zrem('order:timeout:queue', outTradeNo);
+
+    // 推送新订单到商家端（抖音支付）
+    const { emitNewPaidOrder } = require('../socket');
+    emitNewPaidOrder(outTradeNo);
 
     payLogger.info(`[tt-callback] ✅ 支付成功处理完成: ${outTradeNo} paymentOrderNo=${paymentOrderNo}`);
   } catch (err) {

@@ -73,13 +73,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/utils/api'
+import { useSocket } from '@/composables/useSocket'
+import { useNotification } from '@/composables/useNotification'
 import OrderStatusTag from '@/components/OrderStatusTag.vue'
 
 const router = useRouter()
+const { onNewPaidOrder } = useSocket()
+const { notify } = useNotification()
 
 const segment = ref('online')
 const segmentOptions = [
@@ -207,7 +211,31 @@ async function loadStats() {
   } catch (err) { console.error('加载统计失败:', err) }
 }
 
-onMounted(() => { loadOrders(); loadStats() })
+// 新订单推送处理
+function handleNewPaidOrder(order) {
+  // 更新对应统计计数
+  onlineStats[0].count++
+  // 如果不在"新订单"tab，弹出通知
+  if (tabIndex.value !== 0) {
+    notify("🔔 新订单提醒", `订单 ${order.orderNo} 已支付（¥${(order.payAmount / 100).toFixed(2)}）`, {
+      vibrate: true, sound: true,
+      onClick: () => { tabIndex.value = 0; loadOrders(); loadStats() },
+    })
+  } else {
+    // 在"新订单"tab → 自动刷新列表
+    loadOrders()
+    loadStats()
+  }
+}
+
+let _unsubNewOrder = null
+onMounted(() => {
+  loadOrders(); loadStats()
+  _unsubNewOrder = onNewPaidOrder(handleNewPaidOrder)
+})
+onUnmounted(() => {
+  if (_unsubNewOrder) _unsubNewOrder()
+})
 </script>
 
 <style scoped>

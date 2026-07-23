@@ -2,6 +2,7 @@
  * 服务启动入口 — 含启动前连接预检（MySQL + Redis）
  * 预检失败则重试，彻底失败则退出让 PM2 重启，避免"服务已启动但所有请求 500"
  */
+const http = require('http');
 const config = require('./config');
 const logger = require('./utils/logger');
 
@@ -113,8 +114,13 @@ async function preflightCheck(maxRetries = 5, delayMs = 3000) {
     logger.error('[启动] 库存预热异常:', err.message);
   }
 
-  // 3. 启动 HTTP 服务
-  app.listen(PORT, async () => {
+  // 3. 创建 HTTP Server + 绑定 Socket.IO
+  const { initSocket } = require('./socket');
+  const httpServer = http.createServer(app);
+  initSocket(httpServer);
+
+  // 4. 启动 HTTP 服务
+  httpServer.listen(PORT, async () => {
     logger.info(`✅ 小鲜鸡服务端已启动 → http://localhost:${PORT}`);
 
     // 检查支付配置

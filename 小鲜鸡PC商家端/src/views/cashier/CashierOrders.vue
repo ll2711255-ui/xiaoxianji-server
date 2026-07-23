@@ -73,13 +73,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/utils/api'
+import { useSocket } from '@/composables/useSocket'
+import { useNotification } from '@/composables/useNotification'
 import OrderStatusTag from '@/components/OrderStatusTag.vue'
 
 const router = useRouter()
+const { onNewPaidOrder } = useSocket()
+const { notify } = useNotification()
 
 const segment = ref('online')
 const segmentOptions = [
@@ -207,7 +211,25 @@ async function loadStats() {
   } catch (err) { console.error('加载统计失败:', err) }
 }
 
-onMounted(() => { loadOrders(); loadStats() })
+function handleNewPaidOrder(order) {
+  onlineStats[0].count++
+  if (tabIndex.value !== 0) {
+    notify("🔔 新订单提醒", `订单 ${order.orderNo} 已支付`, {
+      vibrate: true, sound: true,
+      onClick: () => { tabIndex.value = 0; loadOrders(); loadStats() },
+    })
+  } else {
+    loadOrders(); loadStats()
+  }
+}
+let _unsubNewOrder = null
+onMounted(() => {
+  loadOrders(); loadStats()
+  _unsubNewOrder = onNewPaidOrder(handleNewPaidOrder)
+})
+onUnmounted(() => {
+  if (_unsubNewOrder) _unsubNewOrder()
+})
 </script>
 
 <style scoped>

@@ -61,6 +61,7 @@ import { User, Lock } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { detectMobile } from '@/utils/platform'
+import { useSocket } from '@/composables/useSocket'
 import api from '@/utils/api'
 
 const router = useRouter()
@@ -90,6 +91,10 @@ async function onLogin() {
     if (res && res.success) {
       const d = res.data
       authStore.setAuth(d.token, d.refreshToken, d.userInfo)
+
+      // 建立 WebSocket 连接（接收实时订单推送）
+      const { connect } = useSocket()
+      connect()
 
       // 根据角色和平台路由到不同界面
       if (isMobile) {

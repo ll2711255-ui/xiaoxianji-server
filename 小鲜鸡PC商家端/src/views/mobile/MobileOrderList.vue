@@ -46,6 +46,7 @@ import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/utils/api'
+import { useSocket } from '@/composables/useSocket'
 import OrderCard from '@/components/mobile/OrderCard.vue'
 import { useScanner } from '@/composables/useScanner'
 import { useNotification } from '@/composables/useNotification'
@@ -53,6 +54,7 @@ import { useNotification } from '@/composables/useNotification'
 const router = useRouter()
 const { scan } = useScanner()
 const { notify } = useNotification()
+const { onNewPaidOrder } = useSocket()
 
 const tabs = ['待接单', '已接单', '处理中', '待取货', '已完成']
 const statusMap = ['paid', 'accepted,weighed,processing,delivering', 'accepted,weighed,processing', 'ready', 'completed']
@@ -65,9 +67,8 @@ const hasMore = ref(false)
 const tabCounts = reactive({})
 const page = ref(1)
 
-// 新订单轮询
-let _pollTimer = null
-let _lastPaidCount = 0
+// Socket 推送监听（替代旧轮询）
+let _unsubNewOrder = null
 
 const ORDER_ACTIONS = {
   paid: [
@@ -151,29 +152,24 @@ async function onScan() {
   }
 }
 
-// 轮询新订单（前台活跃时）
-function startPoll() {
-  _pollTimer = setInterval(async () => {
-    try {
-      const res = await api.get('/merchant/orders', { status: 'paid', pageSize: 200, type: 'delivery,pickup' })
-      const currentCount = (res && res.data && res.data.orders) ? res.data.orders.length : 0
-      if (_lastPaidCount > 0 && currentCount > _lastPaidCount) {
-        const delta = currentCount - _lastPaidCount
-        notify('🔔 新订单提醒', `有 ${delta} 个新订单等待接单`, {
-          vibrate: true,
-          sound: true,
-          onClick: () => router.push('/mobile/orders')
-        })
-      }
-      _lastPaidCount = currentCount
-      tabCounts[0] = currentCount
-    } catch (_) { /* 静默失败 */ }
-  }, 30000)
+// 收到新订单推送
+function handleNewPaidOrder(order) {
+  tabCounts[0] = (tabCounts[0] || 0) + 1
+  notify("🔔 新订单", `${order.orderNo} 已支付（¥${(order.payAmount / 100).toFixed(2)}）`, {
+    vibrate: true, sound: true,
+    onClick: () => { tabIndex.value = 0; loadOrders() },
+  })
+  // 在待接单 tab 时自动刷新
+  if (tabIndex.value === 0) loadOrders()
 }
 
 onMounted(() => {
   loadOrders()
-  startPoll()
+  _unsubNewOrder = onNewPaidOrder(handleNewPaidOrder)
+})
+
+onUnmounted(() => {
+  if (_unsubNewOrder) _unsubNewOrder()
 })
 
 onUnmounted(() => {

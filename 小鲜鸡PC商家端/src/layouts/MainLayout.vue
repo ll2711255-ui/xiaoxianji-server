@@ -140,14 +140,19 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useSocket } from '@/composables/useSocket'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const { connect, disconnect } = useSocket()
 const collapsed = ref(false)
+
+onMounted(() => { connect() })
+onUnmounted(() => { disconnect() })
 
 const currentZone = computed(() => {
   return route.path.startsWith('/cashier') ? 'cashier' : 'admin'
@@ -175,6 +180,7 @@ function switchZone(zone) {
 }
 
 function onLogout() {
+  disconnect()
   authStore.clearAuth()
   router.push('/login')
 }

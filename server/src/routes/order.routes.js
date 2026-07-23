@@ -169,6 +169,10 @@ router.post('/:orderNo/pay', async (req, res) => {
         for (const item of items) {
           await stockService.confirmStock(item.productId, 'default', item.quantity);
         }
+
+        // 推送新订单到商家端（模拟支付）
+        const { emitNewPaidOrder } = require('../socket');
+        emitNewPaidOrder(orderNo);
       }
 
       return res.json({ success: true, code: 200, data: { orderNo, status: 'paid' } });
