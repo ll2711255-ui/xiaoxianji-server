@@ -88,19 +88,18 @@ router.post(
       const host = req.headers['x-forwarded-host'] || req.headers.host || 'www.xuaioxianji.top';
       const avatarUrl = protocol + '://' + host + '/uploads/avatars/' + filename;
 
-      // 5. 提交异步内容安全检测
-      let traceId = '';
-      let reviewStatus = 'unchecked';
-      try {
-        const checkResult = await submitImageCheck(avatarUrl, req.user.openid);
-        if (checkResult.success) {
-          traceId = checkResult.traceId;
-          reviewStatus = 'pending';
-        } else {
-          logger.warn('[user] media_check_async 提交失败，头像暂存待审:', req.user.openid);
-        }
-      } catch (err) {
-        logger.error('[user] media_check_async 异常:', err.message);
+      // 5. 提交异步内容安全检测（必须成功，否则不保存头像）
+      const checkResult = await submitImageCheck(avatarUrl, req.user.openid);
+
+      if (!checkResult.success) {
+        // 审核提交失败 → 删除已保存的文件 → 返回错误
+        try { fs.unlinkSync(filePath); } catch (_) { /* best effort */ }
+        logger.warn('[user] media_check_async 提交失败，头像未保存:', req.user.openid);
+        return res.status(200).json({
+          success: false,
+          code: 'CONTENT_RISK',
+          message: checkResult.reason || '内容安全检测服务异常，请稍后重试',
+        });
       }
 
       // 6. 暂存新头像（不覆盖 avatar_url，旧头像继续显示）
@@ -108,13 +107,12 @@ router.post(
       //    审核违规 → 回调删除 pending 文件，旧头像不变
       await db.execute(
         'UPDATE users SET avatar_pending_url = ?, avatar_trace_id = ?, avatar_review_status = ? WHERE id = ?',
-        [avatarUrl, traceId, reviewStatus, req.user.id]
+        [avatarUrl, checkResult.traceId, 'pending', req.user.id]
       );
 
       logger.info('[user] 头像已提交审核:', filename,
         '(' + (req.file.size / 1024).toFixed(1) + 'KB)',
-        'trace_id:', traceId || '(无)',
-        'status:', reviewStatus);
+        'trace_id:', checkResult.traceId);
 
       res.json({
         success: true,

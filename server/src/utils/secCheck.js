@@ -136,19 +136,19 @@ async function checkImage(imageBuffer, openid, opts = {}) {
       if (res2.data.errcode === 0) return { pass: true, reason: '' };
       if (res2.data.errcode === 87014) return { pass: false, reason: '您上传的内容含违规信息，请重新选择头像' };
 
-      // 重试后仍异常 → 默认放行
+      // 重试后仍异常 → 拦截
       logger.warn('[secCheck] imgSecCheck 重试后仍异常:', res2.data.errcode, res2.data.errmsg);
-      return { pass: true, reason: '' };
+      return { pass: false, reason: '内容安全检测服务异常，请稍后重试' };
     }
 
-    // 其他异常码（如限频等）默认放行
+    // 其他异常码 → 拦截（宁可误拦也不放过）
     logger.warn('[secCheck] imgSecCheck 异常码:', res.data.errcode, res.data.errmsg);
-    return { pass: true, reason: '' };
+    return { pass: false, reason: '内容安全检测服务异常，请稍后重试' };
 
   } catch (err) {
-    // 网络错误/超时 → 默认放行，避免影响正常用户
+    // 网络错误/超时 → 拦截（微信不通就不能上传）
     logger.error('[secCheck] imgSecCheck 调用失败:', err.message);
-    return { pass: true, reason: '' };
+    return { pass: false, reason: '内容安全检测服务异常，请稍后重试' };
   }
 }
 
@@ -195,13 +195,14 @@ async function checkText(content, openid) {
       return { pass: false, reason: '您提交的内容含违规信息，请修改后重试' };
     }
 
-    // 其他异常码默认放行
+    // 其他异常码也拦截（宁可误拦也不放过）
     logger.warn('[secCheck] msgSecCheck 异常码:', res.data.errcode, res.data.errmsg);
-    return { pass: true, reason: '' };
+    return { pass: false, reason: '内容安全检测服务异常，请稍后重试' };
 
   } catch (err) {
+    // 网络错误/超时也拦截（微信不通就不能改昵称）
     logger.error('[secCheck] msgSecCheck 调用失败:', err.message);
-    return { pass: true, reason: '' };
+    return { pass: false, reason: '内容安全检测服务异常，请稍后重试' };
   }
 }
 
