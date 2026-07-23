@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <view class="page">
     <!-- ========== 配送/自取 Tab ========== -->
     <view class="tab-bar">
@@ -146,7 +146,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
-import { get, post, isLoggedIn } from '@/utils/request'
+import { get, post, put, isLoggedIn } from '@/utils/request'
 import { formatMoney } from '@/utils/util'
 import { callPay } from '@/utils/pay'
 import { calcDrivingDistance, geocodeAddress } from '@/utils/map'
@@ -545,6 +545,10 @@ function callWxPay(orders) {
     const remaining = cart.filter(c => !purchasedKeys.has(c.cartKey))
     uni.setStorageSync('cart', remaining)
     uni.removeStorageSync('checkoutItems')
+    // 同步到服务端（fire and forget）
+    if (isLoggedIn()) {
+      put('/cart', { items: remaining }).catch(() => {})
+    }
   }
 
   callPay({

@@ -12,7 +12,10 @@ export default defineConfig({
     preprocessorOptions: {
       scss: {
         // 全局注入 SCSS 变量（所有页面和组件均可使用）
-        additionalData: `@import "@/styles/tokens.scss";`
+        // 使用 @use ... as * 替代已废弃的 @import
+        additionalData: `@use "@/styles/tokens.scss" as *;\n`,
+        // 静默 Sass 依赖传递的废弃警告（非本代码产生）
+        silenceDeprecations: ['legacy-js-api']
       }
     }
   }

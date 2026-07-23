@@ -14,8 +14,8 @@ async function getProducts({ categoryId, keyword, page = 1, pageSize = 20, statu
     params.push(categoryId);
   }
   if (keyword) {
-    sql += ' AND name LIKE ?';
-    params.push(`%${keyword}%`);
+    sql += ' AND (name LIKE ? OR selling_point LIKE ? OR description LIKE ?)';
+    params.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
   }
   if (status && status !== 'all') {
     sql += ' AND status = ?';

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <view class="page">
     <!-- ========== 搜索全屏浮层 ========== -->
     <view v-if="showSearch" class="search-overlay" @touchmove.stop>
@@ -430,22 +430,41 @@ function onSearchTap() {
   searchHasNoResult.value = false
 }
 
-function onSearchInput() {
+let _searchTimer = null
+
+/**
+ * 搜索输入 → 调服务端 API 搜索（300ms 防抖）
+ * 替代原来的前端全量过滤，支持更多商品
+ */
+async function onSearchInput() {
   const keyword = searchKeyword.value.trim()
   if (!keyword) {
     searchResults.value = []
     searchHasNoResult.value = false
     return
   }
-  const lower = keyword.toLowerCase()
-  const results = allProducts.value.filter(p => {
-    if (p.outOfStock) return false
-    return (p.name && p.name.toLowerCase().includes(lower)) ||
-           (p.sellingPoint && p.sellingPoint.toLowerCase().includes(lower)) ||
-           (p.description && p.description.toLowerCase().includes(lower))
-  })
-  searchResults.value = results
-  searchHasNoResult.value = results.length === 0
+
+  if (_searchTimer) clearTimeout(_searchTimer)
+  _searchTimer = setTimeout(async () => {
+    try {
+      const res = await get('/products', { keyword, pageSize: 20 })
+      const products = (res && res.data && res.data.products) || []
+      searchResults.value = products.map(p => ({
+        ...p,
+        _id: p._id || p.id,
+        displayPrice: getDisplayPrice(p),
+        priceLabel: getPriceLabel(p),
+        sellingPoint: p.selling_point || p.sellingPoint || p.description || '',
+        specSummary: getSpecSummary(p),
+        images: normalizeImages(p.images)
+      })).filter(p => !p.outOfStock)
+      searchHasNoResult.value = searchResults.value.length === 0
+    } catch (err) {
+      console.error('[index] 搜索请求失败:', err)
+      searchResults.value = []
+      searchHasNoResult.value = true
+    }
+  }, 300)
 }
 
 function onSearchClear() {
@@ -470,7 +489,7 @@ function onSearchConfirm() {
   if (history.length > 10) history = history.slice(0, 10)
   uni.setStorageSync('search_history', history)
   searchHistory.value = history
-  if (searchResults.value.length === 0) onSearchInput()
+  // 搜索已由 onSearchInput 防抖触发，无需重复调用
 }
 
 function onHistoryTap(keyword) {

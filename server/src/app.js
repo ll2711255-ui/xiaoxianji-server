@@ -98,6 +98,7 @@ app.use('/api/categories', require('./routes/category.routes'));
 
 // 需登录的路由（verifyToken 解析 JWT 附加 req.user）
 const { verifyToken } = require('./middleware/auth');
+app.use('/api/cart', verifyToken, require('./routes/cart.routes'));
 app.use('/api/orders', verifyToken, require('./routes/order.routes'));
 app.use('/api/addresses', verifyToken, require('./routes/address.routes'));
 app.use('/api/pai-numbers', verifyToken, require('./routes/pai-number.routes'));

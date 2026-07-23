@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <view class="page">
     <!-- 空购物车 -->
     <view v-if="isEmpty" class="empty-state">
@@ -69,6 +69,7 @@
 <script setup>
 import { ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
+import { get, put, isLoggedIn } from '@/utils/request'
 import { formatMoney } from '@/utils/util'
 
 // ========== State ==========
@@ -83,9 +84,49 @@ onShow(() => {
   loadCart()
 })
 
-// ========== 加载购物车 ==========
-function loadCart() {
-  const cart = uni.getStorageSync('cart') || []
+// ========== 加载购物车（本地优先 → 服务端合并） ==========
+async function loadCart() {
+  const localCart = uni.getStorageSync('cart') || []
+
+  // 如果已登录，尝试从服务端加载（服务端数据优先）
+  if (isLoggedIn()) {
+    try {
+      const res = await get('/cart')
+      const serverCart = (res && res.data && res.data.cart) || []
+      if (serverCart.length > 0) {
+        // 服务端有数据 → 以服务端为准
+        uni.setStorageSync('cart', serverCart)
+        renderCart(serverCart)
+        return
+      } else if (localCart.length > 0) {
+        // 服务端空但本地有数据 → 推送到服务端
+        syncCartToServer(localCart)
+      }
+    } catch (err) {
+      console.error('[cart] 服务端加载失败，使用本地:', err)
+    }
+  }
+
+  renderCart(localCart)
+}
+
+// ========== 保存购物车（本地 + 服务端双写） ==========
+function saveCart(cart) {
+  uni.setStorageSync('cart', cart)
+  syncCartToServer(cart)
+}
+
+async function syncCartToServer(cart) {
+  if (!isLoggedIn()) return
+  try {
+    await put('/cart', { items: cart })
+  } catch (err) {
+    console.error('[cart] 服务端同步失败:', err)
+  }
+}
+
+// ========== 渲染 ==========
+function renderCart(cart) {
   const items = cart.map((item, index) => ({
     ...item,
     cartKey: item.cartKey || `${item.productId}_${item.spec?.type || ''}_${item.spec?.weight || ''}_${item.spec?.processing || ''}_${item.spec?.delivery || ''}_${index}`,
@@ -110,15 +151,15 @@ function onCheckItem(index, checked) {
   const cart = uni.getStorageSync('cart') || []
   if (index < 0 || index >= cart.length) return
   cart[index].checked = checked
-  uni.setStorageSync('cart', cart)
-  loadCart()
+  saveCart(cart)
+  renderCart(cart)
 }
 
 function onCheckAll(checked) {
   const cart = uni.getStorageSync('cart') || []
   cart.forEach(item => { item.checked = checked })
-  uni.setStorageSync('cart', cart)
-  loadCart()
+  saveCart(cart)
+  renderCart(cart)
 }
 
 function onQuantityChange(index, delta) {
@@ -126,8 +167,8 @@ function onQuantityChange(index, delta) {
   if (index < 0 || index >= cart.length) return
   cart[index].quantity += delta
   if (cart[index].quantity <= 0) cart.splice(index, 1)
-  uni.setStorageSync('cart', cart)
-  loadCart()
+  saveCart(cart)
+  renderCart(cart)
 }
 
 function onDeleteItem(index) {
@@ -138,8 +179,8 @@ function onDeleteItem(index) {
       if (res.confirm) {
         const cart = uni.getStorageSync('cart') || []
         cart.splice(index, 1)
-        uni.setStorageSync('cart', cart)
-        loadCart()
+        saveCart(cart)
+  renderCart(cart)
       }
     }
   })
