@@ -123,53 +123,41 @@
       @login-success="onLoginSuccess"
     />
 
-    <!-- ========== 资料编辑弹窗 ========== -->
+    <!-- ========== 资料编辑弹窗（仅微信头像+微信昵称） ========== -->
     <view v-if="showProfileModal" class="modal-mask" @click="showProfileModal = false">
       <view class="modal-card" @click.stop>
         <text class="modal-title">编辑资料</text>
 
-        <!-- 头像修改 -->
+        <!-- 头像修改 — 仅微信头像 -->
+        <!-- #ifdef MP-WEIXIN -->
         <view class="edit-section">
           <text class="edit-label">头像</text>
-          <view class="avatar-options">
-            <!-- #ifdef MP-WEIXIN -->
-            <button class="avatar-option-btn" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">
-              <image class="option-icon" src="/static/icons/brand/profile-wechat.png" mode="aspectFit" />
-              <text class="option-text">微信头像</text>
-            </button>
-            <!-- #endif -->
-            <view class="avatar-option-btn" @click="onPickAvatarFromAlbum">
-              <image class="option-icon" src="/static/icons/brand/profile-album.png" mode="aspectFit" />
-              <text class="option-text">相册上传</text>
+          <button class="avatar-wx-btn" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">
+            <image
+              class="wx-avatar-preview"
+              :src="avatarUrl || '/static/icons/avatar/avatar-default.png'"
+              mode="aspectFill"
+            />
+            <view class="wx-avatar-hint">
+              <text>点击使用微信头像</text>
             </view>
-            <view class="avatar-option-btn" @click="onPickAvatarFromCamera">
-              <image class="option-icon" src="/static/icons/brand/profile-camera.png" mode="aspectFit" />
-              <text class="option-text">拍照</text>
-            </view>
-          </view>
+          </button>
         </view>
+        <!-- #endif -->
 
-        <!-- 昵称修改 -->
+        <!-- 昵称修改 — 仅微信昵称 -->
+        <!-- #ifdef MP-WEIXIN -->
         <view class="edit-section">
           <text class="edit-label">昵称</text>
-          <!-- #ifdef MP-WEIXIN -->
           <input
             class="nickname-edit-input"
             type="nickname"
             :value="profileFormNickName"
-            placeholder="请输入昵称（可使用微信昵称）"
+            placeholder="点击使用微信昵称"
             @blur="onProfileNicknameBlur"
           />
-          <!-- #endif -->
-          <!-- #ifndef MP-WEIXIN -->
-          <input
-            class="nickname-edit-input"
-            :value="profileFormNickName"
-            placeholder="请输入昵称"
-            @blur="onProfileNicknameBlur"
-          />
-          <!-- #endif -->
         </view>
+        <!-- #endif -->
 
         <!-- 保存 -->
         <view class="profile-save-btn" @click="onSaveProfile">
@@ -320,34 +308,6 @@ function onChooseAvatar(e) {
   // #ifdef MP-WEIXIN
   uploadAvatarToServer(url)
   // #endif
-}
-
-function onPickAvatarFromAlbum() {
-  uni.chooseImage({
-    count: 1,
-    sourceType: ['album'],
-    success: (res) => {
-      const url = res.tempFilePaths[0]
-      if (url) {
-        avatarUrl.value = url
-        uploadAvatarToServer(url)
-      }
-    }
-  })
-}
-
-function onPickAvatarFromCamera() {
-  uni.chooseImage({
-    count: 1,
-    sourceType: ['camera'],
-    success: (res) => {
-      const url = res.tempFilePaths[0]
-      if (url) {
-        avatarUrl.value = url
-        uploadAvatarToServer(url)
-      }
-    }
-  })
 }
 
 /**
@@ -641,12 +601,15 @@ function onLogout() {
 .edit-section { margin-bottom:24rpx; }
 .edit-label { font-size:var(--font-base); font-weight:var(--weight-medium); color:var(--color-text-1); display:block; margin-bottom:16rpx; }
 
-.avatar-options { display:flex; gap:16rpx; }
-.avatar-option-btn { flex:1; display:flex; flex-direction:column; align-items:center; padding:20rpx 0; background:var(--color-bg-page); border-radius:var(--radius-md); border:none; }
-.avatar-option-btn::after { border:none; }
-.option-icon { width:40rpx; height:40rpx; margin-bottom:8rpx; }
-.brand-logo-sm { width:64rpx; height:64rpx; }
-.option-text { font-size:var(--font-sm); color:var(--color-text-2); }
+/* 微信头像按钮 */
+.avatar-wx-btn {
+  display:flex; align-items:center; gap:24rpx; width:100%;
+  padding:20rpx 24rpx; background:var(--color-bg-page);
+  border-radius:var(--radius-md); border:none; margin:0;
+}
+.avatar-wx-btn::after { border:none; }
+.wx-avatar-preview { width:88rpx; height:88rpx; border-radius:var(--radius-full); background:var(--color-bg-card); flex-shrink:0; }
+.wx-avatar-hint { flex:1; text-align:left; font-size:var(--font-base); color:var(--color-text-2); }
 
 .nickname-edit-input { width:100%; height:80rpx; background:var(--color-bg-page); border-radius:var(--radius-md); padding:0 20rpx; font-size:var(--font-base); color:var(--color-text-1); box-sizing:border-box; }
 
