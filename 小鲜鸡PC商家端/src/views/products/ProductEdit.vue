@@ -330,11 +330,18 @@ async function loadProduct() {
       const procSet = new Set()
       let ti = 0
       specs.forEach(s => {
-        if (!typeMap[s.type]) { ti++; typeMap[s.type] = { idx: ti, type: s.type, price_per_jin: (s.price_per_jin || 0) / 100, weightConfigs: [] } }
-        typeMap[s.type].weightConfigs.push({ idx: typeMap[s.type].weightConfigs.length + 1, weight_label: s.weight_label, weight_max: s.weight_max })
+        if (!typeMap[s.type]) { ti++; typeMap[s.type] = { idx: ti, type: s.type, price_per_jin: (s.price_per_jin || 0) / 100, weightConfigs: [], _weightSet: new Set() } }
+        // 按 weight_label + weight_max 去重，防止 generateSpecs 笛卡尔积导致的重复
+        const wKey = `${s.weight_label}||${s.weight_max}`
+        if (!typeMap[s.type]._weightSet.has(wKey)) {
+          typeMap[s.type]._weightSet.add(wKey)
+          typeMap[s.type].weightConfigs.push({ idx: typeMap[s.type].weightConfigs.length + 1, weight_label: s.weight_label, weight_max: s.weight_max })
+        }
         procSet.add(s.processing)
       })
       form.typeConfigs = Object.values(typeMap)
+      // 清理临时去重 Set，不带到 form 数据里
+      form.typeConfigs.forEach(tc => { delete tc._weightSet })
       checkedProcOpts.value = [...procSet]
     }
   } catch (err) { console.error('加载商品失败:', err); ElMessage.error('加载商品失败') }

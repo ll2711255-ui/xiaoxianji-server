@@ -60,10 +60,12 @@ import { useRouter } from 'vue-router'
 import { User, Lock } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
+import { detectMobile } from '@/utils/platform'
 import api from '@/utils/api'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const isMobile = detectMobile()
 const formRef = ref(null)
 const loading = ref(false)
 const loginType = ref('manager') // 'manager' | 'employee'
@@ -89,8 +91,10 @@ async function onLogin() {
       const d = res.data
       authStore.setAuth(d.token, d.refreshToken, d.userInfo)
 
-      // 根据角色路由到不同界面
-      if (d.userInfo.role === 'staff') {
+      // 根据角色和平台路由到不同界面
+      if (isMobile) {
+        router.push('/mobile/orders')
+      } else if (d.userInfo.role === 'staff') {
         router.push('/cashier')
       } else {
         router.push('/dashboard')
@@ -124,9 +128,11 @@ async function onLogin() {
 .login-page {
   height: 100vh; display: flex; align-items: center; justify-content: center;
   background: linear-gradient(135deg, #D4420A 0%, #F5A623 100%);
+  padding: 0 16px;
 }
 .login-card {
-  width: 440px; padding: 40px; background: #fff; border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+  width: 100%; max-width: 440px; padding: 40px 32px; background: #fff;
+  border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.2);
 }
 .login-title {
   text-align: center; font-size: 26px; color: #333; margin-bottom: 24px; font-weight: 700;
@@ -151,5 +157,19 @@ async function onLogin() {
 }
 .login-hint {
   text-align: center; color: #bbb; font-size: 12px; margin-top: 4px;
+}
+
+/* 小屏适配 */
+@media (max-width: 480px) {
+  .login-card {
+    padding: 28px 20px;
+  }
+  .login-title {
+    font-size: 22px;
+  }
+  .login-tab {
+    font-size: 13px;
+    padding: 10px 4px;
+  }
 }
 </style>

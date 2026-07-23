@@ -200,11 +200,6 @@ const isDev = ref(false)
 const uploading = ref(false) // 防止并发上传
 const savingProfile = ref(false) // 防止重复保存
 
-// ========== 提审录屏开关 ==========
-// 改为 true → 所有头像上传都触发违规拦截弹窗
-// 录完屏改回 false → 恢复正常上传
-const TEST_RISK = false
-
 // ========== Lifecycle ==========
 onShow(() => {
   loadUserInfo()
@@ -319,13 +314,11 @@ function onChooseAvatar(e) {
 }
 
 /**
- * 上传头像至服务端（含微信内容安全检测 imgSecCheck）
+ * 上传头像至服务端（微信 chooseAvatar 返回的头像无需内容安全检测）
  *
  * 流程：
  *   1. uni.uploadFile → POST /api/user/avatar
- *   2. 服务端调 imgSecCheck 检测图片
- *   3. 检测通过 → 保存文件 + 更新数据库 → 返回 avatarUrl
- *   4. 检测违规 → 返回 CONTENT_RISK → 弹窗提示用户
+ *   2. 服务端保存文件 + 更新数据库 → 返回 avatarUrl
  *
  * @param {string} filePath - 图片本地临时路径
  */
@@ -338,7 +331,7 @@ function uploadAvatarToServer(filePath) {
   uni.showLoading({ title: '上传中...', mask: true })
 
   uni.uploadFile({
-    url: (import.meta.env.VITE_API_BASE_URL || 'https://www.xuaioxianji.top') + '/api/user/avatar' + (TEST_RISK ? '?test_risk=1' : ''),
+    url: (import.meta.env.VITE_API_BASE_URL || 'https://www.xuaioxianji.top') + '/api/user/avatar',
     filePath,
     name: 'avatar',
     header: { 'Authorization': 'Bearer ' + token },
@@ -348,34 +341,14 @@ function uploadAvatarToServer(filePath) {
       try {
         const data = JSON.parse(res.data)
 
-        // 内容安全检测拦截 → Modal 强提示（满足微信审核要求）
-        if (!data.success && data.code === 'CONTENT_RISK') {
-          uni.showModal({
-            title: '提示',
-            content: data.message || '您上传的内容含违规信息，请重新选择头像',
-            showCancel: false,
-            confirmText: '我知道了'
-          })
-          // 回滚本地预览
-          loadUserInfo()
-          return
-        }
-
         if (data.success && data.data && data.data.url) {
           const updated = { nickName: nickName.value, avatarUrl: data.data.url }
           uni.setStorageSync('userInfo', updated)
           avatarUrl.value = data.data.url
-
-          // 异步审核中提示（media_check_async 场景）
-          if (data.data.reviewStatus === 'pending') {
-            uni.showToast({ title: '头像审核中，通过后将自动生效', icon: 'none', duration: 2500 })
-          } else {
-            uni.showToast({ title: '头像更新成功', icon: 'success' })
-          }
+          uni.showToast({ title: '头像更新成功', icon: 'success' })
           // 头像上传完成后关闭资料编辑弹窗
           showProfileModal.value = false
         } else {
-          // 其他失败（网络错误等）
           uni.showToast({ title: data.message || '上传失败，请重试', icon: 'none' })
           loadUserInfo()
         }
@@ -406,20 +379,8 @@ async function onSaveProfile() {
   const name = profileFormNickName.value.trim()
   if (name) {
     savingProfile.value = true
-    // 持久化到后端（含内容安全检测）
     try {
-      const res = await put('/auth/profile', { nickName: name })
-      // 内容安全检测拦截
-      if (!res.success && res.code === 'CONTENT_RISK') {
-        savingProfile.value = false
-        uni.showModal({
-          title: '提示',
-          content: res.message || '您提交的内容含违规信息，请修改后重试',
-          showCancel: false,
-          confirmText: '我知道了'
-        })
-        return // 不关闭弹窗，让用户重新输入
-      }
+      await put('/auth/profile', { nickName: name })
     } catch (err) {
       savingProfile.value = false
       console.error('[mine] 更新昵称失败:', err)
@@ -442,18 +403,9 @@ async function onNicknameBlur(e) {
   const name = e.detail.value
   if (!name) return
 
-  // 持久化到后端（含内容安全检测）
+  // 持久化到后端（微信昵称无需内容安全检测）
   try {
-    const res = await put('/auth/profile', { nickName: name })
-    if (!res.success && res.code === 'CONTENT_RISK') {
-      uni.showModal({
-        title: '提示',
-        content: res.message || '您提交的内容含违规信息，请修改后重试',
-        showCancel: false,
-        confirmText: '我知道了'
-      })
-      return // 不更新本地
-    }
+    await put('/auth/profile', { nickName: name })
   } catch (err) {
     console.error('[mine] 同步昵称失败:', err)
     uni.showToast({ title: '同步失败，请重试', icon: 'none' })

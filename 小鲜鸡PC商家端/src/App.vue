@@ -4,13 +4,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
 import { detectMobile, getPlatform, isTauri } from '@/utils/platform'
 import { useNotification } from '@/composables/useNotification'
 import { useBackgroundFetch } from '@/composables/useBackgroundFetch'
 import { useAuthStore } from '@/stores/auth'
-// 动态导入：避免与 router 的静态导入冲突（router 已通过 dynamic import 加载）
-const MobileLayout = () => import('@/layouts/MobileLayout.vue')
+const MobileLayout = defineAsyncComponent(() => import('@/layouts/MobileLayout.vue'))
 
 const isMobile = ref(detectMobile())
 const { notify, requestPermission } = useNotification()
