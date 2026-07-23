@@ -1,12 +1,18 @@
 /**
- * 内容安全回调路由 /api/sec-callback/*
+ * 微信消息推送回调路由 /api/sec-callback/*
  *
- * 处理微信异步内容安全检测结果推送（wxa_media_check 事件）
+ * 微信每个小程序只能配一个消息推送 URL，所有事件类型共用此路由。
  *
- * 头像上传策略（先上线后审核）：
- *   1. 用户上传 → 立即保存 + 更新 avatar_url（即时生效）
- *   2. 后台提交 media_check_async → 记录 trace_id + review_status='pending'
- *   3. 微信回调 → 审核通过无需操作 / 违规回退为默认头像
+ * 事件类型：
+ *
+ * A. 内容安全检测（wxa_media_check）
+ *    头像上传策略（先上线后审核）：
+ *      1. 用户上传 → 立即保存 + 更新 avatar_url（即时生效）
+ *      2. 后台提交 media_check_async → 记录 trace_id + review_status='pending'
+ *      3. 微信回调 → 审核通过无需操作 / 违规回退为默认头像
+ *
+ * B. 发货信息管理（trade_manage_* / wxa_trade_controlled）
+ *    → 分发到 services/trade-callback.service.js 处理
  *
  * 回调格式（JSON）：
  *   {
@@ -18,13 +24,7 @@
  *     "appid": "wx178d...",
  *     "trace_id": "xxx",
  *     "version": "2",
- *     "detail": [{
- *       "strategy": "content_model",
- *       "errcode": 0,
- *       "suggest": "pass",  // "pass" 通过 / "risky" 违规 / "review" 可疑
- *       "label": 20001,
- *       "level": 1
- *     }],
+ *     "detail": [{ ... }],
  *     "errCode": 0,
  *     "errMsg": "success"
  *   }
@@ -36,6 +36,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const db = require('../config/db');
 const logger = require('../utils/logger');
+const { handleTradePushEvent } = require('../services/trade-callback.service');
 
 // 微信消息推送 Token（与 mp.weixin.qq.com 后台配置一致）
 const WX_PUSH_TOKEN = process.env.WX_PUSH_TOKEN || 'xiaoxianji2026';
@@ -102,9 +103,21 @@ router.post('/media-check', async (req, res) => {
       detail: body.detail,
     }));
 
-    // 验证事件类型
+    // ===== 处理微信「发货信息管理」推送事件 =====
+    const tradeEvents = [
+      'trade_manage_remind_access_api',
+      'trade_manage_remind_shipping',
+      'trade_manage_order_settlement',
+      'wxa_trade_controlled',
+    ];
+    if (tradeEvents.includes(body.Event)) {
+      await handleTradePushEvent(body);
+      return res.send('success');
+    }
+
+    // ===== 内容安全检测事件 =====
     if (body.Event !== 'wxa_media_check') {
-      logger.info('[sec-callback] 非 wxa_media_check 事件，忽略:', body.Event);
+      logger.info('[sec-callback] 未知事件类型，忽略:', body.Event);
       return res.send('success');
     }
 

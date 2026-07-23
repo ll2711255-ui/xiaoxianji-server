@@ -110,6 +110,11 @@
         <view v-if="order.deliveryAddress" class="action-btn action-btn-outline" @click="navigateToAddress">
           <text>导航</text>
         </view>
+        <!-- #ifdef MP-WEIXIN -->
+        <view v-if="showConfirmBtn" class="action-btn action-btn-primary" @click="onConfirmReceive">
+          <text>确认收货</text>
+        </view>
+        <!-- #endif -->
         <view class="action-btn action-btn-outline" @click="callPhone">
           <text>联系商家</text>
         </view>
@@ -142,6 +147,7 @@ const refundStatusText = ref('')
 const refundStatusClass = ref('')
 const weighInfo = ref(null)
 const showCancelBtn = ref(false)
+const showConfirmBtn = ref(false)
 const pollingTimer = ref(null)
 let pollFailCount = 0
 
@@ -271,6 +277,8 @@ async function loadOrder(silent = false) {
     refundStatusClass.value = getRefundStatusClass((refundInfo && refundInfo.status) || o.refundStatus || 'none')
     weighInfo.value = wi
     showCancelBtn.value = canCancelOrder
+    // 确认收货按钮：仅配送订单在 delivering/completed 状态时显示
+    showConfirmBtn.value = (o.status === 'delivering' || o.status === 'completed') && o.type === 'delivery'
     statusIcon.value = statusIconMap[o.status] || '/static/icons/status/status-pending.png'
 
     if (o.status === 'completed' || o.status === 'cancelled') stopPolling()
@@ -365,6 +373,46 @@ function callPhone() {
       if (res.confirm) {
         uni.makePhoneCall({ phoneNumber: phone })
       }
+    }
+  })
+}
+
+function onConfirmReceive() {
+  if (!order.value || !order.value.orderNo) return
+
+  uni.showModal({
+    title: '确认收货',
+    content: '确认已收到商品吗？确认后资金将结算给商家。',
+    confirmText: '确认收货',
+    confirmColor: '#D4420A',
+    success: (res) => {
+      if (!res.confirm) return
+
+      uni.showLoading({ title: '处理中...', mask: true })
+
+      // 调用微信确认收货组件（仅微信小程序环境）
+      // #ifdef MP-WEIXIN
+      if (typeof wx !== 'undefined' && wx.openBusinessView) {
+        wx.openBusinessView({
+          businessType: 'weappOrderConfirmReceipt',
+          success: () => {
+            uni.hideLoading()
+            uni.showToast({ title: '已确认收货', icon: 'success' })
+            loadOrder()
+          },
+          fail: (err) => {
+            uni.hideLoading()
+            console.error('[confirm-receipt] openBusinessView 失败:', err)
+            uni.showToast({ title: '暂不支持，请手动刷新', icon: 'none' })
+          }
+        })
+        return
+      }
+      // #endif
+
+      // 非微信环境或无 openBusinessView：轻提示
+      uni.hideLoading()
+      uni.showToast({ title: '请在微信中确认收货', icon: 'none' })
     }
   })
 }

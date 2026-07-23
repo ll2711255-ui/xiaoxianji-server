@@ -10,7 +10,7 @@ const weighService = require('../services/weigh.service');
 const wxpay = require('../utils/wxpay');
 const logger = require('../utils/logger');
 const { validateOrderNo } = require('../utils/validate');
-const { verifyToken, requireMerchant } = require('../middleware/auth');
+const { verifyToken, requireMerchant, requireRole } = require('../middleware/auth');
 
 // ========== 全局商家鉴权 ==========
 // 所有 /api/merchant/* 接口必须通过 JWT 验证 + 来源校验
@@ -288,8 +288,9 @@ router.post('/orders/:orderNo/:action', async (req, res) => {
       (action === 'deliver' && order.type === 'delivery') ||
       (action === 'complete' && order.type === 'pickup')
     );
+    let fullOrder = null;
     if (shouldReportShip) {
-      const fullOrder = await db.queryOne(
+      fullOrder = await db.queryOne(
         'SELECT transaction_id, delivery_address FROM order_info WHERE order_no = ?',
         [orderNo]
       );
@@ -331,6 +332,17 @@ router.post('/orders/:orderNo/:action', async (req, res) => {
       updateShippingOnDeliver(orderNo).catch(
         e => logger.error('[merchant] 购物订单配送上报异常:', e.message)
       );
+
+      // ===== 通知微信触发「确认收货」提醒（加速资金结算）=====
+      const txId = fullOrder ? fullOrder.transactionId : null;
+      if (txId) {
+        const { notifyConfirmReceive: notifyConfirm } = require('../utils/wxTrade');
+        notifyConfirm({
+          orderNo,
+          transactionId: txId,
+          receiveTime: new Date().toISOString(),
+        }).catch(e => logger.error('[merchant] 确认收货通知异常:', e.message));
+      }
     }
 
     res.json({ success: true, code: 200, message: '操作成功' });
@@ -370,6 +382,93 @@ router.get('/wx-order-path', async (req, res) => {
     res.json({ success: true, code: 200, data: result });
   } catch (err) {
     logger.error('[merchant] 查询订单路径失败:', err.message);
+    res.status(500).json({ success: false, code: 500, message: err.message });
+  }
+});
+
+// ====== 微信发货管理接口（管理员专用）======
+
+/**
+ * POST /api/merchant/wx-trade/check — 查询小程序是否已开通发货管理服务
+ */
+router.post('/wx-trade/check', requireRole('admin'), async (req, res) => {
+  try {
+    const { isTradeManaged } = require('../utils/wxTrade');
+    const result = await isTradeManaged();
+    res.json({
+      success: true,
+      code: 200,
+      data: {
+        isManaged: result.is_trade_managed || false,
+        raw: result,
+      },
+    });
+  } catch (err) {
+    logger.error('[merchant] 查询发货管理状态失败:', err.message);
+    res.status(500).json({ success: false, code: 500, message: err.message });
+  }
+});
+
+/**
+ * POST /api/merchant/wx-trade/set-msg-path — 配置消息跳转路径
+ *
+ * Body: { path } — 可选，默认值 'pages/orders/detail/detail'
+ */
+router.post('/wx-trade/set-msg-path', requireRole('admin'), async (req, res) => {
+  try {
+    const { path = 'pages/orders/detail/detail' } = req.body;
+    const { setMsgJumpPath } = require('../utils/wxTrade');
+    const result = await setMsgJumpPath(path);
+    if (result.errcode === 0) {
+      res.json({ success: true, code: 200, message: '消息跳转路径配置成功', data: { path } });
+    } else {
+      res.json({ success: false, code: 500, message: `配置失败: errcode=${result.errcode} ${result.errmsg || ''}` });
+    }
+  } catch (err) {
+    logger.error('[merchant] 配置消息跳转路径失败:', err.message);
+    res.status(500).json({ success: false, code: 500, message: err.message });
+  }
+});
+
+/**
+ * POST /api/merchant/wx-trade/notify-confirm — 提醒用户确认收货
+ *
+ * Body: { orderNo }
+ */
+router.post('/wx-trade/notify-confirm', async (req, res) => {
+  try {
+    const { orderNo } = req.body;
+    if (!orderNo) {
+      return res.status(400).json({ success: false, code: 400, message: '缺少 orderNo 参数' });
+    }
+
+    // 查询订单获取 transaction_id
+    const order = await db.queryOne(
+      'SELECT transaction_id, type, status FROM order_info WHERE order_no = ?',
+      [orderNo]
+    );
+    if (!order) {
+      return res.status(404).json({ success: false, code: 404, message: '订单不存在' });
+    }
+    if (!order.transactionId) {
+      return res.status(400).json({ success: false, code: 400, message: '该订单无微信支付流水号' });
+    }
+
+    const { notifyConfirmReceive } = require('../utils/wxTrade');
+    const result = await notifyConfirmReceive({
+      orderNo,
+      transactionId: order.transactionId,
+      receiveTime: new Date().toISOString(),
+    });
+
+    if (result.errcode === 0) {
+      logger.info(`[merchant] 确认收货提醒已发送: ${orderNo}`);
+      res.json({ success: true, code: 200, message: '确认收货提醒已发送' });
+    } else {
+      res.json({ success: false, code: 500, message: `提醒失败: errcode=${result.errcode} ${result.errmsg || ''}` });
+    }
+  } catch (err) {
+    logger.error('[merchant] 确认收货提醒失败:', err.message);
     res.status(500).json({ success: false, code: 500, message: err.message });
   }
 });

@@ -9,6 +9,7 @@
     "init-db": "node src/scripts/init-db.js",
     "init:admin": "node scripts/init-admin.js",
     "init:wx-order-path": "node scripts/init-wx-order-path.js",
+    "init:wx-trade": "node scripts/init-wx-trade.js",
     "seed": "node src/scripts/seed.js",
     "validate": "node deploy/validate-env.js",
     "test": "jest"
