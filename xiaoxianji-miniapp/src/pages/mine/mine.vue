@@ -380,7 +380,17 @@ async function onSaveProfile() {
   if (name) {
     savingProfile.value = true
     try {
-      await put('/auth/profile', { nickName: name })
+      const res = await put('/auth/profile', { nickName: name })
+      if (!res.success && res.code === 'CONTENT_RISK') {
+        savingProfile.value = false
+        uni.showModal({
+          title: '提示',
+          content: res.message || '您提交的内容含违规信息，请修改后重试',
+          showCancel: false,
+          confirmText: '我知道了'
+        })
+        return // 不关闭弹窗，让用户重新选择
+      }
     } catch (err) {
       savingProfile.value = false
       console.error('[mine] 更新昵称失败:', err)
@@ -403,9 +413,17 @@ async function onNicknameBlur(e) {
   const name = e.detail.value
   if (!name) return
 
-  // 持久化到后端（微信昵称无需内容安全检测）
   try {
-    await put('/auth/profile', { nickName: name })
+    const res = await put('/auth/profile', { nickName: name })
+    if (!res.success && res.code === 'CONTENT_RISK') {
+      uni.showModal({
+        title: '提示',
+        content: res.message || '您提交的内容含违规信息，请修改后重试',
+        showCancel: false,
+        confirmText: '我知道了'
+      })
+      return // 不更新本地
+    }
   } catch (err) {
     console.error('[mine] 同步昵称失败:', err)
     uni.showToast({ title: '同步失败，请重试', icon: 'none' })

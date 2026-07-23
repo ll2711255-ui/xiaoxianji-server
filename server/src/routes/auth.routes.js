@@ -11,6 +11,7 @@ const authService = require('../services/auth.service');
 const { verifyToken } = require('../middleware/auth');
 const { loginLimiter, checkLoginFailCount } = require('../middleware/loginLimiter');
 const rateLimiter = require('../middleware/rateLimiter');
+const { checkText } = require('../utils/secCheck');
 const logger = require('../utils/logger');
 
 // 小程序登录接口限流：每分钟最多 10 次
@@ -305,7 +306,20 @@ router.put('/profile', verifyToken, async (req, res) => {
       return res.status(400).json({ success: false, code: 400, message: '头像地址格式不正确' });
     }
 
-    // 微信昵称来自 type="nickname" 组件，已由微信审核，无需额外检测
+    // 微信昵称虽来自 type="nickname" 组件，但微信昵称本身可能含违规内容
+    // 加一层服务端 msgSecCheck 作为兜底防护
+    if (nickName !== undefined && nickName.trim()) {
+      const textCheck = await checkText(nickName, req.user.openid);
+      if (!textCheck.pass) {
+        logger.warn('[auth] 昵称被 msgSecCheck 拦截:', req.user.openid);
+        return res.status(200).json({
+          success: false,
+          code: 'CONTENT_RISK',
+          message: textCheck.reason || '您提交的内容含违规信息，请修改后重试',
+        });
+      }
+    }
+
     const result = await authService.updateProfile(req.user.openid, { nickName, avatarUrl });
     res.json({ success: true, code: 200, message: '资料已更新', data: result });
   } catch (err) {
