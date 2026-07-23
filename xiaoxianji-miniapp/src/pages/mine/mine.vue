@@ -159,6 +159,13 @@
         </view>
         <!-- #endif -->
 
+        <!-- 非微信平台提示 -->
+        <!-- #ifndef MP-WEIXIN -->
+        <view class="edit-section">
+          <text class="platform-hint">请使用微信打开小程序设置头像和昵称</text>
+        </view>
+        <!-- #endif -->
+
         <!-- 保存 -->
         <view class="profile-save-btn" @click="onSaveProfile">
           <text>保存</text>
@@ -191,6 +198,7 @@ const ongoingCount = ref(0)
 const appVersion = ref('1.0.0')
 const isDev = ref(false)
 const uploading = ref(false) // 防止并发上传
+const savingProfile = ref(false) // 防止重复保存
 
 // ========== 提审录屏开关 ==========
 // 改为 true → 所有头像上传都触发违规拦截弹窗
@@ -364,6 +372,8 @@ function uploadAvatarToServer(filePath) {
           } else {
             uni.showToast({ title: '头像更新成功', icon: 'success' })
           }
+          // 头像上传完成后关闭资料编辑弹窗
+          showProfileModal.value = false
         } else {
           // 其他失败（网络错误等）
           uni.showToast({ title: data.message || '上传失败，请重试', icon: 'none' })
@@ -392,13 +402,16 @@ function onProfileNicknameBlur(e) {
 }
 
 async function onSaveProfile() {
+  if (savingProfile.value) return // 防重复提交
   const name = profileFormNickName.value.trim()
   if (name) {
+    savingProfile.value = true
     // 持久化到后端（含内容安全检测）
     try {
       const res = await put('/auth/profile', { nickName: name })
       // 内容安全检测拦截
       if (!res.success && res.code === 'CONTENT_RISK') {
+        savingProfile.value = false
         uni.showModal({
           title: '提示',
           content: res.message || '您提交的内容含违规信息，请修改后重试',
@@ -408,10 +421,12 @@ async function onSaveProfile() {
         return // 不关闭弹窗，让用户重新输入
       }
     } catch (err) {
+      savingProfile.value = false
       console.error('[mine] 更新昵称失败:', err)
       uni.showToast({ title: '同步失败，请重试', icon: 'none' })
       return
     }
+    savingProfile.value = false
 
     // 本地更新
     nickName.value = name
@@ -423,18 +438,33 @@ async function onSaveProfile() {
   uni.showToast({ title: '资料已更新', icon: 'success' })
 }
 
-function onNicknameBlur(e) {
+async function onNicknameBlur(e) {
   const name = e.detail.value
   if (!name) return
+
+  // 持久化到后端（含内容安全检测）
+  try {
+    const res = await put('/auth/profile', { nickName: name })
+    if (!res.success && res.code === 'CONTENT_RISK') {
+      uni.showModal({
+        title: '提示',
+        content: res.message || '您提交的内容含违规信息，请修改后重试',
+        showCancel: false,
+        confirmText: '我知道了'
+      })
+      return // 不更新本地
+    }
+  } catch (err) {
+    console.error('[mine] 同步昵称失败:', err)
+    uni.showToast({ title: '同步失败，请重试', icon: 'none' })
+    return
+  }
+
+  // 本地更新
   const userInfo = uni.getStorageSync('userInfo') || {}
   userInfo.nickName = name
   uni.setStorageSync('userInfo', userInfo)
   nickName.value = name
-
-  // 持久化到后端
-  put('/auth/profile', { nickName: name }).catch(err => {
-    console.error('[mine] 同步昵称失败:', err)
-  })
 }
 
 // ========== 功能入口 ==========
@@ -562,8 +592,6 @@ function onLogout() {
 .avatar-placeholder { width:120rpx; height:120rpx; border-radius:var(--radius-full); background:var(--color-bg-page); display:flex; align-items:center; justify-content:center; }
 .avatar-default-icon { width:64rpx; height:64rpx; }
 .avatar-placeholder-brand { width:120rpx; height:120rpx; border-radius:var(--radius-full); background:var(--color-primary-pale); display:flex; align-items:center; justify-content:center; font-size:56rpx; }
-.avatar-edit-btn-transparent { position:absolute; top:0; left:0; width:120rpx; height:120rpx; border-radius:var(--radius-full); padding:0; margin:0; background:transparent; opacity:0; }
-.avatar-edit-btn-transparent::after { border:none; }
 
 .user-info { flex:1; overflow:hidden; }
 .user-nickname { font-size:var(--font-xl); font-weight:var(--weight-bold); color:var(--color-text-1); display:block; }
@@ -610,6 +638,8 @@ function onLogout() {
 .avatar-wx-btn::after { border:none; }
 .wx-avatar-preview { width:88rpx; height:88rpx; border-radius:var(--radius-full); background:var(--color-bg-card); flex-shrink:0; }
 .wx-avatar-hint { flex:1; text-align:left; font-size:var(--font-base); color:var(--color-text-2); }
+.brand-logo-sm { width:64rpx; height:64rpx; }
+.platform-hint { font-size:var(--font-base); color:var(--color-text-3); text-align:center; padding:20rpx 0; }
 
 .nickname-edit-input { width:100%; height:80rpx; background:var(--color-bg-page); border-radius:var(--radius-md); padding:0 20rpx; font-size:var(--font-base); color:var(--color-text-1); box-sizing:border-box; }
 
