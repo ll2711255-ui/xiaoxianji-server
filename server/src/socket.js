@@ -143,16 +143,16 @@ async function emitNewPaidOrder(orderNo) {
     const itemCount = items.reduce((sum, i) => sum + (i.quantity || 1), 0);
 
     const payload = {
-      orderNo: order.order_no,
+      orderNo: order.orderNo,
       type: order.type,
-      payAmount: order.pay_amount,
+      payAmount: order.payAmount,
       itemCount,
-      createTime: order.create_time,
+      createTime: order.createTime,
       timestamp: Date.now(),
     };
 
     io.to("merchants").emit("order:new-paid", payload);
-    logger.info(`[socket] ✅ 推送新订单: ${orderNo} (${itemCount}件, ¥${(order.pay_amount / 100).toFixed(2)})`);
+    logger.info(`[socket] ✅ 推送新订单: ${orderNo} (${itemCount}件, ¥${(order.payAmount / 100).toFixed(2)})`);
   } catch (err) {
     logger.error(`[socket] 推送失败: ${orderNo}`, err.message);
   }

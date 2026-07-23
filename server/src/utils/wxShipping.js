@@ -124,7 +124,7 @@ async function uploadShoppingOrderShipping({
 async function uploadShippingOnPaySuccess(orderNo, transactionId) {
   try {
     const order = await db.queryOne(
-      `SELECT o.order_no, o.delivery_address, o.user_id
+      `SELECT o.delivery_address
        FROM order_info o
        WHERE o.order_no = ?`,
       [orderNo]
@@ -136,11 +136,11 @@ async function uploadShippingOnPaySuccess(orderNo, transactionId) {
     }
 
     let address = {};
-    if (order.delivery_address) {
+    if (order.deliveryAddress) {
       try {
-        address = typeof order.delivery_address === 'string'
-          ? JSON.parse(order.delivery_address)
-          : order.delivery_address;
+        address = typeof order.deliveryAddress === 'string'
+          ? JSON.parse(order.deliveryAddress)
+          : order.deliveryAddress;
       } catch (_) { /* ignore */ }
     }
 
