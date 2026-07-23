@@ -193,6 +193,20 @@ onLoad((options) => {
 })
 
 onShow(() => {
+  // 检查确认收货组件回调结果
+  // #ifdef MP-WEIXIN
+  const confirmResult = uni.getStorageSync('_confirm_receipt_result')
+  if (confirmResult && confirmResult.timestamp > Date.now() - 60000) {
+    uni.removeStorageSync('_confirm_receipt_result')
+    uni.removeStorageSync('_confirm_pending_order')
+    if (confirmResult.status === 'success') {
+      uni.showToast({ title: '已确认收货', icon: 'success' })
+    } else if (confirmResult.status === 'fail') {
+      uni.showToast({ title: confirmResult.errmsg || '确认失败，请重试', icon: 'none', duration: 2500 })
+    }
+  }
+  // #endif
+
   if (orderNo.value) {
     loadOrder()
     startPolling()
@@ -380,6 +394,10 @@ function callPhone() {
 function onConfirmReceive() {
   if (!order.value || !order.value.orderNo) return
 
+  const o = order.value
+  // 获取微信支付流水号（order_info.transactionId 或 paymentRecord.transactionId）
+  const transactionId = o.transactionId || (o.paymentRecord && o.paymentRecord.transactionId) || ''
+
   uni.showModal({
     title: '确认收货',
     content: '确认已收到商品吗？确认后资金将结算给商家。',
@@ -388,22 +406,31 @@ function onConfirmReceive() {
     success: (res) => {
       if (!res.confirm) return
 
-      uni.showLoading({ title: '处理中...', mask: true })
-
       // 调用微信确认收货组件（仅微信小程序环境）
       // #ifdef MP-WEIXIN
       if (typeof wx !== 'undefined' && wx.openBusinessView) {
+        // 记录待确认订单，供 App.onShow 回调使用
+        uni.setStorageSync('_confirm_pending_order', { orderNo: o.orderNo, timestamp: Date.now() })
+
         wx.openBusinessView({
-          businessType: 'weappOrderConfirmReceipt',
+          businessType: 'weappOrderConfirm',
+          extraData: {
+            merchant_trade_no: o.orderNo,
+            transaction_id: transactionId,
+          },
           success: () => {
-            uni.hideLoading()
-            uni.showToast({ title: '已确认收货', icon: 'success' })
-            loadOrder()
+            // 组件打开成功 —— 用户在组件内操作，结果通过 App.onShow 回调
+            console.log('[confirm-receipt] 确认收货组件已打开')
           },
           fail: (err) => {
-            uni.hideLoading()
+            uni.removeStorageSync('_confirm_pending_order')
             console.error('[confirm-receipt] openBusinessView 失败:', err)
-            uni.showToast({ title: '暂不支持，请手动刷新', icon: 'none' })
+            // 引导用户升级微信版本
+            if (err.errCode === -2 || err.errMsg && err.errMsg.includes('version')) {
+              uni.showToast({ title: '请升级微信版本后重试', icon: 'none', duration: 2500 })
+            } else {
+              uni.showToast({ title: '暂不支持，请稍后重试', icon: 'none' })
+            }
           }
         })
         return
@@ -411,7 +438,6 @@ function onConfirmReceive() {
       // #endif
 
       // 非微信环境或无 openBusinessView：轻提示
-      uni.hideLoading()
       uni.showToast({ title: '请在微信中确认收货', icon: 'none' })
     }
   })

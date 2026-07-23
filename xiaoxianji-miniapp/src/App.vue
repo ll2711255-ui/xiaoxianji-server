@@ -15,8 +15,35 @@ onLaunch(() => {
   setTimeout(() => healthCheck(), 3000)
 })
 
-onShow(() => {
+onShow((options) => {
   console.log('[小鲜鸡] App 进入前台')
+
+  // 处理微信确认收货组件回调
+  // 组件固定 AppID: wx1183b055aeec94d1，通过 referrerInfo.extraData 返回结果
+  // #ifdef MP-WEIXIN
+  if (options && options.referrerInfo) {
+    const ref = options.referrerInfo
+    if (ref.appId === 'wx1183b055aeec94d1' && ref.extraData) {
+      const ed = ref.extraData
+      console.log('[小鲜鸡] 确认收货回调:', JSON.stringify(ed))
+      if (ed.status === 'success') {
+        // 存储结果供订单详情页 onShow 使用
+        uni.setStorageSync('_confirm_receipt_result', {
+          status: 'success',
+          merchantTradeNo: ed.merchant_trade_no || '',
+          timestamp: Date.now(),
+        })
+      } else if (ed.status === 'fail') {
+        uni.setStorageSync('_confirm_receipt_result', {
+          status: 'fail',
+          errmsg: ed.errormsg || '确认收货失败',
+          timestamp: Date.now(),
+        })
+      }
+      // status === 'cancel' 不存储，静默忽略
+    }
+  }
+  // #endif
 })
 
 onHide(() => {
