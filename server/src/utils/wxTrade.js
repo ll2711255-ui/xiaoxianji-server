@@ -98,7 +98,7 @@ async function _callWxTradeApi(urlPath, body, label) {
  * @returns {Promise<{errcode: number, is_trade_managed?: boolean, errmsg?: string}>}
  */
 async function isTradeManaged() {
-  const result = await _callWxTradeApi('/is_trade_managed', null, 'isTradeManaged');
+  const result = await _callWxTradeApi('/is_trade_managed', {}, 'isTradeManaged');
 
   if (result.errcode === 0) {
     logger.info(`[wxTrade] 发货管理服务状态: ${result.is_trade_managed ? '已开通' : '未开通'}`);
