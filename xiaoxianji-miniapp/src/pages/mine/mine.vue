@@ -302,23 +302,21 @@ function onChooseAvatar(e) {
   if (!url) return
   if (uploading.value) return  // 防止重复触发
 
-  // 先展示本地预览，再异步上传（含内容安全检测）
-  avatarUrl.value = url
-  const userInfo = uni.getStorageSync('userInfo') || {}
-  userInfo.avatarUrl = url
-  uni.setStorageSync('userInfo', userInfo)
-
+  // 不立即更新本地预览，旧头像继续显示，等后台审核通过后由回调切换
   // #ifdef MP-WEIXIN
   uploadAvatarToServer(url)
   // #endif
 }
 
 /**
- * 上传头像至服务端（微信 chooseAvatar 返回的头像无需内容安全检测）
+ * 上传头像至服务端（先审核后上线，审核通过前旧头像不变）
  *
  * 流程：
  *   1. uni.uploadFile → POST /api/user/avatar
- *   2. 服务端保存文件 + 更新数据库 → 返回 avatarUrl
+ *   2. 服务端保存文件 + 提交 media_check_async → 返回 reviewStatus: 'pending'
+ *   3. 前端显示"审核中"，旧头像不变
+ *   4. 审核通过（微信回调）→ 服务端切换 avatar_url → 用户下次加载看到新头像
+ *   5. 审核违规（微信回调）→ 服务端删除文件 → 旧头像不变
  *
  * @param {string} filePath - 图片本地临时路径
  */
@@ -341,28 +339,22 @@ function uploadAvatarToServer(filePath) {
       try {
         const data = JSON.parse(res.data)
 
-        if (data.success && data.data && data.data.url) {
-          const updated = { nickName: nickName.value, avatarUrl: data.data.url }
-          uni.setStorageSync('userInfo', updated)
-          avatarUrl.value = data.data.url
-          uni.showToast({ title: '头像更新成功', icon: 'success' })
-          // 头像上传完成后关闭资料编辑弹窗
+        if (data.success && data.data) {
+          // 头像已提交审核，旧头像继续显示，不更新本地预览
+          uni.showToast({ title: '头像已提交审核，通过后将自动生效', icon: 'none', duration: 2500 })
           showProfileModal.value = false
         } else {
           uni.showToast({ title: data.message || '上传失败，请重试', icon: 'none' })
-          loadUserInfo()
         }
       } catch (e) {
         console.error('[mine] 头像上传解析失败:', e, res.data)
         uni.showToast({ title: '上传失败，请重试', icon: 'none' })
-        loadUserInfo()
       }
     },
     fail: () => {
       uni.hideLoading()
       uploading.value = false
       uni.showToast({ title: '上传失败，请重试', icon: 'none' })
-      loadUserInfo()
     }
   })
 }

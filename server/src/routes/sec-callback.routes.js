@@ -86,9 +86,10 @@ router.get('/media-check', (req, res) => {
  * POST /api/sec-callback/media-check
  * 接收微信 wxa_media_check 异步检测结果
  *
- * 头像已直接上线（avatar_url），回调只需要处理违规回退：
- *   - pass → 标记 approved（头像已在线，无需额外操作）
- *   - risky/review → 删除文件 + 回退 avatar_url 为默认头像
+ * 头像暂存策略（先审核后上线）：
+ *   - 上传时将新头像存入 avatar_pending_url，旧头像 avatar_url 不变
+ *   - pass → avatar_url = avatar_pending_url（新头像生效）
+ *   - risky/review → 删除待审文件（旧头像不变）
  */
 router.post('/media-check', async (req, res) => {
   try {
@@ -115,7 +116,7 @@ router.post('/media-check', async (req, res) => {
 
     // 查找 trace_id 对应的用户（pending 或 unchecked 状态）
     const user = await db.queryOne(
-      'SELECT id, avatar_url, avatar_review_status FROM users WHERE avatar_trace_id = ? AND avatar_review_status IN (?, ?)',
+      'SELECT id, avatar_url, avatar_pending_url, avatar_review_status FROM users WHERE avatar_trace_id = ? AND avatar_review_status IN (?, ?)',
       [traceId, 'pending', 'unchecked']
     );
 
@@ -129,20 +130,19 @@ router.post('/media-check', async (req, res) => {
     const suggest = detail.suggest || '';
 
     if (suggest === 'pass') {
-      // ========== 审核通过 → 头像已在线，标记 approved 即可 ==========
+      // ========== 审核通过 → 新头像正式生效 ==========
       await db.execute(
-        'UPDATE users SET avatar_review_status = ?, avatar_trace_id = ? WHERE id = ?',
-        ['approved', '', user.id]
+        'UPDATE users SET avatar_url = ?, avatar_review_status = ?, avatar_trace_id = ?, avatar_pending_url = ? WHERE id = ?',
+        [user.avatarPendingUrl, 'approved', '', '', user.id]
       );
 
       logger.info('[sec-callback] ✅ 头像审核通过, user:', user.id, 'trace_id:', traceId);
 
     } else if (suggest === 'risky' || suggest === 'review') {
-      // ========== 违规或可疑 → 回退为默认头像 ==========
-      // 删除违规图片文件
-      if (user.avatarUrl) {
+      // ========== 违规或可疑 → 删除待审文件，旧头像不变 ==========
+      if (user.avatarPendingUrl) {
         try {
-          const urlPath = new URL(user.avatarUrl).pathname;
+          const urlPath = new URL(user.avatarPendingUrl).pathname;
           const filePath = path.join(__dirname, '..', '..', urlPath.replace(/^\//, ''));
           if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
@@ -151,14 +151,16 @@ router.post('/media-check', async (req, res) => {
         } catch (_) { /* best effort */ }
       }
 
+      // 清除待审状态，avatar_url 保持旧值不变
       await db.execute(
-        'UPDATE users SET avatar_url = ?, avatar_review_status = ?, avatar_trace_id = ? WHERE id = ?',
-        [DEFAULT_AVATAR, 'rejected', '', user.id]
+        'UPDATE users SET avatar_review_status = ?, avatar_trace_id = ?, avatar_pending_url = ? WHERE id = ?',
+        ['rejected', '', '', user.id]
       );
 
       logger.warn('[sec-callback] ⚠️ 头像审核违规, user:', user.id,
         'suggest:', suggest, 'trace_id:', traceId,
-        'label:', detail.label, 'level:', detail.level);
+        'label:', detail.label, 'level:', detail.level,
+        '(旧头像不变)');
 
     } else {
       logger.warn('[sec-callback] 未知 suggest 值:', suggest, 'trace_id:', traceId);

@@ -1,9 +1,11 @@
 /**
  * 用户路由 /api/user/*
  *
- * 头像上传 → 保存文件 → 立即生效 → 后台异步审核
+ * 头像上传 → 保存文件 → 提交审核 → 审核通过才生效
  * 选择「微信头像」免审，但 chooseAvatar 也允许相册/拍照
- * → 图片先上线，media_check_async 后台审核，违规由回调回退
+ * → 新头像暂存 avatar_pending_url，旧头像继续显示
+ * → 审核通过（回调）→ avatar_url = avatar_pending_url
+ * → 审核违规（回调）→ 删除新文件，旧头像不变
  */
 const router = require('express').Router();
 const path = require('path');
@@ -38,13 +40,16 @@ const upload = multer({
 
 /**
  * POST /api/user/avatar
- * 上传头像 → 立即生效 + 后台异步审核
+ * 上传头像 → 暂存待审 → 审核通过才生效
  *
  * 流程：
- *   1. 接收文件 → 保存到磁盘 → 立即更新 avatar_url（用户即时看到）
- *   2. 后台提交 media_check_async（不阻塞返回）
- *   3. 审核通过 → 无需操作（头像已在线）
- *   4. 审核违规 → 微信回调 → 回退为默认头像
+ *   1. 接收文件 → 保存到磁盘
+ *   2. 提交 media_check_async 异步审核
+ *   3. 新 URL 存入 avatar_pending_url（旧头像 avatar_url 不变）
+ *   4. 返回 reviewStatus: 'pending'
+ *   5. 微信回调：
+ *      - pass → avatar_url = avatar_pending_url（新头像生效）
+ *      - risky → 删除新文件（旧头像不变）
  *
  * 小程序调用：
  *   uni.uploadFile({ url: '.../api/user/avatar', filePath, name: 'avatar', header: { Authorization: 'Bearer ...' } })
@@ -83,7 +88,7 @@ router.post(
       const host = req.headers['x-forwarded-host'] || req.headers.host || 'www.xuaioxianji.top';
       const avatarUrl = protocol + '://' + host + '/uploads/avatars/' + filename;
 
-      // 5. 后台提交异步内容安全检测（不阻塞响应）
+      // 5. 提交异步内容安全检测
       let traceId = '';
       let reviewStatus = 'unchecked';
       try {
@@ -92,26 +97,32 @@ router.post(
           traceId = checkResult.traceId;
           reviewStatus = 'pending';
         } else {
-          logger.warn('[user] media_check_async 提交失败，头像直接生效:', req.user.openid);
+          logger.warn('[user] media_check_async 提交失败，头像暂存待审:', req.user.openid);
         }
       } catch (err) {
         logger.error('[user] media_check_async 异常:', err.message);
       }
 
-      // 6. 立即更新头像 + 记录审核追踪信息
+      // 6. 暂存新头像（不覆盖 avatar_url，旧头像继续显示）
+      //    审核通过 → 回调将 avatar_pending_url 提升为 avatar_url
+      //    审核违规 → 回调删除 pending 文件，旧头像不变
       await db.execute(
-        'UPDATE users SET avatar_url = ?, avatar_trace_id = ?, avatar_review_status = ? WHERE id = ?',
+        'UPDATE users SET avatar_pending_url = ?, avatar_trace_id = ?, avatar_review_status = ? WHERE id = ?',
         [avatarUrl, traceId, reviewStatus, req.user.id]
       );
 
-      logger.info('[user] 头像上传成功:', filename,
+      logger.info('[user] 头像已提交审核:', filename,
         '(' + (req.file.size / 1024).toFixed(1) + 'KB)',
-        'trace_id:', traceId || '(无)');
+        'trace_id:', traceId || '(无)',
+        'status:', reviewStatus);
 
       res.json({
         success: true,
         code: 200,
-        data: { url: avatarUrl },
+        data: {
+          url: avatarUrl,
+          reviewStatus: 'pending',
+        },
       });
 
     } catch (err) {
