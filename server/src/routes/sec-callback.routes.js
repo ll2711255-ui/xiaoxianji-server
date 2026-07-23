@@ -3,6 +3,11 @@
  *
  * 处理微信异步内容安全检测结果推送（wxa_media_check 事件）
  *
+ * 头像上传策略（先上线后审核）：
+ *   1. 用户上传 → 立即保存 + 更新 avatar_url（即时生效）
+ *   2. 后台提交 media_check_async → 记录 trace_id + review_status='pending'
+ *   3. 微信回调 → 审核通过无需操作 / 违规回退为默认头像
+ *
  * 回调格式（JSON）：
  *   {
  *     "ToUserName": "gh_xxx",
@@ -23,8 +28,6 @@
  *     "errCode": 0,
  *     "errMsg": "success"
  *   }
- *
- * 注意：此路由需要获取 raw body 用于 XML 兼容处理
  */
 const router = require('express').Router();
 const express = require('express');
@@ -46,7 +49,6 @@ router.use(express.json());
 /**
  * GET /api/sec-callback/media-check
  * 微信消息推送 URL 验证
- * 微信配置回调地址时会发送 GET 请求验证服务器所有权
  */
 router.get('/media-check', (req, res) => {
   const { signature, timestamp, nonce, echostr } = req.query;
@@ -56,12 +58,10 @@ router.get('/media-check', (req, res) => {
     return res.status(400).send('missing params');
   }
 
-  // 字典序排序 token, timestamp, nonce → 拼接 → SHA1
   const arr = [WX_PUSH_TOKEN, timestamp, nonce].sort();
   const raw = arr.join('');
   const hash = crypto.createHash('sha1').update(raw).digest('hex');
 
-  // 详细诊断日志（排查签名不匹配）
   logger.info('[sec-callback] GET 验证参数: ' + JSON.stringify({
     signature,
     timestamp,
@@ -85,6 +85,10 @@ router.get('/media-check', (req, res) => {
 /**
  * POST /api/sec-callback/media-check
  * 接收微信 wxa_media_check 异步检测结果
+ *
+ * 头像已直接上线（avatar_url），回调只需要处理违规回退：
+ *   - pass → 标记 approved（头像已在线，无需额外操作）
+ *   - risky/review → 删除文件 + 回退 avatar_url 为默认头像
  */
 router.post('/media-check', async (req, res) => {
   try {
@@ -109,14 +113,14 @@ router.post('/media-check', async (req, res) => {
       return res.send('success');
     }
 
-    // 查找 trace_id 对应的用户
+    // 查找 trace_id 对应的用户（pending 或 unchecked 状态）
     const user = await db.queryOne(
-      'SELECT id, avatar_url, avatar_pending_url, avatar_review_status FROM users WHERE avatar_trace_id = ? AND avatar_review_status = ?',
-      [traceId, 'pending']
+      'SELECT id, avatar_url, avatar_review_status FROM users WHERE avatar_trace_id = ? AND avatar_review_status IN (?, ?)',
+      [traceId, 'pending', 'unchecked']
     );
 
     if (!user) {
-      logger.warn('[sec-callback] 未找到 pending 状态的 trace_id:', traceId);
+      logger.warn('[sec-callback] 未找到匹配的 trace_id:', traceId);
       return res.send('success');
     }
 
@@ -125,22 +129,21 @@ router.post('/media-check', async (req, res) => {
     const suggest = detail.suggest || '';
 
     if (suggest === 'pass') {
-      // ========== 审核通过 → 正式生效 ==========
+      // ========== 审核通过 → 头像已在线，标记 approved 即可 ==========
       await db.execute(
-        'UPDATE users SET avatar_url = ?, avatar_review_status = ?, avatar_trace_id = ?, avatar_pending_url = ? WHERE id = ?',
-        [user.avatarPendingUrl, 'approved', '', '', user.id]
+        'UPDATE users SET avatar_review_status = ?, avatar_trace_id = ? WHERE id = ?',
+        ['approved', '', user.id]
       );
 
       logger.info('[sec-callback] ✅ 头像审核通过, user:', user.id, 'trace_id:', traceId);
 
     } else if (suggest === 'risky' || suggest === 'review') {
-      // ========== 违规或可疑 → 替换为默认头像 ==========
+      // ========== 违规或可疑 → 回退为默认头像 ==========
       // 删除违规图片文件
-      if (user.avatarPendingUrl) {
+      if (user.avatarUrl) {
         try {
-          const urlPath = new URL(user.avatarPendingUrl).pathname;
-          // path.join 遇到以 / 开头的参数会当作绝对路径，必须去掉前导 /
-	          const filePath = path.join(__dirname, '..', '..', urlPath.replace(/^\//, ''));
+          const urlPath = new URL(user.avatarUrl).pathname;
+          const filePath = path.join(__dirname, '..', '..', urlPath.replace(/^\//, ''));
           if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
             logger.info('[sec-callback] 已删除违规头像文件:', filePath);
@@ -149,8 +152,8 @@ router.post('/media-check', async (req, res) => {
       }
 
       await db.execute(
-        'UPDATE users SET avatar_url = ?, avatar_review_status = ?, avatar_trace_id = ?, avatar_pending_url = ? WHERE id = ?',
-        [DEFAULT_AVATAR, 'rejected', '', '', user.id]
+        'UPDATE users SET avatar_url = ?, avatar_review_status = ?, avatar_trace_id = ? WHERE id = ?',
+        [DEFAULT_AVATAR, 'rejected', '', user.id]
       );
 
       logger.warn('[sec-callback] ⚠️ 头像审核违规, user:', user.id,
