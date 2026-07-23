@@ -151,10 +151,10 @@
           <text class="edit-label">昵称</text>
           <input
             class="nickname-edit-input"
-            type="nickname"
-            :value="profileFormNickName"
-            placeholder="点击使用微信昵称"
-            @blur="onProfileNicknameBlur"
+            type="text"
+            v-model="profileFormNickName"
+            placeholder="请输入昵称"
+            maxlength="20"
           />
         </view>
         <!-- #endif -->
