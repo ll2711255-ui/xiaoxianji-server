@@ -47,7 +47,7 @@ async function _callWxTradeApi(urlPath, body, label) {
   const url = `${WX_TRADE_BASE}${urlPath}?access_token=${accessToken}`;
 
   try {
-    const res = await axios.post(url, body, { timeout: 15000 });
+    const res = await axios.post(url, body || undefined, { timeout: 15000 });
 
     logger.info(`[wxTrade] ${label} 返回:`, JSON.stringify(res.data));
 
@@ -98,7 +98,7 @@ async function _callWxTradeApi(urlPath, body, label) {
  * @returns {Promise<{errcode: number, is_trade_managed?: boolean, errmsg?: string}>}
  */
 async function isTradeManaged() {
-  const result = await _callWxTradeApi('/is_trade_managed', {}, 'isTradeManaged');
+  const result = await _callWxTradeApi('/is_trade_managed', null, 'isTradeManaged');
 
   if (result.errcode === 0) {
     logger.info(`[wxTrade] 发货管理服务状态: ${result.is_trade_managed ? '已开通' : '未开通'}`);
