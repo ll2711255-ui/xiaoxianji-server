@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 鉴权路由 /api/auth/*
  */
 const router = require('express').Router();
@@ -290,22 +290,18 @@ router.get('/profile', verifyToken, async (req, res) => {
 
 /**
  * PUT /api/auth/profile
- * 更新用户资料（头像、昵称）
- * Body: { nickName?, avatarUrl? }
+ * 更新用户资料（仅昵称，头像请走 POST /api/user/avatar）
+ * Body: { nickName? }
  * 需登录（verifyToken）
  */
 router.put('/profile', verifyToken, async (req, res) => {
   try {
-    const { nickName, avatarUrl } = req.body;
+    const { nickName } = req.body;
 
     // 参数校验
     if (nickName !== undefined && (typeof nickName !== 'string' || nickName.length > 100)) {
       return res.status(400).json({ success: false, code: 400, message: '昵称长度不能超过100个字符' });
     }
-    if (avatarUrl !== undefined && typeof avatarUrl !== 'string') {
-      return res.status(400).json({ success: false, code: 400, message: '头像地址格式不正确' });
-    }
-
     // 微信昵称虽来自 type="nickname" 组件，但微信昵称本身可能含违规内容
     // 加一层服务端 msgSecCheck 作为兜底防护
     if (nickName !== undefined && nickName.trim()) {
@@ -320,7 +316,7 @@ router.put('/profile', verifyToken, async (req, res) => {
       }
     }
 
-    const result = await authService.updateProfile(req.user.openid, { nickName, avatarUrl });
+    const result = await authService.updateProfile(req.user.openid, { nickName });
     res.json({ success: true, code: 200, message: '资料已更新', data: result });
   } catch (err) {
     logger.error('[auth] profile 更新失败:', err.message);

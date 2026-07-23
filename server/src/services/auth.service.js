@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 鉴权服务
  * - 微信静默登录（wx.login → openid → JWT）
  * - 手机号授权
@@ -473,7 +473,7 @@ async function getProfile(openid) {
 /**
  * 更新用户资料（头像、昵称）
  * @param {string} openid
- * @param {object} profile — { nickName?, avatarUrl? }
+ * @param {object} profile — { nickName? }（头像请走 POST /api/user/avatar）
  * @returns {Promise<{nickName: string, avatarUrl: string}>}
  */
 async function updateProfile(openid, profile = {}) {
@@ -484,10 +484,8 @@ async function updateProfile(openid, profile = {}) {
     sets.push('nick_name = ?');
     params.push(profile.nickName);
   }
-  if (profile.avatarUrl !== undefined) {
-    sets.push('avatar_url = ?');
-    params.push(profile.avatarUrl);
-  }
+  // 头像更新必须走 POST /api/user/avatar → media_check_async 审核流程
+  // 审核通过后由微信回调切换 avatar_url，此接口不直接写入 avatar_url
 
   if (sets.length === 0) {
     throw new Error('没有需要更新的字段');
