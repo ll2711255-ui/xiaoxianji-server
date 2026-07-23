@@ -205,6 +205,21 @@ function doPayOrder(orderNo) {
   if (payingOrderNo.value) return
   payingOrderNo.value = orderNo
 
+  const order = orders.value.find(o => o.orderNo === orderNo)
+  const amountDisplay = order ? order.prepayDisplay : '0.00'
+
+  // 模拟器：跳过服务端获取支付参数，直接走模拟支付（callPay 内部检测 devtools）
+  const systemInfo = uni.getSystemInfoSync()
+  if (systemInfo.platform === 'devtools') {
+    callPay({
+      orderNo, payment: null, amountDisplay,
+      onSuccess: () => { payingOrderNo.value = ''; loadOrders(true) },
+      onCancel: () => { payingOrderNo.value = ''; loadOrders(true) }
+    })
+    return
+  }
+
+  // 真机：先向服务端获取支付参数，再调起原生支付
   uni.showLoading({ title: '获取支付参数...' })
   post('/orders/' + orderNo + '/pay').then(res => {
     uni.hideLoading()
@@ -220,8 +235,6 @@ function doPayOrder(orderNo) {
       uni.showToast({ title: '支付暂不可用', icon: 'none' })
       return
     }
-    const order = orders.value.find(o => o.orderNo === orderNo)
-    const amountDisplay = order ? order.prepayDisplay : '0.00'
 
     callPay({
       orderNo, payment, amountDisplay,

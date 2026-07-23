@@ -515,6 +515,12 @@ async function doSubmit() {
       // 支付成功后 callPay 的 onSuccess/onCancel 回调里重置 submitting
       callWxPay([{ orderNo: d.orderNo, payment: d.payment }])
     } else if (d.orderNo && !d.payment) {
+      // 模拟器：WeChat 预下单失败不影响，直接走模拟支付
+      const systemInfo = uni.getSystemInfoSync()
+      if (systemInfo.platform === 'devtools') {
+        callWxPay([{ orderNo: d.orderNo, payment: null }])
+        return
+      }
       submitting.value = false
       const errorMsg = d.payError || '支付暂不可用，请在订单列表重试'
       uni.showModal({

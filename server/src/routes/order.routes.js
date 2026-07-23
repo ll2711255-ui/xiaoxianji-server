@@ -138,8 +138,8 @@ router.post('/:orderNo/pay', async (req, res) => {
 
     const { mockPay, mockPaySuccess } = req.body;
 
-    // ========== 模拟支付（开发环境） ==========
-    if (mockPay && config.env !== 'production') {
+    // ========== 模拟支付（仅前端 isSimulator 时发送 mockPay=true，真机绝不发送）==========
+    if (mockPay) {
       const order = await orderService.getOrderByNo(orderNo);
       if (!order) {
         return res.status(404).json({ success: false, code: 404, message: '订单不存在' });

@@ -50,19 +50,24 @@ export async function callPay({ orderNo, payment, amountDisplay, onSuccess, onCa
         if (modalRes.confirm) {
           uni.showLoading({ title: '处理中...' })
           try {
-            await post('/orders/' + orderNo + '/pay', { mockPay: true, mockPaySuccess: true })
+            const res = await post('/orders/' + orderNo + '/pay', { mockPay: true, mockPaySuccess: true })
             uni.hideLoading()
-            if (clearItems) clearItems()
-            uni.showToast({ title: '支付成功', icon: 'success' })
-            done()
-            if (onSuccess) setTimeout(onSuccess, 1200)
+            if (res && res.success) {
+              if (clearItems) clearItems()
+              uni.showToast({ title: '支付成功', icon: 'success' })
+              done()
+              if (onSuccess) setTimeout(onSuccess, 1200)
+            } else {
+              // 服务端返回失败（如订单状态不允许）
+              uni.showToast({ title: (res && res.message) || '支付失败', icon: 'none' })
+              done()
+              if (onCancel) onCancel()
+            }
           } catch (err) {
             uni.hideLoading()
-            console.error('模拟支付失败:', err)
-            if (clearItems) clearItems()
-            uni.showToast({ title: '支付成功', icon: 'success' })
+            console.error('模拟支付请求失败:', err)
+            uni.showToast({ title: '网络异常，请重试', icon: 'none' })
             done()
-            if (onSuccess) setTimeout(onSuccess, 1200)
           }
         } else {
           uni.showToast({ title: '模拟支付取消', icon: 'none' })
