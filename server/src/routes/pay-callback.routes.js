@@ -156,6 +156,12 @@ router.post('/', async (req, res) => {
     const { emitNewPaidOrder } = require('../socket');
     emitNewPaidOrder(outTradeNo);
 
+    // 异步上传配送信息到微信「购物订单」（不阻塞主流程）
+    const { uploadShippingOnPaySuccess } = require('../utils/wxShipping');
+    uploadShippingOnPaySuccess(outTradeNo, transactionId).catch(
+      e => payLogger.error('[pay-callback] 配送上报异常:', e.message)
+    );
+
     payLogger.info(`[pay-callback] ✅ 支付成功处理完成: ${outTradeNo} tx=${transactionId}`);
   } catch (err) {
     payLogger.error(`[pay-callback] 更新订单失败: ${outTradeNo}`, err.message);
@@ -376,6 +382,7 @@ alipayCallbackRouter.post('/', async (req, res) => {
     // 推送新订单到商家端（支付宝支付）
     const { emitNewPaidOrder } = require('../socket');
     emitNewPaidOrder(outTradeNo);
+    
 
     payLogger.info(`[alipay-callback] ✅ 支付成功处理完成: ${outTradeNo} tradeNo=${tradeNo}`);
   } catch (err) {
@@ -504,6 +511,9 @@ router.post('/tt', async (req, res) => {
     // 推送新订单到商家端（抖音支付）
     const { emitNewPaidOrder } = require('../socket');
     emitNewPaidOrder(outTradeNo);
+
+    // 微信购物订单由 JSAPI description + upload_shipping_info 自动关联，无需手动推送
+    
 
     payLogger.info(`[tt-callback] ✅ 支付成功处理完成: ${outTradeNo} paymentOrderNo=${paymentOrderNo}`);
   } catch (err) {

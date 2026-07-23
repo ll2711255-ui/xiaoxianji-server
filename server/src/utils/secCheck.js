@@ -7,57 +7,15 @@
  *   msgSecCheck → https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/sec-center/sec-check/msgSecCheck.html
  *
  * 设计原则：
- *   - 检测接口调用失败（网络超时等）时默认放行（pass: true），避免微信接口抖动影响正常用户
- *   - errcode 87014 是明确违规，其他异常码默认放行
- *   - access_token 缓存在内存，PM2 cluster 模式下每个实例各自缓存（不影响功能）
+ *   - 检测接口调用失败（网络超时等）时默认拦截，避免违规内容绕过
+ *   - errcode 87014 是明确违规
+ *   - access_token 复用 wechat.js 统一管理（带 7200s 缓存）
  */
 
 const axios = require('axios');
 const FormData = require('form-data');
-const config = require('../config');
 const logger = require('./logger');
-
-// ========== access_token 缓存 ==========
-
-let cachedToken = null;
-let tokenExpireAt = 0;
-
-/**
- * 获取微信 access_token（带缓存，提前 5 分钟刷新）
- * @returns {Promise<string>}
- */
-async function getAccessToken() {
-  if (cachedToken && Date.now() < tokenExpireAt) {
-    return cachedToken;
-  }
-
-  const appId = config.wx.appId;
-  const appSecret = config.wx.appSecret;
-
-  if (!appId || !appSecret) {
-    throw new Error('微信小程序 AppID/AppSecret 未配置，无法获取 access_token');
-  }
-
-  const res = await axios.get('https://api.weixin.qq.com/cgi-bin/token', {
-    params: {
-      grant_type: 'client_credential',
-      appid: appId,
-      secret: appSecret,
-    },
-    timeout: 8000,
-  });
-
-  if (!res.data.access_token) {
-    throw new Error('获取 access_token 失败: ' + JSON.stringify(res.data));
-  }
-
-  cachedToken = res.data.access_token;
-  // 提前 5 分钟过期，避免边界情况
-  tokenExpireAt = Date.now() + (res.data.expires_in - 300) * 1000;
-
-  logger.info('[secCheck] access_token 已刷新，过期时间:', new Date(tokenExpireAt).toISOString());
-  return cachedToken;
-}
+const { getAccessToken, clearAccessTokenCache } = require('./wechat');
 
 // ========== 图片内容安全检测 ==========
 
@@ -116,8 +74,7 @@ async function checkImage(imageBuffer, openid, opts = {}) {
     // access_token 过期/无效 → 清除缓存重试一次
     if (res.data.errcode === 40001 || res.data.errcode === 41001 || res.data.errcode === 42001) {
       logger.warn('[secCheck] access_token 过期，清除缓存重试...');
-      cachedToken = null;
-      tokenExpireAt = 0;
+      clearAccessTokenCache();
       const newToken = await getAccessToken();
 
       const form2 = new FormData();

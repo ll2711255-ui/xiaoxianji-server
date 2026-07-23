@@ -162,10 +162,28 @@ const statusIcon = ref('/static/icons/status/status-pending.png')
 onLoad((options) => {
   const no = options.orderNo
   if (!no) {
-    uni.showToast({ title: '订单不存在', icon: 'none' })
+    uni.showToast({ title: '订单信息有误', icon: 'none', duration: 2000 })
+    setTimeout(() => {
+      const pages = getCurrentPages()
+      if (pages.length > 1) uni.navigateBack()
+      else uni.switchTab({ url: '/pages/orders/orders' })
+    }, 2000)
     return
   }
   orderNo.value = no
+
+  // 微信「购物订单」中心跳入（channel=wx_order_center）
+  if (options.channel === 'wx_order_center') {
+    console.log('[order-detail] 来自微信购物订单中心')
+  }
+
+  // 外部跳入时检查登录态
+  const accessToken = uni.getStorageSync('access_token')
+  const openid = uni.getStorageSync('openid')
+  if (!accessToken && !openid) {
+    // 未登录：先存下目标订单，触发登录后 onShow 再加载
+    console.log('[order-detail] 未登录，等待登录后加载订单')
+  }
 })
 
 onShow(() => {

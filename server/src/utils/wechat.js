@@ -61,11 +61,25 @@ async function code2session(code) {
   };
 }
 
+// ========== access_token 缓存（内存级，全局共享）==========
+
+let cachedAccessToken = null;
+let accessTokenExpireAt = 0;
+
 /**
- * 获取微信 access_token（用于服务端 API 调用）
- * 生产环境应缓存到 Redis（7200秒有效期）
+ * 获取微信 access_token（带缓存，提前 5 分钟刷新）
+ *
+ * PM2 cluster 模式下每个实例各自维护缓存，不影响功能。
+ * 微信限制每日调用上限 2000 次，缓存必须开启。
+ *
+ * @returns {Promise<string>}
  */
 async function getAccessToken() {
+  // 缓存命中
+  if (cachedAccessToken && Date.now() < accessTokenExpireAt) {
+    return cachedAccessToken;
+  }
+
   const wxConfig = await getWxConfig();
   const url = 'https://api.weixin.qq.com/cgi-bin/token';
   const params = {
@@ -77,14 +91,28 @@ async function getAccessToken() {
   try {
     const res = await axios.get(url, { params, timeout: 10000 });
     if (res.data.access_token) {
-      return res.data.access_token;
+      cachedAccessToken = res.data.access_token;
+      // 提前 5 分钟过期，避免边界情况
+      const ttl = (res.data.expires_in || 7200) - 300;
+      accessTokenExpireAt = Date.now() + ttl * 1000;
+      logger.info(`[wechat] access_token 已刷新，${ttl}秒后过期`);
+      return cachedAccessToken;
     }
-    logger.error('获取 access_token 失败:', res.data);
+    logger.error('[wechat] 获取 access_token 失败:', res.data);
     throw new Error('获取微信 access_token 失败');
   } catch (err) {
-    logger.error('获取 access_token 网络错误:', err.message);
+    logger.error('[wechat] 获取 access_token 网络错误:', err.message);
     throw err;
   }
+}
+
+/**
+ * 清除 access_token 缓存（token 失效时调用）
+ */
+function clearAccessTokenCache() {
+  cachedAccessToken = null;
+  accessTokenExpireAt = 0;
+  logger.info('[wechat] access_token 缓存已清除');
 }
 
 /**
@@ -122,4 +150,4 @@ async function getPhoneNumber(code) {
   }
 }
 
-module.exports = { code2session, getAccessToken, getPhoneNumber };
+module.exports = { code2session, getAccessToken, clearAccessTokenCache, getPhoneNumber };

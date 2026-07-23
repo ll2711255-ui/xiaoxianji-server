@@ -325,10 +325,52 @@ router.post('/orders/:orderNo/:action', async (req, res) => {
       }
     }
 
+    // ===== 发货时上传配送信息到微信「购物订单」=====
+    if (action === 'deliver') {
+      const { updateShippingOnDeliver } = require('../utils/wxShipping');
+      updateShippingOnDeliver(orderNo).catch(
+        e => logger.error('[merchant] 购物订单配送上报异常:', e.message)
+      );
+    }
+
     res.json({ success: true, code: 200, message: '操作成功' });
   } catch (err) {
     logger.error(`[merchant] 操作失败: ${err.message || '(无错误信息)'}`, err);
     res.status(500).json({ success: false, code: 500, message: err.message || err.sqlMessage || '服务器内部错误' });
+  }
+});
+
+// ====== 微信购物订单路径配置（管理员专用）======
+
+/**
+ * POST /api/merchant/wx-order-path/setup — 配置订单详情跳转路径
+ */
+router.post('/wx-order-path/setup', async (req, res) => {
+  try {
+    const { getAccessToken } = require('../utils/wechat');
+    const { updateOrderDetailPath } = require('../utils/wxOrderPath');
+    const token = await getAccessToken();
+    const result = await updateOrderDetailPath(token);
+    res.json({ success: true, code: 200, data: result });
+  } catch (err) {
+    logger.error('[merchant] 配置订单路径失败:', err.message);
+    res.status(500).json({ success: false, code: 500, message: err.message });
+  }
+});
+
+/**
+ * GET /api/merchant/wx-order-path — 查询当前订单详情跳转路径
+ */
+router.get('/wx-order-path', async (req, res) => {
+  try {
+    const { getAccessToken } = require('../utils/wechat');
+    const { getOrderDetailPath } = require('../utils/wxOrderPath');
+    const token = await getAccessToken();
+    const result = await getOrderDetailPath(token);
+    res.json({ success: true, code: 200, data: result });
+  } catch (err) {
+    logger.error('[merchant] 查询订单路径失败:', err.message);
+    res.status(500).json({ success: false, code: 500, message: err.message });
   }
 });
 

@@ -14,6 +14,22 @@ const wxpay = require('../utils/wxpay');
 const { generateOrderNo } = require('../utils/idGenerator');
 const logger = require('../utils/logger');
 
+// ========== 支付商品描述（微信 JSAPI 必须传真实商品名）==========
+
+/**
+ * 从订单商品列表生成微信支付 description
+ * - 单件商品：商品名称（截 40 字符）
+ * - 多件商品：第一件商品名称 + "等N件商品"（总长 ≤ 127 字节）
+ */
+function buildDescription(items) {
+  if (!items || items.length === 0) return '小鲜鸡生鲜订单';
+  if (items.length === 1) {
+    return (items[0].productName || '生鲜商品').substring(0, 40);
+  }
+  const firstName = (items[0].productName || '生鲜商品').substring(0, 20);
+  return `${firstName}等${items.length}件商品`;
+}
+
 // ========== 创建订单 ==========
 
 /**
@@ -102,7 +118,7 @@ async function createOrder({ openid, items, type, deliveryAddress, isScheduled, 
       out_trade_no: orderNo,
       total: totalFen,
       openid,
-      description: '小鲜鸡-新鲜生鲜',
+      description: buildDescription(validatedItems),
       notify_url: notifyUrl,
     });
 
