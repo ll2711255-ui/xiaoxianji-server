@@ -42,8 +42,9 @@ router.get('/orders', async (req, res) => {
       params.push(...statuses);
     }
     if (type) {
-      sql += ' AND type = ?';
-      params.push(type);
+      const types = type.split(',');
+      sql += ` AND type IN (${types.map(() => '?').join(',')})`;
+      params.push(...types);
     }
     if (dateFrom) {
       sql += ' AND create_time >= ?';

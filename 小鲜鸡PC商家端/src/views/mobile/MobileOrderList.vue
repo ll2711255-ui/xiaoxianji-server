@@ -93,7 +93,7 @@ async function loadOrders() {
   page.value = 1
   try {
     const status = statusMap[tabIndex.value]
-    const res = await api.get('/merchant/orders', { status, page: 1, pageSize: 20, type: 'online' })
+    const res = await api.get('/merchant/orders', { status, page: 1, pageSize: 20, type: 'delivery,pickup' })
     orders.value = (res && res.data && res.data.orders) || []
     hasMore.value = orders.value.length >= 20
   } catch (err) {
@@ -109,7 +109,7 @@ async function loadMore() {
   try {
     page.value++
     const status = statusMap[tabIndex.value]
-    const res = await api.get('/merchant/orders', { status, page: page.value, pageSize: 20 })
+    const res = await api.get('/merchant/orders', { status, page: page.value, pageSize: 20, type: 'delivery,pickup' })
     const newOrders = (res && res.data && res.data.orders) || []
     orders.value.push(...newOrders)
     hasMore.value = newOrders.length >= 20
@@ -155,7 +155,7 @@ async function onScan() {
 function startPoll() {
   _pollTimer = setInterval(async () => {
     try {
-      const res = await api.get('/merchant/orders', { status: 'paid', pageSize: 200, type: 'online' })
+      const res = await api.get('/merchant/orders', { status: 'paid', pageSize: 200, type: 'delivery,pickup' })
       const currentCount = (res && res.data && res.data.orders) ? res.data.orders.length : 0
       if (_lastPaidCount > 0 && currentCount > _lastPaidCount) {
         const delta = currentCount - _lastPaidCount

@@ -26,7 +26,7 @@
         v-for="order in filteredOrders"
         :key="order._id"
         class="order-card"
-        :class="{ 'is-online': order.type === 'online', 'is-offline': order.type === 'offline' }"
+        :class="{ 'is-online': order.type !== 'offline', 'is-offline': order.type === 'offline' }"
       >
         <div class="order-card-top">
           <n-tag :type="order.type === 'offline' ? 'warning' : 'info'" size="small">
@@ -141,7 +141,7 @@ function getActions(order) {
     } else if (order.status === 'ready') {
       actions.push({ action: 'complete', label: '完成', type: 'primary', secondary: false })
     }
-  } else if (order.type === 'online') {
+  } else { // 线上订单 (delivery / pickup)
     if (order.status === 'paid') {
       actions.push({ action: 'accept', label: '接单', type: 'info', secondary: false })
     } else if (order.status === 'accepted') {

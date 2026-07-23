@@ -124,7 +124,7 @@ function getActions(order) {
   const t = order.type
   const actions = []
 
-  if (t === 'online') {
+  if (t !== 'offline') {
     if (s === 'paid') actions.push({ action: 'accept', label: '接单', type: 'primary' })
     if (s === 'accepted' || s === 'weighed') actions.push({ action: 'process', label: '开始处理', type: 'warning' })
     if (s === 'weighed' || s === 'processing') {
@@ -178,7 +178,7 @@ async function loadOrders() {
   try {
     let params = {}
     if (segment.value === 'online') {
-      params = { status: tabStatusMap[tabIndex.value].join(','), type: 'online', pageSize: 50 }
+      params = { status: tabStatusMap[tabIndex.value].join(','), type: 'delivery,pickup', pageSize: 50 }
     } else {
       params = { status: offlineStatusMap[offlineTab.value].join(','), type: 'offline', pageSize: 50 }
     }
@@ -191,12 +191,12 @@ async function loadOrders() {
 async function loadStats() {
   try {
     const results = await Promise.all([
-      api.get('/merchant/orders', { status: 'paid', pageSize: 100, type: 'online' }),
-      api.get('/merchant/orders', { status: 'accepted', pageSize: 100, type: 'online' }),
-      api.get('/merchant/orders', { status: 'weighed,processing', pageSize: 100, type: 'online' }),
-      api.get('/merchant/orders', { status: 'ready,delivering', pageSize: 100, type: 'online' }),
-      api.get('/merchant/orders', { status: 'completed', pageSize: 100, type: 'online' }),
-      api.get('/merchant/orders', { status: 'refundFailed', pageSize: 100, type: 'online' })
+      api.get('/merchant/orders', { status: 'paid', pageSize: 100, type: 'delivery,pickup' }),
+      api.get('/merchant/orders', { status: 'accepted', pageSize: 100, type: 'delivery,pickup' }),
+      api.get('/merchant/orders', { status: 'weighed,processing', pageSize: 100, type: 'delivery,pickup' }),
+      api.get('/merchant/orders', { status: 'ready,delivering', pageSize: 100, type: 'delivery,pickup' }),
+      api.get('/merchant/orders', { status: 'completed', pageSize: 100, type: 'delivery,pickup' }),
+      api.get('/merchant/orders', { status: 'refundFailed', pageSize: 100, type: 'delivery,pickup' })
     ])
     onlineStats[0].count = ((results[0] && results[0].data && results[0].data.orders) || []).length
     onlineStats[1].count = ((results[1] && results[1].data && results[1].data.orders) || []).length

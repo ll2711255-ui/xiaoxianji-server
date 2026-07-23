@@ -80,7 +80,7 @@
         <!-- 订单时间线 -->
         <el-card header="状态流转" style="margin-top:16px">
           <el-steps :active="statusStep" direction="vertical" :space="40">
-            <el-step title="已支付" v-if="order.type === 'online'" />
+            <el-step title="已支付" v-if="order.type !== 'offline'" />
             <el-step title="已接单" />
             <el-step title="已称重" />
             <el-step title="处理中" />
@@ -129,7 +129,7 @@ const actions = computed(() => {
   const t = order.value.type
   const d = order.value.type  // 订单类型：delivery/pickup/offline
   const list = []
-  if (t === 'online') {
+  if (t !== 'offline') {
     if (s === 'paid') list.push({ action: 'accept', label: '📋 接单', type: 'primary' })
     if (s === 'accepted') list.push({ action: 'process', label: '🔪 开始处理', type: 'warning' })
     if (s === 'weighed' || s === 'processing') {

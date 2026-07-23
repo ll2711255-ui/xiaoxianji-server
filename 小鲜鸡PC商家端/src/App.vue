@@ -31,7 +31,7 @@ async function initMobile() {
     startPoll(async () => {
       try {
         const api = (await import('@/utils/api')).default
-        const res = await api.get('/merchant/orders', { status: 'paid', pageSize: 200, type: 'online' })
+        const res = await api.get('/merchant/orders', { status: 'paid', pageSize: 200, type: 'delivery,pickup' })
         const count = (res && res.data && res.data.orders) ? res.data.orders.length : 0
         if (count > 0) {
           // 更新 MobileLayout 角标

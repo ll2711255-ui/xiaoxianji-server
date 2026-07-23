@@ -115,7 +115,7 @@ async function loadData() {
   const { dateFrom, dateTo } = getDateRange()
   try {
     const [onlineRes, offlineRes] = await Promise.all([
-      api.get('/merchant/orders', { status: 'completed', type: 'online', pageSize: 200, dateFrom, dateTo }),
+      api.get('/merchant/orders', { status: 'completed', type: 'delivery,pickup', pageSize: 200, dateFrom, dateTo }),
       api.get('/merchant/orders', { status: 'completed', type: 'offline', pageSize: 200, dateFrom, dateTo })
     ])
 
