@@ -19,7 +19,7 @@
 
     <div v-for="p in products" :key="p.id" class="stock-card" @click="onEdit(p)">
       <div class="stock-card-left">
-        <image v-if="p.image" :src="p.image" class="stock-thumb" mode="aspectFill" />
+        <img v-if="p.image" :src="p.image" class="stock-thumb" />
         <div v-else class="stock-thumb-placeholder">
           <el-icon :size="24"><Goods /></el-icon>
         </div>
@@ -29,7 +29,7 @@
         </div>
       </div>
       <div class="stock-card-right" :class="stockStatus(p).cls">
-        <span class="stock-count">{{ p.stock || 0 }}</span>
+        <span class="stock-count">{{ stockQty(p) }}</span>
         <span class="stock-label">{{ stockStatus(p).label }}</span>
       </div>
     </div>
@@ -45,17 +45,37 @@ const router = useRouter()
 const products = ref([])
 const keyword = ref('')
 const loading = ref(false)
+const stockMap = ref({})  // productId → { available, locked }
 
 let _searchTimer = null
 
 function formatMoney(fen) { return (fen / 100).toFixed(2) }
 
+function stockQty(product) {
+  const id = product.id || product._id
+  const s = stockMap.value[id]
+  return s ? s.available : 0
+}
+
 function stockStatus(product) {
-  const s = product.stock || 0
+  const s = stockQty(product)
   if (s <= 0) return { label: '售罄', cls: 'stock-out' }
   if (s < 10) return { label: '告急', cls: 'stock-low' }
   if (s < 50) return { label: '正常', cls: 'stock-ok' }
   return { label: '充足', cls: 'stock-full' }
+}
+
+async function loadStocks(list) {
+  if (!list || list.length === 0) { stockMap.value = {}; return }
+  const ids = list.map(p => p.id || p._id).filter(Boolean)
+  if (ids.length === 0) return
+  try {
+    const res = await api.get('/products/stock/batch', { ids: ids.join(',') })
+    const stocks = (res && res.data && res.data.stocks) || {}
+    stockMap.value = stocks
+  } catch (err) {
+    console.error('批量加载库存失败:', err)
+  }
 }
 
 async function loadProducts() {
@@ -63,6 +83,8 @@ async function loadProducts() {
   try {
     const res = await api.get('/merchant/products', { keyword: keyword.value, pageSize: 50 })
     products.value = (res && res.data && res.data.products) || (res && res.data) || []
+    // 异步加载 Redis 库存（不阻塞列表渲染）
+    loadStocks(products.value)
   } catch (err) {
     console.error('加载商品失败:', err)
   } finally {

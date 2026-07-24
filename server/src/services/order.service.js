@@ -58,6 +58,20 @@ async function createOrder({ openid, items, type, deliveryAddress, isScheduled, 
     throw new Error(batchLockResult.message || '库存不足');
   }
 
+  // 3b. 锁库存成功后，检查是否有商品库存归零，自动标记 MySQL out_of_stock
+  //     非关键路径，失败不影响下单流程
+  for (const item of validatedItems) {
+    try {
+      const remaining = await redis.hget(`stock:available:${item.productId}`, 'default');
+      if (remaining !== null && parseInt(remaining) === 0) {
+        await db.execute('UPDATE products SET out_of_stock = 1 WHERE id = ?', [item.productId]);
+        logger.info(`[order] 库存售罄自动标记缺货: goods=${item.productId}`);
+      }
+    } catch (e) {
+      // 非关键路径，静默忽略
+    }
+  }
+
   // 4-9. MySQL + 微信预下单（失败时释放 Redis 库存，防止幽灵库存泄漏）
   try {
     // 4. 写入 MySQL 事务（order_info + order_item + stock_lock_record + payment_record）
@@ -216,58 +230,9 @@ async function getPayStatus(orderNo) {
   return order;
 }
 
-// ========== 取消订单 ==========
-
-/**
- * 取消订单（用户主动取消）
- */
-async function cancelOrder(orderNo, openid) {
-  const order = await db.queryOne('SELECT * FROM order_info WHERE order_no = ?', [orderNo]);
-  if (!order) throw new Error('订单不存在');
-  if (order.userId !== openid) throw new Error('无权操作此订单');
-
-  // 状态校验
-  const cancelable = ['pending'];
-  if (!cancelable.includes(order.status)) {
-    throw new Error('当前订单状态不可取消');
-  }
-
-  // 未支付：直接取消 + 释放库存
-  if (order.orderStatus === 0 && order.prepayId) {
-    // 尝试关闭微信预支付单（best effort）
-    await wxpay.closeOrder(orderNo);
-  }
-
-  // 释放库存
-  const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
-  for (const item of items) {
-    await stockService.releaseStock(item.productId, 'default', item.quantity);
-  }
-
-  // 更新订单状态
-  await db.execute(
-    `UPDATE order_info SET order_status = 2, status_label = 'cancelled',
-     cancel_time = NOW(), cancel_reason = '用户主动取消' WHERE order_no = ?`,
-    [orderNo]
-  );
-
-  // 更新库存记录
-  await db.execute(
-    "UPDATE stock_lock_record SET lock_status = 3 WHERE order_no = ?",
-    [orderNo]
-  );
-
-  // 从延时队列移除
-  await redis.zrem('order:timeout:queue', orderNo);
-
-  logger.info(`[order] 订单已取消: ${orderNo}`);
-  return { orderNo, message: '订单已取消' };
-}
-
 module.exports = {
   createOrder,
   getUserOrders,
   getOrderByNo,
   getPayStatus,
-  cancelOrder,
 };

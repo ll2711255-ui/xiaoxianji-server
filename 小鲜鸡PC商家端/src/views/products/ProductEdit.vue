@@ -33,6 +33,34 @@
             <el-checkbox label="pickup">到店自取</el-checkbox>
           </el-checkbox-group>
         </el-form-item>
+        <el-form-item label="库存数量">
+          <el-input-number v-model="form.stockQty" :min="0" :max="99999" :step="1" />
+          <span style="margin-left:8px;color:#999;font-size:12px">可售库存，用户下单时自动扣减，售罄后无法下单</span>
+          <div v-if="form._lockedQty > 0" style="margin-top:6px">
+            <el-alert
+              :title="'当前有 ' + form._lockedQty + ' 件库存被未完成订单锁定，可用库存需 ≥ 已锁定数量'"
+              type="info"
+              :closable="false"
+              show-icon
+            />
+          </div>
+          <div v-if="form.stockQty === 0" style="margin-top:6px">
+            <el-alert
+              title="库存为0时，商品将自动标记为「缺货」状态，用户端不可见。补货后请重新设置库存数量。"
+              type="warning"
+              :closable="false"
+              show-icon
+            />
+          </div>
+          <div v-if="form._saveWarning" style="margin-top:6px">
+            <el-alert
+              :title="form._saveWarning"
+              type="warning"
+              :closable="false"
+              show-icon
+            />
+          </div>
+        </el-form-item>
         <el-form-item label="商品图片">
           <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start">
             <div v-for="(img, i) in images" :key="i" style="position:relative;width:100px;height:100px;border-radius:6px;overflow:hidden;border:1px solid #ebeef5">
@@ -185,7 +213,11 @@ const form = reactive({
   // per_piece（存储元，提交时 ×100 转分）
   unitPrice: 25.00,
   // range_weight
-  typeConfigs: []
+  typeConfigs: [],
+  // 库存
+  stockQty: 0,
+  _lockedQty: 0,     // 当前已锁定库存（仅展示）
+  _saveWarning: ''    // 保存后的后端警告
 })
 
 const rules = {
@@ -344,6 +376,16 @@ async function loadProduct() {
       form.typeConfigs.forEach(tc => { delete tc._weightSet })
       checkedProcOpts.value = [...procSet]
     }
+    // 加载库存
+    try {
+      const stockRes = await api.get('/products/' + productId + '/stock')
+      const stockData = (stockRes && stockRes.data) || stockRes || {}
+      form.stockQty = stockData.available || 0
+      form._lockedQty = stockData.locked || 0
+    } catch (e) {
+      console.error('加载库存失败:', e)
+      ElMessage.warning('库存数据加载失败，请刷新页面重试，否则保存时将库存设为 0')
+    }
   } catch (err) { console.error('加载商品失败:', err); ElMessage.error('加载商品失败') }
   loading.value = false
 }
@@ -391,6 +433,22 @@ async function onSave() {
     if (isEdit.value) { res = await api.put('/products/' + productId, payload) }
     else { res = await api.post('/products', payload) }
     if (res && res.success) {
+      // 保存库存
+      const targetId = isEdit.value ? productId : (res.data && res.data.id)
+      if (targetId && form.stockQty >= 0) {
+        try {
+          const stockRes = await api.put('/products/' + targetId + '/stock', { qty: form.stockQty })
+          // 展示后端返回的警告（如已锁定库存 > 新设置库存）
+          if (stockRes && stockRes.data && stockRes.data.warning) {
+            form._saveWarning = stockRes.data.warning
+          } else {
+            form._saveWarning = ''
+          }
+        } catch (e) {
+          console.error('库存写入失败:', e)
+          ElMessage.error('库存保存失败，请重试')
+        }
+      }
       ElMessage.success(isEdit.value ? '商品已更新' : '商品已创建')
       router.push('/products')
     } else {

@@ -300,21 +300,50 @@ async function confirmStock(goodsId, batchNo = 'default', qty) {
 
 /**
  * 设置商品库存（管理后台用）
+ * 同时写入 Redis 和 MySQL，保证 Redis 重启后可从 MySQL 恢复真实库存
+ *
+ * @param {string} goodsId - 商品ID
+ * @param {string} batchNo - 批次号（默认 'default'）
+ * @param {number} qty - 库存数量（非负整数）
  */
 async function setStock(goodsId, batchNo = 'default', qty) {
-  await redis.hset(`stock:available:${goodsId}`, batchNo, qty);
+  // 参数校验
+  const stockQty = parseInt(qty);
+  if (isNaN(stockQty) || stockQty < 0 || !Number.isInteger(stockQty)) {
+    logger.error(`[stock] setStock 参数非法: goods=${goodsId} qty=${qty}`);
+    throw new Error('库存数量需为非负整数');
+  }
+
+  // 写入 Redis（主数据源）
+  await redis.hset(`stock:available:${goodsId}`, batchNo, stockQty);
+
+  // 同步写入 MySQL（持久化镜像，warmupStock 恢复用）
+  if (batchNo === 'default') {
+    try {
+      const { pool } = require('../config/db');
+      await pool.execute(
+        'UPDATE products SET stock = ? WHERE id = ?',
+        [stockQty, goodsId]
+      );
+    } catch (err) {
+      // MySQL 写入失败不阻塞主流程（Redis 已写入成功）
+      logger.error(`[stock] MySQL 库存同步失败: goods=${goodsId}`, err.message);
+    }
+  }
 }
 
 /**
  * Redis 重启后从 MySQL 预热库存
  *
  * 场景：Redis 重启/FLUSHALL 后所有库存归零，用户无法下单。
- * 此函数从 products 表读取在售商品，批量回填 Redis 可用库存。
+ * 此函数从 products 表读取在售商品的 stock 列（管理员设置的镜像值），
+ * 批量回填 Redis 可用库存。
  *
  * 策略：
  *   1. 只在 Redis key 不存在时才写入（不覆盖运行中数据）
- *   2. 默认初始库存从 config.business.defaultStock 读取，未配置则 999
- *   3. 用 Redis pipeline 减少 RTT
+ *   2. 优先使用 MySQL products.stock（管理员最后设置的值）
+ *   3. MySQL stock 为 NULL/0 时使用 config.business.defaultStock 兜底
+ *   4. 用 Redis pipeline 减少 RTT
  *
  * @returns {Promise<{warmed: number, skipped: number}>}
  */
@@ -327,9 +356,9 @@ async function warmupStock() {
   let skipped = 0;
 
   try {
-    // 从 MySQL 读取所有在售商品
+    // 从 MySQL 读取所有在售商品（含 stock 列）
     const [products] = await pool.execute(
-      'SELECT id, name, out_of_stock FROM products WHERE status = ?',
+      'SELECT id, name, out_of_stock, stock FROM products WHERE status = ?',
       ['on']
     );
 
@@ -344,7 +373,7 @@ async function warmupStock() {
 
     for (const p of products) {
       const key = `stock:available:${p.id}`;
-      stockChecks.push({ id: p.id, name: p.name, key, outOfStock: p.outOfStock });
+      stockChecks.push({ id: p.id, name: p.name, key, outOfStock: p.out_of_stock, mysqlStock: p.stock });
       pipeline.exists(key);
     }
 
@@ -361,16 +390,21 @@ async function warmupStock() {
       const exists = results[i] && results[i][1] === 1;
 
       if (!exists) {
-        // 已下架的商品跳过
+        // 已下架(out_of_stock=1)或 MySQL stock 为 0 的商品，跳过
         if (item.outOfStock) {
           skipped++;
           continue;
         }
 
-        // Redis key 不存在 → 初始化为默认库存
-        writePipeline.hset(item.key, 'default', DEFAULT_INIT_STOCK);
+        // 优先用 MySQL 镜像值，其次用默认值兜底
+        const initQty = (item.mysqlStock !== null && item.mysqlStock > 0)
+          ? item.mysqlStock
+          : DEFAULT_INIT_STOCK;
+
+        writePipeline.hset(item.key, 'default', initQty);
         warmed++;
-        logger.info(`[stock] 预热: goods=${item.id} ${item.name} → ${DEFAULT_INIT_STOCK}`);
+        const source = (item.mysqlStock !== null && item.mysqlStock > 0) ? 'MySQL镜像' : '默认值';
+        logger.info(`[stock] 预热: goods=${item.id} ${item.name} → ${initQty} (${source})`);
       } else {
         skipped++;
       }
@@ -383,7 +417,7 @@ async function warmupStock() {
     logger.info(`[stock] 预热完成: 写入 ${warmed} 个, 跳过 ${skipped} 个 (共 ${products.length} 个在售商品)`);
 
     if (warmed > 0) {
-      logger.warn(`[stock] ⚠️ 已预热 ${warmed} 个商品的默认库存(${DEFAULT_INIT_STOCK})，请尽快通过管理后台设置真实库存！`);
+      logger.warn(`[stock] ⚠️ 已预热 ${warmed} 个商品库存，来源为 MySQL 镜像值/默认值(${DEFAULT_INIT_STOCK})`);
     }
 
     return { warmed, skipped };

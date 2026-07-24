@@ -86,7 +86,7 @@ const config = {
   // 业务参数
   business: {
     payTimeoutMinute: parseInt(process.env.PAY_TIMEOUT_MINUTE, 10) || 15,
-    stockLockPrefix: 'stock:lock:',
+    defaultStock: parseInt(process.env.DEFAULT_STOCK, 10) || 999,
   },
 
   // bcrypt 哈希轮数（10 = 约 100ms，安全性/性能的平衡点）

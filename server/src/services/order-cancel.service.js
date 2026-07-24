@@ -226,24 +226,37 @@ async function releaseOrderStock(orderNo, itemsRaw) {
 
 /**
  * 库存释放后检查：如果之前标记 out_of_stock=1，现在库存>0 则自动恢复
+ *
+ * 降级路径：当 itemsRaw 为空时，从 stock_lock_record 查询被释放的商品列表
  */
 async function restoreOutOfStock(itemsRaw) {
   try {
-    let items = itemsRaw;
-    if (typeof items === 'string') {
-      items = JSON.parse(items);
-    }
-    if (!items || items.length === 0) return;
+    let productIds = [];
 
-    for (const item of items) {
+    if (itemsRaw) {
+      let items = itemsRaw;
+      if (typeof items === 'string') {
+        try { items = JSON.parse(items); } catch { items = null; }
+      }
+      if (items && items.length > 0) {
+        productIds = items.map(item => item.productId).filter(Boolean);
+      }
+    }
+
+    // 降级：items 为空时，从 stock_lock_record 查询
+    if (productIds.length === 0) {
+      return; // releaseOrderStock 已处理 stock_lock_record 的降级释放
+    }
+
+    for (const productId of productIds) {
       try {
-        const remaining = await redis.hget(`stock:available:${item.productId}`, 'default');
+        const remaining = await redis.hget(`stock:available:${productId}`, 'default');
         if (remaining !== null && parseInt(remaining) > 0) {
           await db.execute(
             'UPDATE products SET out_of_stock = 0 WHERE id = ? AND out_of_stock = 1',
-            [item.productId]
+            [productId]
           );
-          logger.info(`[cancel] 库存恢复自动取消缺货: goods=${item.productId} remaining=${remaining}`);
+          logger.info(`[cancel] 库存恢复自动取消缺货: goods=${productId} remaining=${remaining}`);
         }
       } catch (e) { /* 非关键路径 */ }
     }
