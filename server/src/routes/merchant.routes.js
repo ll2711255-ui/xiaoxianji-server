@@ -20,7 +20,7 @@ router.use(verifyToken, requireMerchant);
 // 每个 action 的前置条件：订单必须在对应状态才能执行
 const STATE_RULES = {
   accept:   { require: ['paid'],       nextLabel: 'accepted' },
-  process:  { require: ['accepted', 'weighed', 'pending'], nextLabel: 'processing' },
+  process:  { require: ['accepted', 'weighed', 'card_assigned', 'pending'], nextLabel: 'processing' },
   ready:    { require: ['processing', 'weighed'], nextLabel: 'ready' },
   deliver:  { require: ['ready'],      nextLabel: 'delivering', requireType: 'delivery' },
   complete: { require: ['delivering', 'ready'], nextLabel: 'completed', nextStatus: 3 },
@@ -163,6 +163,39 @@ router.post('/orders/:orderNo/weigh', async (req, res) => {
   } catch (err) {
     logger.error('[merchant] 称重失败:', err.message || err, err);
     res.status(500).json({ success: false, code: 500, message: err.message || err.sqlMessage || '称重失败' });
+  }
+});
+
+/**
+ * POST /api/merchant/orders/:orderNo/assign-card — 挂牌（非称重商品绑定号码牌）
+ *
+ * 仅适用于 exact_weight / per_piece 商品（不需要称重，只需要绑号码牌）
+ * 前置条件：订单状态为 accepted
+ * 执行后：订单状态 → card_assigned，号码牌 idle → in_use
+ */
+router.post('/orders/:orderNo/assign-card', async (req, res) => {
+  try {
+    const { orderNo } = req.params;
+    const { cardNumber } = req.body;
+
+    if (!cardNumber) {
+      return res.status(400).json({ success: false, code: 400, message: '请选择号码牌' });
+    }
+
+    const { assignCard } = require('../services/card-assign.service');
+    const result = await assignCard({
+      orderNo,
+      cardNumber,
+      staffId: req.user.openid,
+    });
+
+    res.json({ success: true, code: 200, data: result });
+  } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ success: false, code: err.status, message: err.message });
+    }
+    logger.error('[merchant] 挂牌失败:', err.message);
+    res.status(500).json({ success: false, code: 500, message: '挂牌失败，请稍后重试' });
   }
 });
 

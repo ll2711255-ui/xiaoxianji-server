@@ -5,7 +5,7 @@
       <n-button text @click="onBack">
         ← 返回
       </n-button>
-      <span class="weigh-title">称重 · {{ orderNo }}</span>
+      <span class="weigh-title">{{ isRangeWeight ? '称重' : '挂牌' }} · {{ orderNo }}</span>
       <div style="width:60px" />
     </div>
 
@@ -65,50 +65,60 @@
           </n-card>
         </n-gi>
 
-        <!-- 右列：重量输入 + 计算 -->
+        <!-- 右列：称重输入（仅整鸡）/ 挂牌确认（非称重商品） -->
         <n-gi>
-          <n-card title="实际称重" size="small" style="margin-bottom:12px">
-            <!-- 约束提示 -->
-            <n-alert
-              v-if="weightConstraint"
-              type="warning"
-              style="margin-bottom:12px"
-            >
-              {{ weightConstraint.label }}
-            </n-alert>
+          <n-card :title="isRangeWeight ? '实际称重' : '挂牌信息'" size="small" style="margin-bottom:12px">
+            <!-- 非称重商品：仅显示确认信息 -->
+            <template v-if="!isRangeWeight">
+              <n-alert type="info" style="margin-bottom:12px">
+                该商品无需称重（{{ pricingTypeLabel }}），选择号码牌后直接挂牌即可进入处理。
+              </n-alert>
+              <n-descriptions :column="1" label-placement="left" size="small" bordered>
+                <n-descriptions-item label="商品">{{ productName }}</n-descriptions-item>
+                <n-descriptions-item label="预付款">¥{{ prepayDisplay }}</n-descriptions-item>
+                <n-descriptions-item label="号码牌" v-if="selectedCard">
+                  <n-tag type="warning" size="medium">{{ selectedCard }}</n-tag>
+                </n-descriptions-item>
+              </n-descriptions>
+            </template>
 
-            <n-form-item label="实际重量（克）" label-placement="top" size="large">
-              <n-input-number
-                v-model:value="weightGrams"
-                :min="0"
-                :max="99999"
-                placeholder="输入实际称重克数"
-                style="width:100%"
-                :status="weightWarning ? 'error' : undefined"
-                @update:value="onWeightChange"
-              >
-                <template #suffix>克</template>
-              </n-input-number>
-            </n-form-item>
+            <!-- 称重商品 -->
+            <template v-else>
+              <n-alert v-if="weightConstraint" type="warning" style="margin-bottom:12px">
+                {{ weightConstraint.label }}
+              </n-alert>
 
-            <!-- 警告 -->
-            <n-alert v-if="weightWarning" type="error" style="margin-bottom:12px">
-              {{ weightWarning }}
-            </n-alert>
+              <n-form-item label="实际重量（克）" label-placement="top" size="large">
+                <n-input-number
+                  v-model:value="weightGrams"
+                  :min="0"
+                  :max="99999"
+                  placeholder="输入实际称重克数"
+                  style="width:100%"
+                  :status="weightWarning ? 'error' : undefined"
+                  @update:value="onWeightChange"
+                >
+                  <template #suffix>克</template>
+                </n-input-number>
+              </n-form-item>
 
-            <!-- 实时计算 -->
-            <n-descriptions :column="1" label-placement="left" size="small" bordered v-if="weightGrams > 0">
-              <n-descriptions-item label="实际重量">{{ actualWeightJin }} 斤</n-descriptions-item>
-              <n-descriptions-item label="计算公式">{{ weightGrams }}克 / 500 × ¥{{ pricePerJinDisplay }} + ¥{{ processingFeeDisplay }}</n-descriptions-item>
-              <n-descriptions-item label="实际金额">
-                <span style="font-size:18px;font-weight:700;color:#D4420A">¥{{ actualAmountDisplay }}</span>
-              </n-descriptions-item>
-              <n-descriptions-item label="退款金额" v-if="showRefund">
-                <span :style="{ color: refundAmount > 0 ? '#67C23A' : '#999', fontSize: refundAmount > 0 ? '16px' : '13px', fontWeight: refundAmount > 0 ? '700' : '400' }">
-                  {{ refundAmount > 0 ? '¥' + refundAmountDisplay + ' 退还给用户' : '无需退款' }}
-                </span>
-              </n-descriptions-item>
-            </n-descriptions>
+              <n-alert v-if="weightWarning" type="error" style="margin-bottom:12px">
+                {{ weightWarning }}
+              </n-alert>
+
+              <n-descriptions :column="1" label-placement="left" size="small" bordered v-if="weightGrams > 0">
+                <n-descriptions-item label="实际重量">{{ actualWeightJin }} 斤</n-descriptions-item>
+                <n-descriptions-item label="计算公式">{{ weightGrams }}克 / 500 × ¥{{ pricePerJinDisplay }} + ¥{{ processingFeeDisplay }}</n-descriptions-item>
+                <n-descriptions-item label="实际金额">
+                  <span style="font-size:18px;font-weight:700;color:#D4420A">¥{{ actualAmountDisplay }}</span>
+                </n-descriptions-item>
+                <n-descriptions-item label="退款金额" v-if="showRefund">
+                  <span :style="{ color: refundAmount > 0 ? '#67C23A' : '#999', fontSize: refundAmount > 0 ? '16px' : '13px', fontWeight: refundAmount > 0 ? '700' : '400' }">
+                    {{ refundAmount > 0 ? '¥' + refundAmountDisplay + ' 退还给用户' : '无需退款' }}
+                  </span>
+                </n-descriptions-item>
+              </n-descriptions>
+            </template>
           </n-card>
 
           <!-- 提交按钮 -->
@@ -168,6 +178,8 @@ const processingFee = ref(0)
 const processingFeeDisplay = ref('0.00')
 const prepayAmount = ref(0)
 const prepayDisplay = ref('0.00')
+const isRangeWeight = ref(true)
+const pricingType = ref('')
 
 // 重量
 const weightGrams = ref(0)
@@ -196,8 +208,22 @@ const submitting = ref(false)
 const showWeighReceipt = ref(false)
 const weighReceiptData = ref({})
 
-const canSubmit = computed(() => weightGrams.value > 0 && !weightWarning.value && !submitting.value)
+const pricingTypeLabel = computed(() => {
+  if (isRangeWeight.value) return '整鸡称重计价'
+  return { exact_weight: '按斤计价', per_piece: '按只计价' }[pricingType.value] || '即定价'
+})
+
+const canSubmit = computed(() => {
+  if (submitting.value) return false
+  // 称重模式：需要输入重量 + 无警告
+  if (isRangeWeight.value) return weightGrams.value > 0 && !weightWarning.value
+  // 挂牌模式：只需选择号码牌
+  return !!selectedCard.value
+})
 const submitLabel = computed(() => {
+  if (!isRangeWeight.value) {
+    return selectedCard.value ? `确认挂牌 · 号码牌 ${selectedCard.value}` : '请选择号码牌'
+  }
   if (!weightGrams.value) return '请输入实际重量'
   if (weightWarning.value) return '重量不符合规则'
   return `确认称重 · ¥${actualAmountDisplay.value}` + (refundAmount.value > 0 ? ` · 退款¥${refundAmountDisplay.value}` : '')
@@ -219,11 +245,13 @@ async function loadOrder() {
     const d = (res && res.data) || res || {}
     const ord = d.order
     if (!ord) { message.error('订单不存在'); router.push('/'); return }
-    if (ord.status !== 'accepted') { message.error('订单状态不可称重'); router.push('/'); return }
-
-    order.value = ord
+    if (ord.status !== 'accepted') { message.error('订单状态不可操作'); router.push('/'); return }
 
     const item = (ord.items && ord.items[0]) || {}
+    pricingType.value = item.pricingType || ''
+    isRangeWeight.value = pricingType.value === 'range_weight'
+
+    order.value = ord
     const spec = item.spec || {}
 
     // 规格标签
@@ -244,19 +272,12 @@ async function loadOrder() {
     prepayAmount.value = ord.payAmount || 0
     prepayDisplay.value = formatMoney(ord.payAmount || 0)
 
-    // 重量约束（四道防线第①道）
-    const pricingType = item.pricingType || ''
-    if (pricingType === 'range_weight') {
+    // 重量约束（四道防线第①道）—— 仅整鸡需要
+    if (pricingType.value === 'range_weight') {
       const weightMax = spec.weight_max
       if (weightMax && weightMax > 0) {
         const maxJin = (weightMax / 500).toFixed(2)
         weightConstraint.value = { type: 'max', value: weightMax, label: `最大不超过 ${weightMax}克（${maxJin}斤）` }
-      }
-    } else if (pricingType === 'exact_weight') {
-      const targetGrams = spec.weightGrams
-      if (targetGrams && targetGrams > 0) {
-        const targetJin = (targetGrams / 500).toFixed(2)
-        weightConstraint.value = { type: 'equal', value: targetGrams, label: `须等于 ${targetGrams}克（${targetJin}斤）` }
       }
     }
 
@@ -333,11 +354,31 @@ function onPhotoUpload(file) {
   return false
 }
 
-// 防线④：提交拦截
+// 提交（称重 / 挂牌）
 async function onSubmit() {
   if (!canSubmit.value) return
 
-  // 防线④：硬拦截
+  // 非称重模式 → 挂牌
+  if (!isRangeWeight.value) {
+    submitting.value = true
+    try {
+      const res = await api.post('/merchant/orders/' + orderNo.value + '/assign-card', {
+        cardNumber: selectedCard.value
+      })
+      if (res && res.success) {
+        message.success((res.data && res.data.message) || '挂牌成功')
+        router.push('/')
+      } else {
+        message.error((res && res.message) || '挂牌失败')
+      }
+    } catch (err) {
+      message.error(err.response?.data?.message || err.message || '挂牌失败')
+    }
+    submitting.value = false
+    return
+  }
+
+  // 称重模式
   if (weightWarning.value) {
     message.error(weightWarning.value)
     return

@@ -152,6 +152,13 @@ function validateCancelPermission(order, cancelBy) {
   if (status === 'completed') {
     throw Object.assign(new Error('订单已完成，无法取消'), { status: 400 });
   }
+  // 已挂牌的订单不能再取消（进入称重/挂牌环节后订单已在进行中，不可回退）
+  if (status === 'card_assigned') {
+    throw Object.assign(
+      new Error('订单已挂牌，无法取消'),
+      { status: 403 }
+    );
+  }
 
   if (cancelBy === 'user') {
     // 用户只能取消 pending 和 paid 状态的订单

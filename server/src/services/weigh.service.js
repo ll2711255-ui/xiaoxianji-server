@@ -89,8 +89,14 @@ async function handleWeigh({ orderNo, actualWeight, weighPhoto, cardNumber, staf
     }
   }
 
+  // 仅整鸡（range_weight）需要称重，分割品和按只下单即定价，无需称重
+  if (pricingType !== 'range_weight') {
+    logger.warn(`[weigh] 非称重计价商品拒绝称重: order=${orderNo} pricingType=${pricingType}`);
+    return { success: false, error: '该商品计价方式无需称重，请直接在订单列表操作「开始处理」' };
+  }
+
   // 最终校验：按重计价商品必须有有效单价，pricePerJin=0 会导致退全款
-  if (pricingType === 'range_weight' && !pricePerJin) {
+  if (!pricePerJin) {
     logger.error(`[weigh] 商品定价缺失: order=${orderNo} goods=${item.productId}`);
     return { success: false, error: '商品定价信息缺失，无法称重计价，请联系管理员' };
   }

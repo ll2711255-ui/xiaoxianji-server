@@ -82,7 +82,7 @@
           <el-steps :active="statusStep" direction="vertical" :space="40">
             <el-step title="已支付" v-if="order.type !== 'offline'" />
             <el-step title="已接单" />
-            <el-step title="已称重" />
+            <el-step :title="isOrderRangeWeight ? '已称重' : '已挂牌'" />
             <el-step title="处理中" />
             <el-step :title="order.type === 'delivery' ? '配送中' : '待取货'" />
             <el-step title="已完成" />
@@ -113,17 +113,27 @@ const calcAmount = computed(() => {
   return ((weighForm.grams / 500) * weighForm.pricePerJin + weighForm.processingFee) / 100
 })
 
-const canWeigh = computed(() => {
-  const s = order.value.status
-  if (s !== 'accepted' && s !== 'weighed' && s !== 'processing') return false
-  // 仅整鸡（range_weight）需要称重，分割品和按只下单即定价
+const isOrderRangeWeight = computed(() => {
   const item = (order.value.items && order.value.items[0]) || {}
   return item.pricingType === 'range_weight'
 })
 
+const canWeigh = computed(() => {
+  const s = order.value.status
+  if (s !== 'accepted' && s !== 'weighed' && s !== 'processing') return false
+  return isOrderRangeWeight.value
+})
+
 const statusStep = computed(() => {
   const s = order.value.status
-  const steps = { paid: 0, accepted: 1, weighed: 2, processing: 2, ready: 3, delivering: 3, completed: 4 }
+  const isOffline = order.value.type === 'offline'
+  if (isOffline) {
+    // 线下订单无"已支付"步骤，DOM 索引整体左移一位
+    const steps = { pending: 0, processing: 2, ready: 3, completed: 4 }
+    return steps[s] ?? 0
+  }
+  // 线上订单：0=已支付 1=已接单 2=已称重/已挂牌 3=处理中 4=配送中/待取货 5=已完成
+  const steps = { paid: 0, accepted: 1, weighed: 2, card_assigned: 2, processing: 3, ready: 4, delivering: 4, completed: 5 }
   return steps[s] ?? 0
 })
 
@@ -131,15 +141,28 @@ const actions = computed(() => {
   const s = order.value.status
   const t = order.value.type
   const d = order.value.type  // 订单类型：delivery/pickup/offline
+  const firstItem = (order.value.items && order.value.items[0]) || {}
+  const isRangeWeight = firstItem.pricingType === 'range_weight'
   const list = []
   if (t !== 'offline') {
     if (s === 'paid') {
       list.push({ action: 'accept', label: '📋 接单', type: 'primary' })
       list.push({ action: 'cancel-accept', label: '❌ 取消接单', type: 'danger' })
     }
-    if (s === 'accepted') list.push({ action: 'process', label: '🔪 开始处理', type: 'warning' })
+    if (s === 'accepted') {
+      if (isRangeWeight) {
+        // 整鸡 → 需要称重（走 Weigh.vue 页面）
+        list.push({ action: 'weigh', label: '⚖️ 称重挂牌', type: 'warning' })
+      } else {
+        // 非称重商品 → 直接挂牌绑定号码牌
+        list.push({ action: 'assign-card', label: '🏷️ 挂牌', type: 'primary' })
+      }
+    }
     if (s === 'weighed' || s === 'processing') {
       list.push({ action: 'ready', label: '📦 备货完成', type: 'success' })
+    }
+    if (s === 'card_assigned') {
+      list.push({ action: 'process', label: '🔪 开始处理', type: 'primary' })
     }
     if (s === 'ready') {
       if (d === 'delivery') list.push({ action: 'deliver', label: '🛵 开始配送', type: 'success' })
@@ -182,8 +205,40 @@ async function loadOrder() {
 }
 
 async function onAction(action) {
-  const labels = { accept: '接单', process: '开始处理', deliver: '开始配送', ready: '标记待取货', complete: '确认完成', 'mark-paid': '标记已支付' }
+  const labels = { accept: '接单', process: '开始处理', deliver: '开始配送', ready: '备货完成', complete: '确认完成', 'mark-paid': '标记已支付' }
   const isCancelAccept = action === 'cancel-accept'
+  const isAssignCard = action === 'assign-card'
+  const isWeigh = action === 'weigh'
+
+  // 挂牌：弹出号码牌输入框
+  if (isAssignCard) {
+    let cardNumber = ''
+    try {
+      const { value } = await ElMessageBox.prompt('请输入号码牌编号（如 01、05、12）', '挂牌绑定号码牌', {
+        confirmButtonText: '确认挂牌',
+        cancelButtonText: '取消',
+        inputPattern: /^\d{1,2}$/,
+        inputErrorMessage: '号码牌格式不正确（01~99）',
+        inputPlaceholder: '输入号码牌编号',
+      })
+      cardNumber = (value || '').padStart(2, '0')
+    } catch { return }
+
+    submitting.value = true
+    try {
+      const res = await api.post('/merchant/orders/' + order.value.orderNo + '/assign-card', { cardNumber })
+      if (res && res.success) { ElMessage.success((res.data && res.data.message) || '挂牌成功'); loadOrder() }
+      else { ElMessage.error((res && res.message) || '挂牌失败') }
+    } catch (err) { ElMessage.error(err.response?.data?.message || err.message || '挂牌失败') }
+    submitting.value = false
+    return
+  }
+
+  // 称重挂牌：跳转到称重页面
+  if (isWeigh) {
+    router.push('/weigh/' + order.value.orderNo)
+    return
+  }
 
   if (isCancelAccept) {
     try {
