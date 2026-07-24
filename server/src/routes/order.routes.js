@@ -2,6 +2,7 @@
  * 订单路由 /api/orders/*
  */
 const router = require('express').Router();
+const db = require('../config/db');
 const orderService = require('../services/order.service');
 const wxpay = require('../utils/wxpay');
 const config = require('../config');
@@ -233,18 +234,47 @@ router.post('/:orderNo/pay', async (req, res) => {
 });
 
 /**
- * POST /api/orders/:orderNo/cancel — 取消订单
+ * POST /api/orders/:orderNo/cancel — 用户取消订单
+ *
+ * 权限：仅订单所属用户可取消
+ * 规则：
+ *   - pending → 直接取消，无退款
+ *   - paid    → 取消 + 全额退款
+ *   - accepted 及之后 → 403 不可取消
  */
 router.post('/:orderNo/cancel', async (req, res) => {
   try {
-    const v = validateOrderNo(req.params.orderNo);
+    const { orderNo } = req.params;
+    const v = validateOrderNo(orderNo);
     if (!v.valid) return res.status(400).json({ success: false, code: 400, message: v.error });
 
-    const result = await orderService.cancelOrder(req.params.orderNo, req.user.openid);
-    res.json({ success: true, code: 200, data: result });
+    // 验证订单归属（不能取消别人的订单）
+    const order = await db.queryOne(
+      'SELECT user_id, status_label, pay_amount FROM order_info WHERE order_no = ?',
+      [orderNo]
+    );
+    if (!order) {
+      return res.status(404).json({ success: false, code: 404, message: '订单不存在' });
+    }
+    if (order.userId !== req.user.openid) {
+      return res.status(403).json({ success: false, code: 403, message: '无权操作此订单' });
+    }
+
+    const { cancelOrder } = require('../services/order-cancel.service');
+    const result = await cancelOrder({
+      orderNo,
+      cancelBy: 'user',
+      cancelReason: req.body.reason || '用户主动取消',
+      operatorId: req.user.openid,
+    });
+
+    res.json({ success: true, code: 200, ...result });
   } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ success: false, code: err.status, message: err.message });
+    }
     logger.error('[orders] 取消失败:', err.message);
-    res.status(500).json({ success: false, code: 500, message: err.message || '取消订单失败' });
+    res.status(500).json({ success: false, code: 500, message: '取消失败，请稍后重试' });
   }
 });
 

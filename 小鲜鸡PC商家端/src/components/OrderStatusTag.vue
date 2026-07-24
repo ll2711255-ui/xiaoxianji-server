@@ -1,5 +1,10 @@
 <template>
-  <el-tag :type="tagType" :size="size" disable-transitions>
+  <el-tooltip v-if="props.cancelReason" :content="'取消原因：' + props.cancelReason + '  |  取消方：' + cancelByLabel" placement="top">
+    <el-tag :type="tagType" :size="size" disable-transitions>
+      {{ text }}
+    </el-tag>
+  </el-tooltip>
+  <el-tag v-else :type="tagType" :size="size" disable-transitions>
     {{ text }}
   </el-tag>
 </template>
@@ -10,7 +15,14 @@ import { computed } from 'vue'
 const props = defineProps({
   status: { type: String, required: true },
   type: { type: String, default: 'online' },
-  size: { type: String, default: 'default' }
+  size: { type: String, default: 'default' },
+  cancelReason: { type: String, default: '' },
+  cancelBy: { type: String, default: '' },
+})
+
+const cancelByLabel = computed(() => {
+  const map = { user: '用户', merchant: '商家', system: '系统超时' }
+  return map[props.cancelBy] || props.cancelBy
 })
 
 const tagType = computed(() => {

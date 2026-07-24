@@ -9,7 +9,7 @@
           <el-descriptions :column="2" border size="small">
             <el-descriptions-item label="订单号">{{ order.orderNo }}</el-descriptions-item>
             <el-descriptions-item label="状态">
-              <OrderStatusTag :status="order.status" :type="order.type" />
+              <OrderStatusTag :status="order.status" :type="order.type" :cancelReason="order.cancelReason" :cancelBy="order.cancelBy" />
             </el-descriptions-item>
             <el-descriptions-item label="类型">
               {{ order.type === 'offline' ? '线下订单' : order.type === 'pickup' ? '到店自取' : '外卖配送' }}
@@ -115,7 +115,10 @@ const calcAmount = computed(() => {
 
 const canWeigh = computed(() => {
   const s = order.value.status
-  return s === 'accepted' || s === 'weighed' || s === 'processing'
+  if (s !== 'accepted' && s !== 'weighed' && s !== 'processing') return false
+  // 仅整鸡（range_weight）需要称重，分割品和按只下单即定价
+  const item = (order.value.items && order.value.items[0]) || {}
+  return item.pricingType === 'range_weight'
 })
 
 const statusStep = computed(() => {
@@ -130,7 +133,10 @@ const actions = computed(() => {
   const d = order.value.type  // 订单类型：delivery/pickup/offline
   const list = []
   if (t !== 'offline') {
-    if (s === 'paid') list.push({ action: 'accept', label: '📋 接单', type: 'primary' })
+    if (s === 'paid') {
+      list.push({ action: 'accept', label: '📋 接单', type: 'primary' })
+      list.push({ action: 'cancel-accept', label: '❌ 取消接单', type: 'danger' })
+    }
     if (s === 'accepted') list.push({ action: 'process', label: '🔪 开始处理', type: 'warning' })
     if (s === 'weighed' || s === 'processing') {
       list.push({ action: 'ready', label: '📦 备货完成', type: 'success' })
@@ -177,13 +183,28 @@ async function loadOrder() {
 
 async function onAction(action) {
   const labels = { accept: '接单', process: '开始处理', deliver: '开始配送', ready: '标记待取货', complete: '确认完成', 'mark-paid': '标记已支付' }
-  try {
-    await ElMessageBox.confirm(`确定执行「${labels[action]}」吗？`, '确认操作', { type: 'info' })
-  } catch { return }
+  const isCancelAccept = action === 'cancel-accept'
+
+  if (isCancelAccept) {
+    try {
+      await ElMessageBox.confirm(
+        `确认取消接单？将全额退款 ¥${formatMoney(order.value.payAmount || 0)} 给用户。`,
+        '取消接单',
+        { type: 'warning', confirmButtonText: '确认取消', cancelButtonText: '不操作' }
+      )
+    } catch { return }
+  } else {
+    try {
+      await ElMessageBox.confirm(`确定执行「${labels[action]}」吗？`, '确认操作', { type: 'info' })
+    } catch { return }
+  }
 
   try {
-    const res = await api.post('/merchant/orders/' + order.value.orderNo + '/' + action)
-    if (res && res.success) { ElMessage.success('操作成功'); loadOrder() }
+    const url = isCancelAccept
+      ? '/merchant/orders/' + order.value.orderNo + '/cancel-accept'
+      : '/merchant/orders/' + order.value.orderNo + '/' + action
+    const res = await api.post(url, isCancelAccept ? { reason: '商家取消接单' } : undefined)
+    if (res && res.success) { ElMessage.success((res && res.message) || '操作成功'); loadOrder() }
     else { ElMessage.error((res && res.message) || '操作失败') }
   } catch (err) { ElMessage.error(err.response?.data?.message || err.message || '操作失败') }
 }

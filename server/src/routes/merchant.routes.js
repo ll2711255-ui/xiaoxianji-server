@@ -193,6 +193,51 @@ router.post('/orders/:orderNo/refund', async (req, res) => {
 });
 
 /**
+ * POST /api/merchant/orders/:orderNo/cancel-accept — 商家取消接单
+ *
+ * 仅允许在 paid 状态下执行（用户已支付但商家尚未接单）
+ * 执行后全额退款给用户
+ */
+router.post('/orders/:orderNo/cancel-accept', async (req, res) => {
+  try {
+    const { orderNo } = req.params;
+
+    const { cancelOrder } = require('../services/order-cancel.service');
+    const result = await cancelOrder({
+      orderNo,
+      cancelBy: 'merchant',
+      cancelReason: req.body.reason || '商家取消接单',
+      operatorId: req.user.id,
+    });
+
+    // 写操作日志（非关键路径）
+    try {
+      await db.execute(
+        `INSERT INTO merchant_operation_log
+         (operator_id, operator_name, action, target_id, target_name, detail)
+         VALUES (?, ?, 'cancel_accept', ?, ?, ?)`,
+        [
+          String(req.user.id),
+          req.user.displayName || '',
+          orderNo,
+          JSON.stringify({ reason: req.body.reason || '商家取消接单', refundAmount: result.refundAmount }),
+        ]
+      );
+    } catch (logErr) {
+      logger.warn('[merchant] 操作日志写入失败:', logErr.message);
+    }
+
+    res.json({ success: true, code: 200, ...result });
+  } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ success: false, code: err.status, message: err.message });
+    }
+    logger.error('[merchant] 取消接单失败:', err.message);
+    res.status(500).json({ success: false, code: 500, message: '操作失败，请稍后重试' });
+  }
+});
+
+/**
  * POST /api/merchant/orders/:orderNo/:action — 商家操作
  * action: accept | process | ready | deliver | complete | markPaid
  *

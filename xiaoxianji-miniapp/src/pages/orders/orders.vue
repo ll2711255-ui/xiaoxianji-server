@@ -250,9 +250,19 @@ function doPayOrder(orderNo) {
 }
 
 function onCancelOrderItem(orderNo) {
+  const order = orders.value.find(o => o.orderNo === orderNo)
+  const isPaid = order && order.status === 'paid'
+  const refundYuan = order ? ((order.payAmount || 0) / 100).toFixed(2) : '0.00'
+
+  const content = isPaid
+    ? `确定要取消该订单吗？将退款 ¥${refundYuan}，1-7个工作日原路退回。`
+    : '确定要取消该订单吗？订单将直接关闭，无需退款。'
+
   uni.showModal({
     title: '取消订单',
-    content: '确定要取消该订单吗？退款将原路退回，1-7个工作日到账。',
+    content,
+    confirmText: '确认取消',
+    cancelText: '不取消',
     success: async (res) => {
       if (!res.confirm) return
       uni.showLoading({ title: '取消中...' })
@@ -260,7 +270,7 @@ function onCancelOrderItem(orderNo) {
         const result = await post('/orders/' + orderNo + '/cancel')
         uni.hideLoading()
         if (result && result.success) {
-          uni.showToast({ title: '已取消', icon: 'success' })
+          uni.showToast({ title: result.message || '已取消', icon: 'none', duration: 2500 })
           loadOrders(true)
         } else {
           uni.showToast({ title: (result && result.message) || '取消失败', icon: 'none' })

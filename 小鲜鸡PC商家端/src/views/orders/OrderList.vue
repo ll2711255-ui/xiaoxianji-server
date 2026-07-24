@@ -35,7 +35,7 @@
         </template>
       </el-table-column>
       <el-table-column label="状态" width="90">
-        <template #default="{ row }"><OrderStatusTag :status="row.status" :type="row.type" size="small" /></template>
+        <template #default="{ row }"><OrderStatusTag :status="row.status" :type="row.type" size="small" :cancelReason="row.cancelReason" :cancelBy="row.cancelBy" /></template>
       </el-table-column>
       <el-table-column label="号码牌" width="80">
         <template #default="{ row }">{{ row.cardNumber || '-' }}</template>
@@ -58,7 +58,18 @@
         <template #default="{ row }">
           <el-button-group>
             <template v-for="btn in getActions(row)" :key="btn.action">
-              <el-button size="small" :type="btn.type" @click.stop="onAction(row, btn.action)">
+              <el-popconfirm
+                v-if="btn.action === 'cancel-accept'"
+                title="确认取消接单？将全额退款给用户"
+                confirm-button-text="确认取消"
+                cancel-button-text="不操作"
+                @confirm="onAction(row, btn.action)"
+              >
+                <template #reference>
+                  <el-button size="small" :type="btn.type" @click.stop>{{ btn.label }}</el-button>
+                </template>
+              </el-popconfirm>
+              <el-button v-else size="small" :type="btn.type" @click.stop="onAction(row, btn.action)">
                 {{ btn.label }}
               </el-button>
             </template>
@@ -129,7 +140,10 @@ function getActions(order) {
   const actions = []
 
   if (t !== 'offline') {
-    if (s === 'paid') actions.push({ action: 'accept', label: '接单', type: 'primary' })
+    if (s === 'paid') {
+      actions.push({ action: 'accept', label: '接单', type: 'primary' })
+      actions.push({ action: 'cancel-accept', label: '取消接单', type: 'danger' })
+    }
     if (s === 'accepted' || s === 'weighed') actions.push({ action: 'process', label: '开始处理', type: 'warning' })
     if (s === 'weighed' || s === 'processing') {
       actions.push({ action: 'ready', label: '备货完成', type: 'success' })
@@ -149,15 +163,21 @@ function getActions(order) {
 }
 
 async function onAction(order, action) {
-  const labels = { accept: '接单', process: '开始处理', deliver: '开始配送', ready: '标记待取货', complete: '确认完成', 'mark-paid': '标记已支付' }
-  try {
-    await ElMessageBox.confirm(`确定对订单 ${order.orderNo} 执行「${labels[action]}」操作吗？`, '确认操作', { type: 'info' })
-  } catch { return }
+  // cancel-accept 已在模板中通过 el-popconfirm 确认，直接执行
+  if (action !== 'cancel-accept') {
+    const labels = { accept: '接单', process: '开始处理', deliver: '开始配送', ready: '标记待取货', complete: '确认完成', 'mark-paid': '标记已支付' }
+    try {
+      await ElMessageBox.confirm(`确定对订单 ${order.orderNo} 执行「${labels[action]}」操作吗？`, '确认操作', { type: 'info' })
+    } catch { return }
+  }
 
   try {
-    const res = await api.post('/merchant/orders/' + order.orderNo + '/' + action)
+    const url = action === 'cancel-accept'
+      ? '/merchant/orders/' + order.orderNo + '/cancel-accept'
+      : '/merchant/orders/' + order.orderNo + '/' + action
+    const res = await api.post(url, action === 'cancel-accept' ? { reason: '商家取消接单' } : undefined)
     if (res && res.success) {
-      ElMessage.success('操作成功')
+      ElMessage.success((res && res.message) || '操作成功')
       loadOrders()
       loadStats()
     } else {

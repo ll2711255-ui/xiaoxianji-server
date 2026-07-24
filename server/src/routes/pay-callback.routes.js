@@ -251,7 +251,7 @@ router.post('/refund', async (req, res) => {
       // 全额退款 → 状态5；部分退款 → 状态3
       const isFullRefund = refundRecord && refundRecord.refundAmount >= order.payAmount;
       await db.execute(
-        `UPDATE order_info SET order_status = ?, refund_status = 'success' WHERE order_no = ?`,
+        `UPDATE order_info SET order_status = ?, refund_status = 'success', refund_time = NOW() WHERE order_no = ?`,
         [isFullRefund ? 5 : 3, outTradeNo]
       );
     }

@@ -8,6 +8,12 @@
         <image class="status-icon" :src="statusIcon" mode="aspectFit" />
         <text class="status-text">{{ statusText }}</text>
         <text v-if="refundStatusText && refundStatusText !== '无需退款'" class="refund-text" :class="refundStatusClass">退款状态：{{ refundStatusText }}</text>
+        <!-- pending 倒计时 -->
+        <text v-if="order.status === 'pending' && countdown" class="countdown-text">请在 {{ countdown }} 内完成支付，超时订单自动取消</text>
+        <!-- accepted 不可取消提示 -->
+        <text v-if="order.status === 'accepted'" class="cancel-tip-text">商家已接单，订单无法取消。如有疑问请联系客服。</text>
+        <!-- cancelled 取消原因 -->
+        <text v-if="order.status === 'cancelled' && order.cancelReason" class="cancel-reason-text">取消原因：{{ order.cancelReason }}</text>
       </view>
 
       <!-- ========== 取货地址 / 门店信息 ========== -->
@@ -149,6 +155,8 @@ const weighInfo = ref(null)
 const showCancelBtn = ref(false)
 const showConfirmBtn = ref(false)
 const pollingTimer = ref(null)
+const countdown = ref('')
+const countdownTimer = ref(null)
 let pollFailCount = 0
 
 const statusIconMap = {
@@ -213,8 +221,8 @@ onShow(() => {
   }
 })
 
-onHide(() => stopPolling())
-onUnload(() => stopPolling())
+onHide(() => { stopPolling(); stopCountdown() })
+onUnload(() => { stopPolling(); stopCountdown() })
 
 // ========== 轮询 ==========
 function startPolling() {
@@ -227,6 +235,39 @@ function stopPolling() {
     clearInterval(pollingTimer.value)
     pollingTimer.value = null
   }
+}
+
+// ========== 倒计时 ==========
+function startCountdown(expireTime) {
+  stopCountdown()
+  if (!expireTime) return
+  const expire = new Date(expireTime).getTime()
+  if (isNaN(expire)) return
+
+  const tick = () => {
+    const remaining = expire - Date.now()
+    if (remaining <= 0) {
+      countdown.value = '已超时'
+      stopCountdown()
+      loadOrder() // 刷新订单状态
+      return
+    }
+    const h = Math.floor(remaining / 3600000)
+    const m = Math.floor((remaining % 3600000) / 60000)
+    const s = Math.floor((remaining % 60000) / 1000)
+    countdown.value = `${h}小时${m}分${s}秒`
+  }
+
+  tick()
+  countdownTimer.value = setInterval(tick, 1000)
+}
+
+function stopCountdown() {
+  if (countdownTimer.value) {
+    clearInterval(countdownTimer.value)
+    countdownTimer.value = null
+  }
+  countdown.value = ''
 }
 
 // ========== 加载订单详情 ==========
@@ -296,6 +337,13 @@ async function loadOrder(silent = false) {
     statusIcon.value = statusIconMap[o.status] || '/static/icons/status/status-pending.png'
 
     if (o.status === 'completed' || o.status === 'cancelled') stopPolling()
+
+    // 倒计时：仅 pending 状态显示
+    if (o.status === 'pending' && o.expireTime) {
+      startCountdown(o.expireTime)
+    } else {
+      stopCountdown()
+    }
   } catch (err) {
     if (!silent) console.error('加载订单详情失败:', err)
     pollFailCount++
@@ -317,9 +365,19 @@ function checkCanCancel(o) {
 
 // ========== 操作 ==========
 function onCancelOrder() {
+  const o = order.value
+  const isPaid = o && o.status === 'paid'
+  const refundYuan = o ? ((o.payAmount || 0) / 100).toFixed(2) : '0.00'
+
+  const content = isPaid
+    ? `确定要取消该订单吗？将退款 ¥${refundYuan}，1-7个工作日原路退回。`
+    : '确定要取消该订单吗？订单将直接关闭，无需退款。'
+
   uni.showModal({
     title: '取消订单',
-    content: '确定要取消该订单吗？退款将原路退回，1-7个工作日到账。',
+    content,
+    confirmText: '确认取消',
+    cancelText: '不取消',
     success: async (res) => {
       if (!res.confirm) return
       uni.showLoading({ title: '取消中...' })
@@ -327,7 +385,7 @@ function onCancelOrder() {
         const result = await post('/orders/' + orderNo.value + '/cancel')
         uni.hideLoading()
         if (result && result.success) {
-          uni.showToast({ title: '已取消', icon: 'success' })
+          uni.showToast({ title: result.message || '已取消', icon: 'none', duration: 2500 })
           loadOrder()
         } else {
           uni.showToast({ title: (result && result.message) || '取消失败', icon: 'none' })
@@ -335,7 +393,7 @@ function onCancelOrder() {
       } catch (err) {
         uni.hideLoading()
         console.error('取消失败:', err)
-        uni.showToast({ title: err.message || '取消失败', icon: 'none' })
+        uni.showToast({ title: err.message || '取消失败，请重试', icon: 'none' })
       }
     }
   })
@@ -497,6 +555,9 @@ function formatItemSpec(item) {
 .status-icon { width:96rpx; height:96rpx; margin-bottom:16rpx; }
 .status-text { font-size:var(--font-xl); font-weight:var(--weight-bold); color:var(--color-text-1); }
 .refund-text { font-size:var(--font-md); margin-top:12rpx; padding:6rpx 20rpx; border-radius:var(--radius-md); }
+.countdown-text { font-size:var(--font-sm); color:var(--color-warning); margin-top:12rpx; }
+.cancel-tip-text { font-size:var(--font-sm); color:var(--color-text-3); margin-top:12rpx; }
+.cancel-reason-text { font-size:var(--font-sm); color:var(--color-text-2); margin-top:12rpx; background:var(--color-bg-input); padding:8rpx 20rpx; border-radius:var(--radius-md); }
 .tag-green { background:var(--color-success-bg); color:var(--color-success); }
 .tag-orange { background:var(--color-warning-bg); color:var(--color-warning); }
 .tag-red { background:var(--color-danger-bg); color:var(--color-danger); }
